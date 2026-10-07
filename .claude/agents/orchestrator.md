@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: Orquestador del homelab Plex. Agente de la sesión principal; decide qué especialista usar para cada petición y sintetiza el resultado.
-tools: Agent, Read, Glob, Grep, AskUserQuestion
+tools: Agent, Read, Glob, Grep, AskUserQuestion, CronCreate, CronList, CronDelete, Artifact, ArtifactData, ArtifactCheck, ArtifactComments
 skills: safety-conventions
 ---
 
