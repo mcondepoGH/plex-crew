@@ -19,27 +19,31 @@ DEFAULT_QUALITY_PROFILE="${RADARR_DEFAULT_QUALITY_PROFILE:-1}"
 API="$RADARR_URL/api/v3"
 AUTH="X-Api-Key: $RADARR_API_KEY"
 
+_ARR_API="$SCRIPT_DIR/../../../../scripts/arr-api.sh"
+# shellcheck source=/dev/null
+source "$_ARR_API" || { echo "ERROR: arr-api.sh not found" >&2; exit 1; }
+
 cmd="$1"
 shift || true
 
 case "$cmd" in
   search)
     query="$1"
-    curl -s -H "$AUTH" "$API/movie/lookup?term=$(echo "$query" | jq -sRr @uri)" | jq -r '
-      to_entries | .[] | 
-      "\(.key + 1). \(.value.title) (\(.value.year)) - https://themoviedb.org/movie/\(.value.tmdbId)" + 
+    arr_get "/movie/lookup?term=$(echo "$query" | jq -sRr @uri)" | jq -r '
+      to_entries | .[] |
+      "\(.key + 1). \(.value.title) (\(.value.year)) - https://themoviedb.org/movie/\(.value.tmdbId)" +
       (if .value.collection.tmdbId then " [Collection: \(.value.collection.title)]" else "" end)
     '
     ;;
-    
+
   search-json)
     query="$1"
-    curl -s -H "$AUTH" "$API/movie/lookup?term=$(echo "$query" | jq -sRr @uri)"
+    arr_get "/movie/lookup?term=$(echo "$query" | jq -sRr @uri)"
     ;;
-    
+
   exists)
     tmdbId="$1"
-    result=$(curl -s -H "$AUTH" "$API/movie?tmdbId=$tmdbId")
+    result=$(arr_get "/movie?tmdbId=$tmdbId")
     if [ "$result" = "[]" ]; then
       echo "not_found"
     else
@@ -50,12 +54,12 @@ case "$cmd" in
     
   config)
     echo "=== Root Folders ==="
-    curl -s -H "$AUTH" "$API/rootfolder" | jq -r '.[] | "\(.id): \(.path)"'
+    arr_get "/rootfolder" | jq -r '.[] | "\(.id): \(.path)"'
     echo ""
     echo "=== Quality Profiles ==="
-    curl -s -H "$AUTH" "$API/qualityprofile" | jq -r '.[] | "\(.id): \(.name)"'
+    arr_get "/qualityprofile" | jq -r '.[] | "\(.id): \(.name)"'
     ;;
-    
+
   add)
     tmdbId="$1"
     qualityProfileId="$2"
@@ -69,17 +73,17 @@ case "$cmd" in
     done
     
     # Get movie details from lookup
-    movie=$(curl -s -H "$AUTH" "$API/movie/lookup/tmdb?tmdbId=$tmdbId")
-    
+    movie=$(arr_get "/movie/lookup/tmdb?tmdbId=$tmdbId")
+
     # Get default root folder
-    rootFolder=$(curl -s -H "$AUTH" "$API/rootfolder" | jq -r '.[0].path')
-    
+    rootFolder=$(arr_get "/rootfolder" | jq -r '.[0].path')
+
     # Use provided quality profile ID, config default, or first available
     if [ -z "$qualityProfileId" ] || [ "$qualityProfileId" = "--no-search" ]; then
       if [ -n "$DEFAULT_QUALITY_PROFILE" ]; then
         qualityProfile="$DEFAULT_QUALITY_PROFILE"
       else
-        qualityProfile=$(curl -s -H "$AUTH" "$API/qualityprofile" | jq -r '.[0].id')
+        qualityProfile=$(arr_get "/qualityprofile" | jq -r '.[0].id')
       fi
     else
       qualityProfile="$qualityProfileId"
@@ -97,8 +101,8 @@ case "$cmd" in
       }
     ')
     
-    result=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d "$addRequest" "$API/movie")
-    
+    result=$(arr_post "/movie" "$addRequest")
+
     if echo "$result" | jq -e '.id' > /dev/null 2>&1; then
       echo "✅ Added: $(echo "$result" | jq -r '.title') ($(echo "$result" | jq -r '.year'))"
       if [ "$searchFlag" = "true" ]; then
@@ -125,7 +129,7 @@ case "$cmd" in
     echo "🔍 Finding movies in collection..."
     
     # Try getting collection name from Radarr's collection list first
-    collections=$(curl -s -H "$AUTH" "$API/collection")
+    collections=$(arr_get "/collection")
     collection=$(echo "$collections" | jq --argjson tid "$collectionTmdbId" '.[] | select(.tmdbId == $tid)')
     
     if [ -n "$collection" ] && [ "$collection" != "null" ]; then
@@ -142,7 +146,7 @@ case "$cmd" in
     fi
     
     # Search for movies
-    allMovies=$(curl -s -H "$AUTH" "$API/movie/lookup?term=$(echo "$searchTerm" | jq -sRr @uri)")
+    allMovies=$(arr_get "/movie/lookup?term=$(echo "$searchTerm" | jq -sRr @uri)")
     
     # Filter to only movies in our collection
     moviesToAdd=$(echo "$allMovies" | jq --argjson cid "$collectionTmdbId" '[.[] | select(.collection.tmdbId == $cid)]')
@@ -156,8 +160,8 @@ case "$cmd" in
     echo "📦 Found $movieCount movies in collection"
     
     # Get default root folder and quality profile
-    rootFolder=$(curl -s -H "$AUTH" "$API/rootfolder" | jq -r '.[0].path')
-    qualityProfile=$(curl -s -H "$AUTH" "$API/qualityprofile" | jq -r '.[0].id')
+    rootFolder=$(arr_get "/rootfolder" | jq -r '.[0].path')
+    qualityProfile=$(arr_get "/qualityprofile" | jq -r '.[0].id')
     
     # Add each movie
     added=0
@@ -169,7 +173,7 @@ case "$cmd" in
       year=$(echo "$movie" | jq -r '.year')
       
       # Check if already exists
-      existing=$(curl -s -H "$AUTH" "$API/movie?tmdbId=$tmdbId")
+      existing=$(arr_get "/movie?tmdbId=$tmdbId")
       if [ "$existing" != "[]" ]; then
         echo "⏭️  $title ($year) - already in library"
         skipped=$((skipped + 1))
@@ -188,8 +192,8 @@ case "$cmd" in
         }
       ')
       
-      result=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d "$addRequest" "$API/movie")
-      
+      result=$(arr_post "/movie" "$addRequest")
+
       if echo "$result" | jq -e '.id' > /dev/null 2>&1; then
         echo "✅ $title ($year)"
         added=$((added + 1))
@@ -205,17 +209,17 @@ case "$cmd" in
     fi
     
     # Monitor the collection for future movies
-    collections=$(curl -s -H "$AUTH" "$API/collection")
+    collections=$(arr_get "/collection")
     collection=$(echo "$collections" | jq --argjson tid "$collectionTmdbId" '.[] | select(.tmdbId == $tid)')
-    
+
     if [ -n "$collection" ] && [ "$collection" != "null" ]; then
       collectionId=$(echo "$collection" | jq -r '.id')
-      
+
       # Get full collection details and update with monitoring
-      fullCollection=$(curl -s -H "$AUTH" "$API/collection/$collectionId")
+      fullCollection=$(arr_get "/collection/$collectionId")
       updatePayload=$(echo "$fullCollection" | jq '. + {monitored: true, searchOnAdd: true}')
-      
-      updateResult=$(curl -s -X PUT -H "$AUTH" -H "Content-Type: application/json" -d "$updatePayload" "$API/collection/$collectionId")
+
+      updateResult=$(arr_put "/collection/$collectionId" "$updatePayload")
       
       if echo "$updateResult" | jq -e '.monitored' > /dev/null 2>&1; then
         echo "👁️ Collection monitored (new releases auto-added)"
@@ -231,19 +235,19 @@ case "$cmd" in
     fi
     
     # Get movie ID from library
-    movie=$(curl -s -H "$AUTH" "$API/movie?tmdbId=$tmdbId")
-    
+    movie=$(arr_get "/movie?tmdbId=$tmdbId")
+
     if [ "$movie" = "[]" ]; then
       echo "❌ Movie not found in library"
       exit 1
     fi
-    
+
     movieId=$(echo "$movie" | jq -r '.[0].id')
     title=$(echo "$movie" | jq -r '.[0].title')
     year=$(echo "$movie" | jq -r '.[0].year')
     hasFile=$(echo "$movie" | jq -r '.[0].hasFile')
-    
-    curl -s -X DELETE -H "$AUTH" "$API/movie/$movieId?deleteFiles=$deleteFiles" > /dev/null
+
+    arr_delete "/movie/$movieId?deleteFiles=$deleteFiles" > /dev/null
     
     if [ "$deleteFiles" = "true" ]; then
       echo "🗑️ Removed: $title ($year) + deleted files"
@@ -254,25 +258,25 @@ case "$cmd" in
     
   collection-info)
     tmdbId="$1"
-    curl -s -H "$AUTH" "$API/collection" | jq --argjson tid "$tmdbId" '.[] | select(.tmdbId == $tid)'
+    arr_get "/collection" | jq --argjson tid "$tmdbId" '.[] | select(.tmdbId == $tid)'
     ;;
 
   logs)
     n="${1:-50}"
     level="${2:-}"
-    url="$API/log?pageSize=$n&sortKey=time&sortDirection=descending"
+    url="/log?pageSize=$n&sortKey=time&sortDirection=descending"
     [[ -n "$level" ]] && url+="&filterKey=level&filterValue=$level"
-    curl -s -H "$AUTH" "$url" | jq -r '.records[] | "\(.time) [\(.level)] \(.logger): \(.message // .exception // "")"'
+    arr_get "$url" | jq -r '.records[] | "\(.time) [\(.level)] \(.logger): \(.message // .exception // "")"'
     ;;
 
   search-all)
-    result=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d '{"name":"MissingMoviesSearch"}' "$API/command")
+    result=$(arr_post "/command" '{"name":"MissingMoviesSearch"}')
     echo "$result" | jq -r '"🔍 Started: \(.name) (command id \(.id), status \(.status))"'
     ;;
 
   search-id)
     movieId="${1:?Usage: radarr.sh search-id <internal movieId>}"
-    result=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d "{\"name\":\"MoviesSearch\",\"movieIds\":[$movieId]}" "$API/command")
+    result=$(arr_post "/command" "{\"name\":\"MoviesSearch\",\"movieIds\":[$movieId]}")
     echo "$result" | jq -r --arg mid "$movieId" '"🔍 Started: \(.name) for movie \($mid) (command id \(.id), status \(.status))"'
     ;;
 

@@ -19,26 +19,30 @@ DEFAULT_QUALITY_PROFILE="${SONARR_DEFAULT_QUALITY_PROFILE:-1}"
 API="$SONARR_URL/api/v3"
 AUTH="X-Api-Key: $SONARR_API_KEY"
 
+_ARR_API="$SCRIPT_DIR/../../../../scripts/arr-api.sh"
+# shellcheck source=/dev/null
+source "$_ARR_API" || { echo "ERROR: arr-api.sh not found" >&2; exit 1; }
+
 cmd="$1"
 shift || true
 
 case "$cmd" in
   search)
     query="$1"
-    curl -s -H "$AUTH" "$API/series/lookup?term=$(echo "$query" | jq -sRr @uri)" | jq -r '
-      to_entries | .[:10] | .[] | 
+    arr_get "/series/lookup?term=$(echo "$query" | jq -sRr @uri)" | jq -r '
+      to_entries | .[:10] | .[] |
       "\(.key + 1). \(.value.title) (\(.value.year)) - https://thetvdb.com/dereferrer/series/\(.value.tvdbId)"
     '
     ;;
-    
+
   search-json)
     query="$1"
-    curl -s -H "$AUTH" "$API/series/lookup?term=$(echo "$query" | jq -sRr @uri)"
+    arr_get "/series/lookup?term=$(echo "$query" | jq -sRr @uri)"
     ;;
-    
+
   exists)
     tvdbId="$1"
-    result=$(curl -s -H "$AUTH" "$API/series?tvdbId=$tvdbId")
+    result=$(arr_get "/series?tvdbId=$tvdbId")
     if [ "$result" = "[]" ]; then
       echo "not_found"
     else
@@ -49,12 +53,12 @@ case "$cmd" in
     
   config)
     echo "=== Root Folders ==="
-    curl -s -H "$AUTH" "$API/rootfolder" | jq -r '.[] | "\(.id): \(.path)"'
+    arr_get "/rootfolder" | jq -r '.[] | "\(.id): \(.path)"'
     echo ""
     echo "=== Quality Profiles ==="
-    curl -s -H "$AUTH" "$API/qualityprofile" | jq -r '.[] | "\(.id): \(.name)"'
+    arr_get "/qualityprofile" | jq -r '.[] | "\(.id): \(.name)"'
     ;;
-    
+
   add)
     tvdbId="$1"
     qualityProfileId="$2"
@@ -68,7 +72,7 @@ case "$cmd" in
     done
     
     # Get series details from lookup
-    series=$(curl -s -H "$AUTH" "$API/series/lookup?term=tvdb:$tvdbId" | jq '.[0]')
+    series=$(arr_get "/series/lookup?term=tvdb:$tvdbId" | jq '.[0]')
     
     if [ "$series" = "null" ] || [ -z "$series" ]; then
       echo "❌ Show not found with TVDB ID: $tvdbId"
@@ -76,14 +80,14 @@ case "$cmd" in
     fi
     
     # Get default root folder
-    rootFolder=$(curl -s -H "$AUTH" "$API/rootfolder" | jq -r '.[0].path')
-    
+    rootFolder=$(arr_get "/rootfolder" | jq -r '.[0].path')
+
     # Use provided quality profile ID, config default, or first available
     if [ -z "$qualityProfileId" ] || [ "$qualityProfileId" = "--no-search" ]; then
       if [ -n "$DEFAULT_QUALITY_PROFILE" ]; then
         qualityProfile="$DEFAULT_QUALITY_PROFILE"
       else
-        qualityProfile=$(curl -s -H "$AUTH" "$API/qualityprofile" | jq -r '.[0].id')
+        qualityProfile=$(arr_get "/qualityprofile" | jq -r '.[0].id')
       fi
     else
       qualityProfile="$qualityProfileId"
@@ -104,7 +108,7 @@ case "$cmd" in
       }
     ')
     
-    result=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d "$addRequest" "$API/series")
+    result=$(arr_post "/series" "$addRequest")
     
     if echo "$result" | jq -e '.id' > /dev/null 2>&1; then
       title=$(echo "$result" | jq -r '.title')
@@ -128,18 +132,18 @@ case "$cmd" in
     fi
     
     # Get series ID from library
-    series=$(curl -s -H "$AUTH" "$API/series?tvdbId=$tvdbId")
-    
+    series=$(arr_get "/series?tvdbId=$tvdbId")
+
     if [ "$series" = "[]" ]; then
       echo "❌ Show not found in library"
       exit 1
     fi
-    
+
     seriesId=$(echo "$series" | jq -r '.[0].id')
     title=$(echo "$series" | jq -r '.[0].title')
     year=$(echo "$series" | jq -r '.[0].year')
-    
-    curl -s -X DELETE -H "$AUTH" "$API/series/$seriesId?deleteFiles=$deleteFiles" > /dev/null
+
+    arr_delete "/series/$seriesId?deleteFiles=$deleteFiles" > /dev/null
     
     if [ "$deleteFiles" = "true" ]; then
       echo "🗑️ Removed: $title ($year) + deleted files"
@@ -151,19 +155,19 @@ case "$cmd" in
   logs)
     n="${1:-50}"
     level="${2:-}"
-    url="$API/log?pageSize=$n&sortKey=time&sortDirection=descending"
+    url="/log?pageSize=$n&sortKey=time&sortDirection=descending"
     [[ -n "$level" ]] && url+="&filterKey=level&filterValue=$level"
-    curl -s -H "$AUTH" "$url" | jq -r '.records[] | "\(.time) [\(.level)] \(.logger): \(.message // .exception // "")"'
+    arr_get "$url" | jq -r '.records[] | "\(.time) [\(.level)] \(.logger): \(.message // .exception // "")"'
     ;;
 
   search-all)
-    result=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d '{"name":"MissingEpisodeSearch"}' "$API/command")
+    result=$(arr_post "/command" '{"name":"MissingEpisodeSearch"}')
     echo "$result" | jq -r '"🔍 Started: \(.name) (command id \(.id), status \(.status))"'
     ;;
 
   search-id)
     seriesId="${1:?Usage: sonarr.sh search-id <internal seriesId>}"
-    result=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d "{\"name\":\"SeriesSearch\",\"seriesId\":$seriesId}" "$API/command")
+    result=$(arr_post "/command" "{\"name\":\"SeriesSearch\",\"seriesId\":$seriesId}")
     echo "$result" | jq -r --arg sid "$seriesId" '"🔍 Started: \(.name) for series \($sid) (command id \(.id), status \(.status))"'
     ;;
 
