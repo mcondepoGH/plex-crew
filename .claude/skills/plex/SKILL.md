@@ -19,7 +19,7 @@ Control and query Plex Media Server using the Plex API. Browse libraries, search
 
 ## Purpose
 
-This skill provides **read-only** access to your Plex Media Server:
+This skill provides **mostly read-only** access to your Plex Media Server (the only command that changes state is `refresh`, which launches a library scan):
 - Browse library sections (Movies, TV, Music, Photos)
 - Search for specific media
 - View recently added content
@@ -27,7 +27,7 @@ This skill provides **read-only** access to your Plex Media Server:
 - View "On Deck" (continue watching)
 - List available clients/players
 
-All operations are **GET-only** and safe for monitoring/browsing.
+All commands are HTTP GET requests, but **`refresh` is NOT read-only**: `GET /library/sections/<id>/refresh` makes Plex scan the library section. Everything else is safe for monitoring/browsing.
 
 ## Setup
 
@@ -155,12 +155,18 @@ curl -s "$PLEX_URL/clients?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/jso
 # List playlists
 .claude/skills/plex/scripts/plex-api.sh playlists
 
-# Refresh library section (scan for new media)
+# NOT read-only: launches a scan of the library section (see warning below)
 .claude/skills/plex/scripts/plex-api.sh refresh 1
 
 # View all commands
 .claude/skills/plex/scripts/plex-api.sh --help
 ```
+
+### Refresh (launches a library scan)
+
+`refresh <section-id>` makes Plex scan that section for new media. It is a write operation in practice, so confirm with the user before using it. The script prints a fixed `{"status": "ok", "message": "Library refresh initiated"}` after the call **without checking Plex's response** (no HTTP status check), so an `ok` does not prove the scan started.
+
+**Do not launch or offer scans after renaming files**: the user has an external script that updates Plex (see `plex-naming-rules`). Only use `refresh` when the user explicitly asks for it.
 
 ## Workflow
 
@@ -193,7 +199,7 @@ Always list sections first to get the correct section keys for your server.
 ## Notes
 
 - Requires network access to your Plex server
-- All calls are **read-only GET requests**
+- All calls are GET requests and read-only, except `refresh` (launches a library scan)
 - Library section keys (1, 2, 3...) vary by server setup — list sections first
 - Playback control is possible but not implemented (safety)
 - Always confirm before triggering playback on remote devices
@@ -215,11 +221,6 @@ PLEX_URL="http://server2:32400" PLEX_TOKEN="token2" curl ...
 
 - [Plex Media Server API](https://www.plexopedia.com/plex-media-server/api/)
 - [Plex Web App](https://app.plex.tv/)
-
-For detailed local reference, see:
-- **[API Endpoints](./references/api-endpoints.md)** - Complete endpoint reference with parameters
-- **[Quick Reference](./references/quick-reference.md)** - Common operations with copy-paste examples
-- **[Troubleshooting](./references/troubleshooting.md)** - Authentication, connection, and error solutions
 
 ---
 

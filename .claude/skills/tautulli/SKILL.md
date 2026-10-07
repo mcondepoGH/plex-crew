@@ -58,9 +58,9 @@ TAUTULLI_API_KEY="<your_tautulli_api_key>"
 
 ## Commands
 
-All commands use the `tautulli-api.sh` wrapper script and return JSON output.
+All commands use the `tautulli-api.sh` wrapper script and return JSON output (`logs` devuelve un array recortado; véase su sección).
 
-The helper script is located at: `skills/tautulli/scripts/tautulli-api.sh`
+The helper script is located at: `.claude/skills/tautulli/scripts/tautulli-api.sh`
 
 ### Server Information
 
@@ -78,11 +78,11 @@ Monitor active streams and current playback:
 # All active sessions
 .claude/skills/tautulli/scripts/tautulli-api.sh activity
 
-# Activity with session details
+# --details se acepta pero NO cambia la petición (equivale a activity)
 .claude/skills/tautulli/scripts/tautulli-api.sh activity --details
 ```
 
-**Returns:** Current streams with user, media, player, bandwidth, transcode info
+**Returns:** Current streams with user, media, player, bandwidth, transcode info. `--details` es una opción aceptada por compatibilidad: el script la lee y la ignora.
 
 ### Playback History
 
@@ -147,10 +147,12 @@ Analyze library usage and popular content:
 ```
 
 **Parameters:**
-- `--section-id <id>`: Specific library section
-- `--media-type <type>`: Filter by type (movie, show, artist)
-- `--days <n>`: Timeframe for popularity
-- `--limit <n>`: Maximum results
+- `--section-id <id>`: Se envía a Tautulli como parámetro
+- `--media-type <type>`: Se envía como parámetro, pero **no cambia la estadística**
+- `--days <n>`: Timeframe for popularity (por defecto 30)
+- `--limit <n>`: Maximum results (por defecto 10)
+
+**Limitación:** `popular` pide siempre `get_home_stats` con `stat_id=popular_movies` (películas populares). Para series u otros tipos no hay un `popular` distinto: usa `home-stats`, que devuelve también las series y música más vistas.
 
 ### Recently Added
 
@@ -202,9 +204,26 @@ Monitor concurrent stream patterns:
 # Concurrent stream history
 .claude/skills/tautulli/scripts/tautulli-api.sh concurrent-streams --days 30
 
-# Peak concurrent streams
+# Con --peak
 .claude/skills/tautulli/scripts/tautulli-api.sh concurrent-streams --days 7 --peak
 ```
+
+Sin `--peak` consulta `get_concurrent_streams_by_stream_type` (streams simultáneos por tipo: direct play, direct stream, transcode). Con `--peak` cambia a `get_plays_per_month` con `y_axis=concurrent`: no es un cálculo propio del pico, solo la serie que devuelve Tautulli para esa consulta. Interprétala con cuidado y contrasta con `activity` o `history` si necesitas el máximo exacto.
+
+### Logs
+
+```bash
+# Últimas 25 líneas del log de Tautulli (por defecto)
+.claude/skills/tautulli/scripts/tautulli-api.sh logs
+
+# Log del servidor Plex (get_plex_log, log_type=server), 100 líneas
+.claude/skills/tautulli/scripts/tautulli-api.sh logs --plex --limit 100
+```
+
+- `--limit <n>`: máximo de líneas (por defecto 25)
+- `--plex`: lee el log del servidor Plex en lugar del propio de Tautulli
+
+A diferencia del resto, `logs` no devuelve el sobre `response` completo: filtra con `jq` y devuelve solo un array JSON con las primeras `n` entradas de `response.data`.
 
 ### Media Metadata
 
@@ -325,11 +344,6 @@ TAUTULLI_URL="$TAUTULLI2_URL" TAUTULLI_API_KEY="$TAUTULLI2_API_KEY" \
 - [Tautulli API Documentation](https://github.com/Tautulli/Tautulli/wiki/Tautulli-API-Reference)
 - [Tautulli GitHub](https://github.com/Tautulli/Tautulli)
 - [Tautulli Homepage](https://tautulli.com)
-
-For detailed API reference, see:
-- **[API Endpoints](./references/api-endpoints.md)** - Complete endpoint reference with parameters
-- **[Quick Reference](./references/quick-reference.md)** - Common operations with copy-paste examples
-- **[Troubleshooting](./references/troubleshooting.md)** - Authentication, connection, and error solutions
 
 ---
 

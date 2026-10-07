@@ -12,7 +12,7 @@ Script: `.claude/skills/prowlarr/scripts/prowlarr-api.sh <comando> [opciones]`. 
 
 | Comando | Para qué sirve | Argumentos / opciones | Tipo |
 |---------|----------------|-----------------------|------|
-| `search` | Búsqueda de texto en todos los indexadores. Devuelve título, indexador, tamaño en MB, seeders, leechers, edad y URLs. | `<consulta>` (obligatoria), `--torrents`, `--usenet`, `--category\|-c <id>`, `--limit\|-l <n>`, `--type\|-t <tipo>` (por defecto `search`) | Lectura |
+| `search` | Búsqueda de texto en todos los indexadores. Devuelve título, indexador, tamaño en MB, seeders, leechers, edad y URLs. | `<consulta>` (obligatoria), `--torrents`, `--usenet`, `--category\|-c <id>`, `--limit\|-l <n>`, `--type\|-t <tipo>` (por defecto `search`; p. ej. `tvsearch`, `moviesearch`) | Lectura |
 | `tv-search` | Búsqueda de series por id con `type=tvsearch`. | `--tvdb <id>`, `--season\|-s <n>`, `--episode\|-e <n>` | Lectura |
 | `movie-search` | Búsqueda de películas por id con `type=moviesearch`. | `--imdb <id>` o `--tmdb <id>` (al menos uno) | Lectura |
 | `indexers` | Lista indexadores (id, nombre, protocolo, activo, prioridad). | `--verbose\|-v` devuelve el JSON completo | Lectura |
@@ -20,7 +20,7 @@ Script: `.claude/skills/prowlarr/scripts/prowlarr-api.sh <comando> [opciones]`. 
 | `apps` | Lista las aplicaciones conectadas (id, nombre, nivel de sync, implementación). | Ninguno | Lectura |
 | `status` | Estado del sistema (`/system/status`). | Ninguno | Lectura |
 | `health` | Avisos de salud (origen, tipo, mensaje). | Ninguno | Lectura |
-| `logs` | Últimas líneas de log, de más reciente a más antigua. | `[n]` (50 por defecto), `[nivel]` (`info`, `warn`, `error`) | Lectura |
+| `logs` | Últimas líneas de log, de más reciente a más antigua. | `[n]` (50 por defecto), `[nivel]` (`info`, `warn`, `error`); imprime texto, no JSON | Lectura |
 | `test` | Prueba un indexador (POST `/indexer/test` con su definición). | `<id>` | Lectura (lanza una prueba de conectividad) |
 | `test-all` | Prueba todos los indexadores (POST `/indexer/testall`). | Ninguno | Lectura (lanza pruebas) |
 | **`enable`** | Activa un indexador (PUT con `enable=true`). | `<id>` | Escritura |
@@ -57,9 +57,9 @@ bash .claude/skills/prowlarr/scripts/prowlarr-api.sh disable 3
 
 ## Notas y límites
 
-- El script usa `set -euo pipefail`: `test`, `enable`, `disable` y `delete` sin `<id>` fallan con "unbound variable".
-- `delete` imprime `deleted: true` sin comprobar la respuesta de Prowlarr, y el script no pide confirmación: debe pedirla el agente (doble confirmación, véase `CLAUDE.md` y el hook `confirm-destructive`). `enable`, `disable`, `test` y `sync` también imprimen un `status: ok` fijo tras la llamada.
-- `tv-search` y `movie-search` construyen la consulta con la sintaxis `{TvdbId:..}`, `{Season:..}`, `{Episode:..}`, `{ImdbId:..}` y `{TmdbId:..}` del campo `query`. `tv-search` solo exige alguno de los tres filtros, pero su mensaje de error habla de `--tvdb`.
+- `test`, `enable`, `disable` y `delete` sin `<id>` imprimen el uso y salen con 1.
+- `enable`, `disable`, `delete`, `test`, `test-all` y `sync` comprueban solo el código HTTP: si no es 2xx imprimen el error por stderr y salen con 1; si lo es, imprimen un `status: ok` fijo (no verifican el efecto, solo que Prowlarr aceptó la llamada). El hook `confirm-destructive` exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1` para `delete`.
+- `tv-search` y `movie-search` construyen la consulta con la sintaxis `{TvdbId:..}`, `{Season:..}`, `{Episode:..}`, `{ImdbId:..}` y `{TmdbId:..}` del campo `query`. `tv-search` exige al menos uno de `--tvdb`, `--season` o `--episode`; `movie-search` al menos `--imdb` o `--tmdb`.
 - `--torrents` equivale a `indexerIds=-2` y `--usenet` a `indexerIds=-1`.
 - Categorías Newznab habituales: 2000 Movies, 5000 TV, 3000 Audio, 7000 Books, 1000 Console, 4000 PC, 6000 XXX.
 - La búsqueda de texto de Torrentio sin `imdbid` devuelve resultados de un título de validación fijo; usar `movie-search --imdb` o `tv-search --tvdb` cuando se pueda.

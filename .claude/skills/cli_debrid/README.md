@@ -46,7 +46,7 @@ bash .claude/skills/cli_debrid/scripts/cli_debrid.sh trigger-task Scraping
 ## Notas y límites
 
 - No usa clave de API: autentica con usuario y contraseña mediante una sesión por cookie (el mismo login que la interfaz web), con POST a `/auth/login`.
-- La cookie se guarda en `/tmp/.cli_debrid_cookie_<md5 de la URL>` y se reutiliza. Antes de cada petición se sondea `program_status`; si no responde 200, se vuelve a iniciar sesión. El script no comprueba si el login tuvo éxito.
+- La cookie se guarda en `/tmp/.cli_debrid_cookie_<hash de la URL>` y se reutiliza. Antes de cada petición se sondea `program_status`; si no responde 200, se vuelve a iniciar sesión. El script no comprueba si el login tuvo éxito.
 - A diferencia de las demás skills, lee siempre el fichero de entorno (`load_env_file`, y por tanto exige que exista `.env` o `HOMELAB_ENV`) en lugar de aceptar solo variables ya exportadas.
 - Las respuestas se imprimen tal cual, sin `jq`; la forma exacta depende de cli_debrid.
 - Sin argumentos o con un comando desconocido imprime el uso y sale con código 1; `trigger-task` sin nombre falla con el mensaje de uso.

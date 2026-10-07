@@ -2,7 +2,7 @@
 //
 // Rutas permitidas, en este orden de lectura:
 //   1. Fichero indicado en $PLEX_CREW_CONFIG, o si no existe la variable,
-//      ~/.config/plex-crew/scope.conf (una ruta absoluta por línea; se ignoran
+//      ~/.claude/plex-crew/scope.conf (una ruta absoluta por línea; se ignoran
 //      líneas vacías y comentarios con #; se expande ~).
 //   2. Argumentos de línea de comandos opcionales: se añaden como rutas extra.
 // Si no hay ninguna ruta, se deniega todo con instrucciones para configurarlo.
@@ -42,7 +42,7 @@ function real(p) {
 }
 
 function loadAllowed() {
-  const file = process.env.PLEX_CREW_CONFIG || path.join(HOME, '.config', 'plex-crew', 'scope.conf');
+  const file = process.env.PLEX_CREW_CONFIG || path.join(HOME, '.claude', 'plex-crew', 'scope.conf');
   const list = [];
   try {
     for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
@@ -439,7 +439,7 @@ process.stdin.on('end', () => {
 
   if (ALLOWED.length === 0) {
     out(
-      'No hay rutas permitidas para este agente. Crea ~/.config/plex-crew/scope.conf ' +
+      'No hay rutas permitidas para este agente. Crea ~/.claude/plex-crew/scope.conf ' +
         '(hay una plantilla en scope.conf.example en la raíz del repositorio) con una ruta absoluta por línea, ' +
         'o define la variable PLEX_CREW_CONFIG apuntando a otro fichero.'
     );

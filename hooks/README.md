@@ -22,6 +22,7 @@ Patrones principales:
 - `find` con `-delete` o `-exec rm`.
 - `DELETE FROM`, `DROP TABLE`, `DROP DATABASE`.
 - `curl -X DELETE`.
+- Skills de servicios: `radarr.sh remove` y `sonarr.sh remove` (con o sin `--delete-files`) y `prowlarr-api.sh delete`, con `bash`, ruta relativa o absoluta.
 
 Marcador `PLEX_CREW_CONFIRMED=1`: si el comando lo lleva como asignación de entorno al inicio (por ejemplo `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`, también tras `;`, `&` o `|`), el hook lo deja pasar. Solo se pone tras la doble confirmación del usuario (dos mensajes distintos, incluso en modo automático). Sin marcador, el subagente no ejecuta el comando y devuelve la propuesta al orquestador, que pide las confirmaciones.
 
@@ -41,17 +42,19 @@ Qué vigila: que toda escritura quede dentro de las rutas permitidas (incluye to
 
 Las rutas permitidas se leen de:
 
-1. El fichero indicado en la variable de entorno `PLEX_CREW_CONFIG`, o si no existe, `~/.config/plex-crew/scope.conf`.
+1. El fichero indicado en la variable de entorno `PLEX_CREW_CONFIG`, o si no existe, `~/.claude/plex-crew/scope.conf`.
 2. Argumentos de línea de comandos opcionales del hook, que se añaden como rutas extra.
 
 Formato: una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`; se admite `~` al principio. La plantilla es [`scope.conf.example`](../scope.conf.example):
 
 ```
-mkdir -p ~/.config/plex-crew
-cp scope.conf.example ~/.config/plex-crew/scope.conf
+mkdir -p ~/.claude/plex-crew
+cp scope.conf.example ~/.claude/plex-crew/scope.conf
 ```
 
 `PLEX_CREW_CONFIG` se define en el entorno de la shell, no en el `.env`.
+
+La ruta por defecto cuelga de `~/.claude` y no de `~/.config` porque en el contenedor del stack `~/.claude` está montado desde un volumen (`./claude-code/config`) y persiste entre reinicios, mientras que `~/.config` no.
 
 Si el fichero falta o no tiene rutas, el hook deniega toda escritura con un mensaje que explica cómo crearlo.
 

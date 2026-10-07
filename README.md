@@ -18,8 +18,8 @@ Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ec
 5. La primera vez Claude Code pide aprobar el servidor MCP `zurg` (definido en `.mcp.json`). Apruébalo.
 6. Configura el alcance de escritura de `plex-naming`:
    ```bash
-   mkdir -p ~/.config/plex-crew
-   cp scope.conf.example ~/.config/plex-crew/scope.conf
+   mkdir -p ~/.claude/plex-crew
+   cp scope.conf.example ~/.claude/plex-crew/scope.conf
    ```
    Edita el fichero con las rutas absolutas donde puede escribir (una por línea). Sin él, el hook deniega toda escritura a ese agente.
 
@@ -32,15 +32,13 @@ El `.env` no se versiona. Plantilla: `.env.example`.
 | `ZURG_MCP_URL` | zurg (MCP) | Sí, para usar zurg |
 | `PROWLARR_URL`, `PROWLARR_API_KEY` | Prowlarr | Si usas la skill |
 | `RADARR_URL`, `RADARR_API_KEY` | Radarr | Si usas la skill |
-| `RADARR_DEFAULT_QUALITY_PROFILE` | Radarr | No |
 | `SONARR_URL`, `SONARR_API_KEY` | Sonarr | Si usas la skill |
-| `SONARR_DEFAULT_QUALITY_PROFILE` | Sonarr | No |
 | `PLEX_URL`, `PLEX_TOKEN` | Plex | Si usas la skill |
 | `TAUTULLI_URL`, `TAUTULLI_API_KEY` | Tautulli | Si usas la skill |
 | `SEERR_URL`, `SEERR_API_KEY` | Seerr / Overseerr | Si usas la skill |
 | `CLI_DEBRID_URL`, `CLI_DEBRID_USER`, `CLI_DEBRID_PASSWORD` | cli_debrid | Si usas la skill |
 | `HOMELAB_ENV` | Skills y `scripts/start.sh` | No: ruta alternativa al `.env` de la raíz |
-| `PLEX_CREW_CONFIG` | Hook `enforce-agent-scope` | No: ruta alternativa a `~/.config/plex-crew/scope.conf`; se define en el entorno, no en el `.env` |
+| `PLEX_CREW_CONFIG` | Hook `enforce-agent-scope` | No: ruta alternativa a `~/.claude/plex-crew/scope.conf`; se define en el entorno, no en el `.env` |
 
 ## Agentes
 

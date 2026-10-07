@@ -70,7 +70,7 @@ Los prefijos `clients`, `config`, `diagnostics`, `mount`, `provider`, `repair`, 
 | [`enforce-agent-scope`](../../../hooks/README.md#enforce-agent-scopejs) | Registrado en el frontmatter de este agente (`Edit`, `Write`, `NotebookEdit`, `Bash`); es el único agente que lo tiene. Solo deja escribir bajo las rutas de `scope.conf` |
 | Doble confirmación | Dos mensajes distintos del usuario antes de cualquier operación destructiva, incluso en modo automático |
 
-`scope.conf` se busca en `$PLEX_CREW_CONFIG` o, si no existe, en `~/.config/plex-crew/scope.conf` (plantilla: `scope.conf.example`). Admite una ruta absoluta por línea, comentarios con `#` y `~`. Sin rutas, el hook deniega toda escritura. Ante la duda (sustituciones, `eval`, `xargs`, intérpretes...) también deniega. No es un sandbox y no ve las tools MCP.
+`scope.conf` se busca en `$PLEX_CREW_CONFIG` o, si no existe, en `~/.claude/plex-crew/scope.conf` (plantilla: `scope.conf.example`). Admite una ruta absoluta por línea, comentarios con `#` y `~`. Sin rutas, el hook deniega toda escritura. Ante la duda (sustituciones, `eval`, `xargs`, intérpretes...) también deniega. No es un sandbox y no ve las tools MCP.
 
 ## Colaboración con otros agentes
 

@@ -13,7 +13,7 @@ load_env_file || exit 1
 validate_env_vars "CLI_DEBRID_URL" "CLI_DEBRID_USER" "CLI_DEBRID_PASSWORD"
 
 BASE="${CLI_DEBRID_URL%/}"
-COOKIE_JAR="/tmp/.cli_debrid_cookie_$(echo -n "$BASE" | md5sum | cut -d' ' -f1)"
+COOKIE_JAR="/tmp/.cli_debrid_cookie_$(echo -n "$BASE" | cksum | cut -d' ' -f1)"
 
 login() {
   curl -s -c "$COOKIE_JAR" -o /dev/null \

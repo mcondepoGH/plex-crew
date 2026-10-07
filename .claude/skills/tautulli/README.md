@@ -13,12 +13,12 @@ Script: `.claude/skills/tautulli/scripts/tautulli-api.sh <comando> [opciones]`. 
 | Comando | Para qué sirve (comando de la API) | Opciones | Tipo |
 |---------|------------------------------------|----------|------|
 | `server-info` | Versión e información del servidor (`get_server_info`). | Ninguna | Lectura |
-| `activity` | Streams activos (`get_activity`). | `--details` (aceptada, sin efecto) | Lectura |
+| `activity` | Streams activos (`get_activity`). | `--details` (se acepta pero no cambia la petición) | Lectura |
 | `history` | Historial de reproducción (`get_history`). | `--user`, `--section-id`, `--media-type`, `--days N`, `--limit N` (25 por defecto), `--search` | Lectura |
 | `user-stats` | Sin opciones: lista de usuarios (`get_users`). Con opciones: `get_user_stats`. | `--user`, `--sort-by`, `--limit`, `--days` | Lectura |
 | `libraries` | Secciones de biblioteca (`get_libraries`). | Ninguna | Lectura |
 | `library-stats` | Datos de una sección (`get_library`). | `--section-id <id>` (obligatoria) | Lectura |
-| `popular` | Contenido popular (`get_home_stats` con `stat_id=popular_movies`). | `--section-id`, `--media-type`, `--days N` (30), `--limit N` (10) | Lectura |
+| `popular` | Contenido popular: pide siempre `get_home_stats` con `stat_id=popular_movies`; `--media-type` no cambia la estadística. | `--section-id`, `--media-type`, `--days N` (30), `--limit N` (10) | Lectura |
 | `recent` | Añadidos recientemente (`get_recently_added`). | `--section-id`, `--media-type`, `--days N`, `--limit N` (25) | Lectura |
 | `home-stats` | Estadísticas del panel principal (`get_home_stats`). | `--days N` (30) | Lectura |
 | `plays-by-stream` | Reproducciones por tipo de stream (`get_plays_by_stream_type`). | `--days N` (30) | Lectura |
@@ -26,9 +26,9 @@ Script: `.claude/skills/tautulli/scripts/tautulli-api.sh <comando> [opciones]`. 
 | `plays-by-date` | Por fecha (`get_plays_by_date`). | `--days N` (30) | Lectura |
 | `plays-by-hour` | Por hora del día (`get_plays_by_hourofday`). | `--days N` (30) | Lectura |
 | `plays-by-day` | Por día de la semana (`get_plays_by_dayofweek`). | `--days N` (30) | Lectura |
-| `concurrent-streams` | Streams simultáneos por tipo (`get_concurrent_streams_by_stream_type`); con `--peak` usa `get_plays_per_month` con `y_axis=concurrent`. | `--days N` (30), `--peak` | Lectura |
+| `concurrent-streams` | Streams simultáneos por tipo (`get_concurrent_streams_by_stream_type`); con `--peak` usa `get_plays_per_month` con `y_axis=concurrent` (no es un máximo calculado por el script, solo la serie que devuelve Tautulli). | `--days N` (30), `--peak` | Lectura |
 | `metadata` | Metadatos de un elemento (`get_metadata`). | `--rating-key <key>` o `--guid <guid>` | Lectura |
-| `logs` | Log de Tautulli (`get_logs`) o del servidor Plex (`get_plex_log`), recortado con `jq`. | `--limit N` (25), `--plex` | Lectura |
+| `logs` | Log de Tautulli (`get_logs`) o del servidor Plex (`get_plex_log`), recortado con `jq`: devuelve solo un array con las primeras `n` entradas de `response.data`, sin el sobre `response`. | `--limit N` (25), `--plex` | Lectura |
 
 Sin argumentos, `-h`, `--help` o `help` muestran la ayuda.
 

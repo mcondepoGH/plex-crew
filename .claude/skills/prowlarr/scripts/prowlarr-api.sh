@@ -5,8 +5,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
 source "$_LOAD_ENV" || { echo "ERROR: load-env.sh not found. Copia .env.example a .env" >&2; exit 1; }
@@ -30,6 +28,24 @@ api() {
         "${PROWLARR_URL}/api/v1${endpoint}"
 }
 
+# Como api, pero solo comprueba el código HTTP (no imprime el cuerpo).
+# Devuelve 0 si es 2xx; si no, avisa por stderr y devuelve 1.
+api_ok() {
+    local code
+    code=$(api "$@" -o /dev/null -w '%{http_code}') || return 1
+    if [[ ! "$code" =~ ^2 ]]; then
+        echo "{\"error\": \"Prowlarr respondió HTTP $code\"}" >&2
+        return 1
+    fi
+}
+
+require_id() {
+    if [[ -z "${1:-}" ]]; then
+        echo "ERROR: falta el id del indexador. Uso: $(basename "$0") $2 <id>" >&2
+        exit 1
+    fi
+}
+
 usage() {
     cat <<EOF
 Prowlarr API CLI
@@ -42,9 +58,10 @@ Search Commands:
     --usenet                    Usenet only (indexerIds=-1)
     --category <id>             Filter by category (2000=Movies, 5000=TV)
     --limit <n>                 Max results
+    --type <t>                  Search type (search, tvsearch, moviesearch...; default: search)
   
   tv-search [options]           Search TV releases
-    --tvdb <id>                 TVDB ID
+    --tvdb <id>                 TVDB ID (at least one of --tvdb/--season/--episode)
     --season <n>                Season number
     --episode <n>               Episode number
   
@@ -149,7 +166,7 @@ cmd_tv_search() {
     [[ -n "$episode" ]] && query+="{Episode:$episode}"
     
     if [[ -z "$query" ]]; then
-        echo '{"error": "At least --tvdb required"}' >&2
+        echo '{"error": "At least one of --tvdb, --season or --episode required"}' >&2
         exit 1
     fi
     
@@ -232,37 +249,41 @@ cmd_stats() {
 }
 
 cmd_test() {
-    local id="$1"
+    local id="${1:-}"
+    require_id "$id" test
     local indexer
     indexer=$(api GET "/indexer/$id")
-    api POST "/indexer/test" -d "$indexer"
+    api_ok POST "/indexer/test" -d "$indexer" || exit 1
     echo '{"status": "ok", "indexer": "'"$id"'", "tested": true}'
 }
 
 cmd_test_all() {
-    api POST "/indexer/testall"
+    api_ok POST "/indexer/testall" || exit 1
     echo '{"status": "ok", "message": "Testing all indexers"}'
 }
 
 cmd_enable() {
-    local id="$1"
+    local id="${1:-}"
+    require_id "$id" enable
     local indexer
     indexer=$(api GET "/indexer/$id" | jq '.enable = true')
-    api PUT "/indexer/$id" -d "$indexer" > /dev/null
+    api_ok PUT "/indexer/$id" -d "$indexer" || exit 1
     echo '{"status": "ok", "indexer": "'"$id"'", "enabled": true}'
 }
 
 cmd_disable() {
-    local id="$1"
+    local id="${1:-}"
+    require_id "$id" disable
     local indexer
     indexer=$(api GET "/indexer/$id" | jq '.enable = false')
-    api PUT "/indexer/$id" -d "$indexer" > /dev/null
+    api_ok PUT "/indexer/$id" -d "$indexer" || exit 1
     echo '{"status": "ok", "indexer": "'"$id"'", "enabled": false}'
 }
 
 cmd_delete() {
-    local id="$1"
-    api DELETE "/indexer/$id"
+    local id="${1:-}"
+    require_id "$id" delete
+    api_ok DELETE "/indexer/$id" || exit 1
     echo '{"status": "ok", "indexer": "'"$id"'", "deleted": true}'
 }
 
@@ -276,7 +297,7 @@ cmd_apps() {
 }
 
 cmd_sync() {
-    api POST "/command" -d '{"name": "ApplicationIndexerSync"}'
+    api_ok POST "/command" -d '{"name": "ApplicationIndexerSync"}' || exit 1
     echo '{"status": "ok", "message": "Syncing indexers to applications"}'
 }
 

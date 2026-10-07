@@ -12,12 +12,12 @@ Script: `.claude/skills/sonarr/scripts/sonarr.sh <comando> [args]`. En negrita, 
 
 | Comando | Para qué sirve | Argumentos / opciones | Tipo |
 |---------|----------------|-----------------------|------|
-| `search` | Busca series (`/series/lookup`). Lista numerada de los 10 primeros con título, año y enlace TVDB. | `<consulta>` | Lectura |
-| `search-json` | Lo mismo con el JSON completo del lookup. | `<consulta>` | Lectura |
-| `exists` | Imprime `exists` (con id interno, título y número de temporadas) o `not_found`. | `<tvdbId>` | Lectura |
-| `config` | Carpetas raíz y perfiles de calidad con sus ids. | Ninguno | Lectura |
-| `logs` | Últimas líneas de log, de más reciente a más antigua. | `[n]` (50 por defecto), `[nivel]` (`info`, `warn`, `error`) | Lectura |
-| **`add`** | Añade una serie monitorizada (`monitor: all`, carpetas por temporada) en la primera carpeta raíz. Busca episodios que faltan salvo `--no-search`. | `<tvdbId> [profileId] [--no-search]` | Escritura |
+| `search` | Busca series (`/series/lookup`). Texto: lista numerada de los 10 primeros con título, año y enlace TVDB; sin sinopsis. | `<consulta>` | Lectura (texto) |
+| `search-json` | Lo mismo con el JSON completo del lookup (sin límite de 10). | `<consulta>` | Lectura (JSON) |
+| `exists` | Imprime `exists` (con id interno, título y número de temporadas) o `not_found`. | `<tvdbId>` | Lectura (texto) |
+| `config` | Carpetas raíz y perfiles de calidad con sus ids. | Ninguno | Lectura (texto) |
+| `logs` | Últimas líneas de log, de más reciente a más antigua. | `[n]` (50 por defecto), `[nivel]` (`info`, `warn`, `error`) | Lectura (texto) |
+| **`add`** | Añade una serie monitorizada (`monitor: all`, carpetas por temporada) en la primera carpeta raíz. Funciona con solo `<tvdbId>`. Busca episodios que faltan salvo `--no-search`. | `<tvdbId> [profileId] [--no-search]` | Escritura |
 | **`remove`** | Quita una serie de la biblioteca. Con `--delete-files` borra también los ficheros. | `<tvdbId> [--delete-files]` | Escritura, destructivo con `--delete-files` |
 | **`search-id`** | Lanza `SeriesSearch` sobre una serie. | `<seriesId>` (id interno de Sonarr, no TVDB) | Escritura (dispara descargas) |
 | **`search-all`** | Lanza `MissingEpisodeSearch` sobre toda la biblioteca. | Ninguno | Escritura masiva |
@@ -28,7 +28,6 @@ Script: `.claude/skills/sonarr/scripts/sonarr.sh <comando> [args]`. En negrita, 
 |----------|-------------|-----|
 | `SONARR_URL` | Sí | URL base de Sonarr; la API se llama en `$SONARR_URL/api/v3`. |
 | `SONARR_API_KEY` | Sí | Clave de API, cabecera `X-Api-Key`. |
-| `SONARR_DEFAULT_QUALITY_PROFILE` | No | Id del perfil usado en `add`; si no se define, se usa `1`. |
 | `HOMELAB_ENV` | No | Ruta alternativa al fichero `.env`. |
 
 ## Ejemplos de uso
@@ -48,10 +47,10 @@ bash .claude/skills/sonarr/scripts/sonarr.sh add 81189 7 --no-search
 
 ## Notas y límites
 
-- Igual que en Radarr, el script usa `set -euo pipefail` y lee `$1`, `$2` directamente: sin comando falla con "unbound variable", y `add <tvdbId>` o `remove <tvdbId>` con un solo argumento fallan por `$2` sin definir. Pasar `profileId` o `--no-search` en `add`, y un segundo argumento en `remove`.
-- `add` busca la serie con `term=tvdb:<id>` y aborta si no la encuentra. Perfil: `profileId`, si no `SONARR_DEFAULT_QUALITY_PROFILE`, si no `1`.
+- Sin comando muestra la ayuda y sale con 0; un comando desconocido muestra la ayuda y sale con 1. Si falta un argumento obligatorio o un id no es numérico, imprime el uso (`ERROR: ...` y `Uso: sonarr.sh ...`) y sale con 1; nunca falla con `unbound variable`. Los flags `--no-search` y `--delete-files` se aceptan en cualquier posición.
+- `add <tvdbId> <profileId> [--no-search]` busca la serie con `term=tvdb:<id>` y aborta si no la encuentra. El perfil es obligatorio y nunca se elige uno por defecto; si falta, imprime el uso, indica ejecutar `config` para ver los ids (p. ej. 7 Español, 8 VOSE) y sale con 1.
 - Para cambiar el perfil de una serie existente no sirve `add`; hay que hacer PUT sobre la serie (`qualityProfileId`), lo cual este script no ofrece (véase `arr-language-filters`).
-- `remove` llama a `DELETE /series/<id>?deleteFiles=...` y no pide confirmación: la doble confirmación con `--delete-files` es responsabilidad del agente.
+- `remove` llama a `DELETE /series/<id>?deleteFiles=...`; el hook `confirm-destructive` exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1`. Imprime que ha quitado la serie sin verificar la respuesta del `DELETE`.
 - `search-id` espera el id interno de Sonarr (el de `exists`); `search-all` afecta a toda la biblioteca.
-- `search`, `exists` y `config` imprimen texto, no JSON; solo `search-json` devuelve JSON. Los mensajes de `add` y `remove` llevan emojis.
-- Un comando desconocido imprime la ayuda con código de salida 0.
+- Solo `search-json` devuelve JSON; el resto imprime texto. Los mensajes de `add` y `remove` llevan emojis.
+- Sonarr no tiene `add-collection`.

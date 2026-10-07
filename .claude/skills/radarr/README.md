@@ -12,14 +12,14 @@ Script: `.claude/skills/radarr/scripts/radarr.sh <comando> [args]`. En negrita, 
 
 | Comando | Para qué sirve | Argumentos / opciones | Tipo |
 |---------|----------------|-----------------------|------|
-| `search` | Busca películas (`/movie/lookup`). Lista numerada con título, año, enlace TMDB y colección si la hay. | `<consulta>` | Lectura |
-| `search-json` | Lo mismo con el JSON completo del lookup. | `<consulta>` | Lectura |
-| `exists` | Imprime `exists` (más id interno, título y si tiene fichero) o `not_found`. | `<tmdbId>` | Lectura |
-| `config` | Carpetas raíz y perfiles de calidad con sus ids. | Ninguno | Lectura |
-| `collection-info` | Detalle de una colección de la biblioteca de Radarr. | `<collectionTmdbId>` | Lectura |
-| `logs` | Últimas líneas de log, de más reciente a más antigua. | `[n]` (50 por defecto), `[nivel]` (`info`, `warn`, `error`) | Lectura |
-| **`add`** | Añade una película, monitorizada, en la primera carpeta raíz. Busca al añadir salvo `--no-search`. | `<tmdbId> [profileId] [--no-search]` | Escritura |
-| **`add-collection`** | Añade todas las películas de una colección que aún no estén, y deja la colección monitorizada con `searchOnAdd`. | `<collectionTmdbId> [searchTerm] [--no-search]` | Escritura |
+| `search` | Busca películas (`/movie/lookup`). Texto: lista numerada con título, año, enlace TMDB y colección si la hay; sin sinopsis y sin límite de resultados. | `<consulta>` | Lectura (texto) |
+| `search-json` | Lo mismo con el JSON completo del lookup. | `<consulta>` | Lectura (JSON) |
+| `exists` | Imprime `exists` (más id interno, título y si tiene fichero) o `not_found`. | `<tmdbId>` | Lectura (texto) |
+| `config` | Carpetas raíz y perfiles de calidad con sus ids. | Ninguno | Lectura (texto) |
+| `collection-info` | Detalle de una colección de la biblioteca de Radarr. | `<collectionTmdbId>` | Lectura (JSON) |
+| `logs` | Últimas líneas de log, de más reciente a más antigua. | `[n]` (50 por defecto), `[nivel]` (`info`, `warn`, `error`) | Lectura (texto) |
+| **`add`** | Añade una película, monitorizada, en la primera carpeta raíz. Funciona con solo `<tmdbId>`. Busca al añadir salvo `--no-search`. | `<tmdbId> [profileId] [--no-search]` | Escritura |
+| **`add-collection`** | Añade todas las películas de una colección que aún no estén (con el perfil indicado y la primera carpeta raíz) y deja la colección monitorizada con `searchOnAdd`. | `<collectionTmdbId> <profileId> [searchTerm] [--no-search]` | Escritura |
 | **`remove`** | Quita una película de la biblioteca. Con `--delete-files` borra también los ficheros. | `<tmdbId> [--delete-files]` | Escritura, destructivo con `--delete-files` |
 | **`search-id`** | Lanza la búsqueda (`MoviesSearch`) de una película. | `<movieId>` (id interno de Radarr, no TMDB) | Escritura (dispara descargas) |
 | **`search-all`** | Lanza `MissingMoviesSearch` sobre toda la biblioteca. | Ninguno | Escritura masiva |
@@ -30,7 +30,6 @@ Script: `.claude/skills/radarr/scripts/radarr.sh <comando> [args]`. En negrita, 
 |----------|-------------|-----|
 | `RADARR_URL` | Sí | URL base de Radarr; la API se llama en `$RADARR_URL/api/v3`. |
 | `RADARR_API_KEY` | Sí | Clave de API, cabecera `X-Api-Key`. |
-| `RADARR_DEFAULT_QUALITY_PROFILE` | No | Id del perfil usado en `add`; si no se define, se usa `1`. |
 | `HOMELAB_ENV` | No | Ruta alternativa al fichero `.env`. |
 
 ## Ejemplos de uso
@@ -49,11 +48,10 @@ bash .claude/skills/radarr/scripts/radarr.sh add 27205 7 --no-search
 
 ## Notas y límites
 
-- El script usa `set -euo pipefail` y lee `$1`, `$2` directamente: sin comando falla con "unbound variable" (no muestra la ayuda), y `add <tmdbId>` o `remove <tmdbId>` con un solo argumento también fallan por `$2` sin definir. Para añadir sin más argumentos hay que pasar `profileId` o `--no-search`; para quitar conservando ficheros hay que pasar un segundo argumento distinto de `--delete-files` (por ejemplo una cadena vacía).
-- `add`: el perfil sale de `profileId`, si no de `RADARR_DEFAULT_QUALITY_PROFILE` y si no de `1`. Siempre usa la primera carpeta raíz (`/rootfolder`).
-- `add-collection` ignora el perfil por defecto: usa el primer perfil de `/qualityprofile` y la primera carpeta raíz. Localiza las películas buscando por el nombre de la colección (sin el sufijo "Collection") y filtrando por `collection.tmdbId`; si Radarr no conoce la colección y no se da `searchTerm`, aborta.
-- `remove` busca la película por `tmdbId` en la biblioteca y llama a `DELETE /movie/<id>?deleteFiles=...`. El script no pide confirmación: la doble confirmación con `--delete-files` es responsabilidad del agente.
+- Sin comando muestra la ayuda y sale con 0; un comando desconocido muestra la ayuda y sale con 1. Si falta un argumento obligatorio o un id no es numérico, imprime el uso (`ERROR: ...` y `Uso: radarr.sh ...`) y sale con 1; nunca falla con `unbound variable`. Los flags `--no-search` y `--delete-files` se aceptan en cualquier posición.
+- `add <tmdbId> <profileId> [--no-search]`: el perfil es obligatorio y nunca se elige uno por defecto; si falta, imprime el uso, indica ejecutar `config` para ver los ids (p. ej. 7 Español, 8 VOSE) y sale con 1. Siempre usa la primera carpeta raíz (`/rootfolder`).
+- `add-collection <collectionTmdbId> <profileId> [searchTerm] [--no-search]`: mismo criterio para el perfil; usa la primera carpeta raíz. Localiza las películas buscando por el nombre de la colección (sin el sufijo "Collection") y filtrando por `collection.tmdbId`; si Radarr no conoce la colección y no se da `searchTerm`, aborta con código 1. Al terminar deja la colección monitorizada con `searchOnAdd` aunque se use `--no-search`.
+- `remove` busca la película por `tmdbId` en la biblioteca y llama a `DELETE /movie/<id>?deleteFiles=...`. El hook `confirm-destructive` exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1`.
 - `search-id` espera el id interno de Radarr (el de `exists`), no el de TMDB; `search-all` afecta a toda la biblioteca.
-- Los comandos de lectura de texto (`search`, `exists`, `config`) no devuelven JSON; solo `search-json` y `collection-info` lo hacen.
-- Los mensajes de `add`, `add-collection` y `remove` llevan emojis y no se comprueba el código HTTP: el éxito se deduce de que la respuesta tenga `id`.
-- Un comando desconocido imprime la ayuda con código de salida 0 (y la ayuda no lista `search-id`).
+- Solo `search-json` y `collection-info` devuelven JSON; `search`, `exists`, `config`, `logs` y los comandos de escritura imprimen texto.
+- Los mensajes de `add`, `add-collection` y `remove` llevan emojis y no se comprueba el código HTTP: el éxito de `add` y `add-collection` se deduce de que la respuesta tenga `id`; `remove` imprime que ha quitado la película sin verificar la respuesta del `DELETE`.

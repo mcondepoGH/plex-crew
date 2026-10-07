@@ -35,16 +35,14 @@ Añade las credenciales al `.env` (raíz del repo):
 ```bash
 RADARR_URL="http://localhost:7878"
 RADARR_API_KEY="tu-api-key"
-RADARR_DEFAULT_QUALITY_PROFILE="1"  # Opcional (por defecto 1)
 ```
 
 - `RADARR_URL`: URL de tu servidor Radarr (sin barra final)
 - `RADARR_API_KEY`: clave de API de Radarr (Settings → General → API Key)
-- `RADARR_DEFAULT_QUALITY_PROFILE`: id del perfil de calidad (opcional; ejecuta `config` para ver las opciones)
 
 ## Comandos
 
-Todos los comandos devuelven JSON.
+Solo `search-json` y `collection-info` devuelven JSON; el resto imprime texto (con emojis en los mensajes de resultado). Sin comando muestra la ayuda (código 0); un comando desconocido la muestra y sale con 1. Si falta un argumento obligatorio o un id no es numérico, imprime el uso y sale con 1.
 
 ### Buscar películas
 
@@ -53,7 +51,7 @@ bash .claude/skills/radarr/scripts/radarr.sh search "Inception"
 bash .claude/skills/radarr/scripts/radarr.sh search "The Matrix"
 ```
 
-**Salida:** lista numerada con ids de TMDB, títulos, años y sinopsis.
+**Salida:** texto, una línea por resultado: número, título, año, enlace a TMDB y, si la hay, la colección (`[Collection: ...]`). No incluye sinopsis (usa `search-json` si la necesitas) ni limita el número de resultados.
 
 ### Comprobar si existe una película
 
@@ -61,23 +59,25 @@ bash .claude/skills/radarr/scripts/radarr.sh search "The Matrix"
 bash .claude/skills/radarr/scripts/radarr.sh exists <tmdbId>
 ```
 
-**Salida:** booleano que indica si la película está en la biblioteca.
+**Salida:** texto. `not_found` si no está; si está, `exists` y una segunda línea con el id interno de Radarr, el título y si tiene fichero (`ID: 144, Title: ..., Has File: true`).
 
 ### Añadir una película
 
 ```bash
-bash .claude/skills/radarr/scripts/radarr.sh add <tmdbId>              # Busca de inmediato (por defecto)
-bash .claude/skills/radarr/scripts/radarr.sh add <tmdbId> --no-search  # Añade sin buscar
+bash .claude/skills/radarr/scripts/radarr.sh add <tmdbId> <profileId>              # Busca de inmediato (por defecto)
+bash .claude/skills/radarr/scripts/radarr.sh add <tmdbId> <profileId> --no-search  # Añade sin buscar
 ```
+
+El `profileId` es obligatorio: si falta, el script imprime el uso, indica ejecutar `config` para ver los ids de perfil y sale con 1. Nunca se elige un perfil por defecto (el primero podría saltarse el filtro de español); consulta `config` y usa el que corresponda (p. ej. 7 Español, 8 VOSE). La carpeta raíz es siempre la primera. La película se añade monitorizada.
 
 ### Añadir una colección completa
 
 ```bash
-bash .claude/skills/radarr/scripts/radarr.sh add-collection <collectionTmdbId>
-bash .claude/skills/radarr/scripts/radarr.sh add-collection <collectionTmdbId> --no-search
+bash .claude/skills/radarr/scripts/radarr.sh add-collection <collectionTmdbId> <profileId>
+bash .claude/skills/radarr/scripts/radarr.sh add-collection <collectionTmdbId> <profileId> --no-search
 ```
 
-Añade todas las películas de una colección (por ejemplo, toda la saga de El Señor de los Anillos).
+Añade todas las películas de una colección (por ejemplo, toda la saga de El Señor de los Anillos) que aún no estén en la biblioteca. El `profileId` es obligatorio (mismo criterio que `add`; ids con `config`) y usa la primera carpeta raíz. Al terminar deja la colección monitorizada con `searchOnAdd` (las nuevas entregas se añaden y buscan solas), aunque se pase `--no-search`. Si Radarr no conoce la colección hay que pasar un texto de búsqueda: `add-collection <collectionTmdbId> <profileId> "<texto>"`.
 
 ### Quitar una película
 
@@ -86,7 +86,7 @@ bash .claude/skills/radarr/scripts/radarr.sh remove <tmdbId>                # Co
 bash .claude/skills/radarr/scripts/radarr.sh remove <tmdbId> --delete-files # Borra también los ficheros
 ```
 
-**Importante:** pregunta siempre al usuario si quiere borrar los ficheros al quitar una película. Con `--delete-files` aplica la doble confirmación.
+**Importante:** pregunta siempre al usuario si quiere borrar los ficheros al quitar una película. El hook `confirm-destructive` exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1` para cualquier `remove`.
 
 ### Consultar la configuración
 
@@ -100,8 +100,7 @@ bash .claude/skills/radarr/scripts/radarr.sh config
 
 ```bash
 bash .claude/skills/radarr/scripts/radarr.sh search-json "Inception"        # Igual que search, pero con salida JSON
-bash .claude/skills/radarr/scripts/radarr.sh add <tmdbId> <profileId>       # Añade con un perfil de calidad concreto
-bash .claude/skills/radarr/scripts/radarr.sh collection-info <tmdbId>       # Detalle de una colección
+bash .claude/skills/radarr/scripts/radarr.sh collection-info <collectionTmdbId>  # Detalle de una colección de la biblioteca (JSON)
 bash .claude/skills/radarr/scripts/radarr.sh logs [n] [level]               # Últimas n líneas de log (nivel: info/warn/error)
 bash .claude/skills/radarr/scripts/radarr.sh search-id <movieId>            # Lanza la búsqueda de una película (id interno de Radarr)
 bash .claude/skills/radarr/scripts/radarr.sh search-all                     # Lanza la búsqueda de TODAS las películas que faltan
@@ -113,9 +112,9 @@ bash .claude/skills/radarr/scripts/radarr.sh search-all                     # La
 
 Cuando el usuario pregunte por películas:
 
-1. **"Añade Inception a Radarr"** → ejecuta `search "Inception"`, presenta los resultados con enlaces a TMDB y luego `add <tmdbId>`
+1. **"Añade Inception a Radarr"** → ejecuta `search "Inception"`, presenta los resultados con enlaces a TMDB y ejecuta `config` para elegir el perfil (o pregúntalo) y luego `add <tmdbId> <profileId>`
 2. **"¿Tengo Dune en la biblioteca?"** → ejecuta `exists <tmdbId>`
-3. **"Añade todas las de Star Wars"** → busca la colección y luego `add-collection <collectionId>`
+3. **"Añade todas las de Star Wars"** → busca la colección y luego `add-collection <collectionId> <profileId>`
 4. **"Quita The Matrix"** → pregunta por el borrado de ficheros y ejecuta `remove <tmdbId>` con el flag adecuado
 5. **"¿Qué perfiles de calidad tengo?"** → ejecuta `config`
 
@@ -124,7 +123,7 @@ Cuando el usuario pregunte por películas:
 Incluye siempre enlaces a TMDB al presentar resultados:
 - Formato: `[Título (Año)](https://themoviedb.org/movie/ID)`
 - Muestra una lista numerada para que el usuario elija
-- Incluye el año y una breve sinopsis
+- Incluye el año; la sinopsis solo está en `search-json`
 
 ### Añadir películas
 
@@ -138,10 +137,13 @@ Incluye siempre enlaces a TMDB al presentar resultados:
 
 ### Comando add
 - `<tmdbId>`: id de TMDB de la película (obligatorio)
+- `[profileId]`: id del perfil de calidad (opcional)
 - `--no-search`: no buscar la película después de añadirla
 
 ### Comando add-collection
 - `<collectionTmdbId>`: id de TMDB de la colección (obligatorio)
+- `<profileId>`: id del perfil de calidad (obligatorio; ver `config`)
+- `[searchTerm]`: texto para localizar las películas si Radarr no conoce la colección (opcional)
 - `--no-search`: no buscar las películas después de añadirlas
 
 ### Comando remove
@@ -152,9 +154,9 @@ Incluye siempre enlaces a TMDB al presentar resultados:
 
 - Requiere acceso de red al servidor de Radarr
 - Usa la API v3 de Radarr
-- Todas las operaciones de datos devuelven JSON
+- Solo `search-json` y `collection-info` devuelven JSON; el resto es texto
 - Los ids de perfil de calidad varían según la instalación: usa `config` para descubrir los tuyos
-- El perfil por defecto (`RADARR_DEFAULT_QUALITY_PROFILE`) se usa al añadir películas
+- No hay perfil por defecto: `add` y `add-collection` exigen el `profileId` explícito
 - Las colecciones son propias de TMDB e incluyen películas relacionadas (secuelas, sagas)
 
 ## Referencia

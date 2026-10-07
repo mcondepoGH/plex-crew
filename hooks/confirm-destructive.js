@@ -20,6 +20,9 @@ const DESTRUCTIVE = [
   /\bfind\b.*(-delete|-exec\s+rm)/,
   /\bDELETE\s+FROM\b|\bDROP\s+(TABLE|DATABASE)\b/i,
   /\bcurl\b.*-X\s*DELETE\b/i,
+  // Skills de servicios: subcomandos destructivos (con bash, ruta relativa o absoluta).
+  /\b(radarr|sonarr)\.sh["']?\s+remove\b/,
+  /\bprowlarr-api\.sh["']?\s+delete\b/,
 ];
 
 // Marcador como asignación de entorno al inicio de un comando (inicio de línea

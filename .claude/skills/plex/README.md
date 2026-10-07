@@ -1,6 +1,6 @@
 # plex
 
-Consulta Plex Media Server: bibliotecas, búsqueda, añadidos recientes, "On Deck", sesiones activas, clientes y metadatos. Envuelve la API HTTP de Plex y devuelve JSON.
+Consulta Plex Media Server: bibliotecas, búsqueda, añadidos recientes, "On Deck", sesiones activas, clientes y metadatos. Envuelve la API HTTP de Plex y devuelve JSON. Casi todo es de solo lectura; la excepción es `refresh`, que lanza un escaneo de biblioteca.
 
 ## Cuándo se usa
 

@@ -49,76 +49,87 @@ Get your API key from: Prowlarr → Settings → General → Security → API Ke
 
 ```bash
 # Basic search across all indexers
-./scripts/prowlarr-api.sh search "ubuntu 22.04"
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "ubuntu 22.04"
 
 # Search torrents only
-./scripts/prowlarr-api.sh search "ubuntu" --torrents
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "ubuntu" --torrents
 
 # Search usenet only
-./scripts/prowlarr-api.sh search "ubuntu" --usenet
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "ubuntu" --usenet
 
 # Search specific categories (2000=Movies, 5000=TV, 3000=Audio, 7000=Books)
-./scripts/prowlarr-api.sh search "inception" --category 2000
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "inception" --category 2000
+
+# Limit the number of results (--limit / -l) and choose the search type (--type / -t, default "search")
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "inception" --limit 20
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "inception" --type moviesearch
 
 # TV search with TVDB ID
-./scripts/prowlarr-api.sh tv-search --tvdb 71663 --season 1 --episode 1
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh tv-search --tvdb 71663 --season 1 --episode 1
 
-# Movie search with IMDB ID
-./scripts/prowlarr-api.sh movie-search --imdb tt0111161
+# Movie search with IMDB ID or TMDB ID (at least one)
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh movie-search --imdb tt0111161
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh movie-search --tmdb 550
+
+# tv-search accepts any of --tvdb, --season, --episode (at least one); the filters are optional individually
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh tv-search --tvdb 71663 --season 1
 ```
 
 ### List Indexers
 
 ```bash
 # All indexers
-./scripts/prowlarr-api.sh indexers
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh indexers
 
 # With status details
-./scripts/prowlarr-api.sh indexers --verbose
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh indexers --verbose
 ```
 
 ### Indexer Health & Stats
 
 ```bash
 # Usage stats per indexer
-./scripts/prowlarr-api.sh stats
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh stats
 
 # Test all indexers
-./scripts/prowlarr-api.sh test-all
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh test-all
 
 # Test specific indexer
-./scripts/prowlarr-api.sh test <indexer-id>
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh test <indexer-id>
 ```
 
 ### Indexer Management
 
 ```bash
 # Enable/disable an indexer
-./scripts/prowlarr-api.sh enable <indexer-id>
-./scripts/prowlarr-api.sh disable <indexer-id>
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh enable <indexer-id>
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh disable <indexer-id>
 
 # Delete an indexer
-./scripts/prowlarr-api.sh delete <indexer-id>
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh delete <indexer-id>
 ```
 
 ### App Sync
 
 ```bash
 # Sync indexers to Sonarr/Radarr/etc
-./scripts/prowlarr-api.sh sync
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh sync
 
 # List connected apps
-./scripts/prowlarr-api.sh apps
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh apps
 ```
 
 ### System
 
 ```bash
 # System status
-./scripts/prowlarr-api.sh status
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh status
 
 # Health check
-./scripts/prowlarr-api.sh health
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh health
+
+# Last n log lines (default 50), optional level filter (info/warn/error)
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh logs 100 error
 ```
 
 ---
@@ -143,28 +154,28 @@ Sub-categories: 2010 (Movies/Foreign), 2020 (Movies/Other), 2030 (Movies/SD), 20
 
 **"Search for the latest Ubuntu ISO"**
 ```bash
-./scripts/prowlarr-api.sh search "ubuntu 24.04"
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "ubuntu 24.04"
 ```
 
 **"Find Game of Thrones S01E01"**
 ```bash
-./scripts/prowlarr-api.sh tv-search --tvdb 121361 --season 1 --episode 1
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh tv-search --tvdb 121361 --season 1 --episode 1
 ```
 
 **"Search for Inception in 4K"**
 ```bash
-./scripts/prowlarr-api.sh search "inception 2160p" --category 2045
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh search "inception 2160p" --category 2045
 ```
 
 **"Check if my indexers are healthy"**
 ```bash
-./scripts/prowlarr-api.sh stats
-./scripts/prowlarr-api.sh test-all
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh stats
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh test-all
 ```
 
 **"Push indexer changes to Sonarr/Radarr"**
 ```bash
-./scripts/prowlarr-api.sh sync
+bash .claude/skills/prowlarr/scripts/prowlarr-api.sh sync
 ```
 
 ## Workflow
@@ -182,9 +193,11 @@ When the user asks about indexers or searches:
 
 - Requires network access to your Prowlarr server
 - Uses Prowlarr API v1
-- All data operations return JSON
+- Search, `indexers`, `stats`, `apps`, `health`, `status` return JSON; `logs` prints plain text lines (`time [level] logger: message`)
+- `enable`, `disable`, `delete`, `test`, `test-all` and `sync` check the HTTP status of the call: on a non-2xx answer they print an error to stderr and exit 1; on success they print a fixed `{"status": "ok", ...}` JSON (it does not confirm the effect, e.g. that `test` found the indexer healthy beyond HTTP 2xx)
+- Commands that take an `<id>` (`test`, `enable`, `disable`, `delete`) print a usage error and exit 1 if it is missing
 - **Search operations query external indexers** - respect rate limits
-- **Indexer deletion is permanent** - always confirm before removing
+- **Indexer deletion is permanent** - el hook `confirm-destructive` exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1` para `delete`
 - Sync operations push indexer configs to all connected apps (Sonarr, Radarr, Lidarr, etc.)
 - Category IDs follow Newznab/Torznab standards
 

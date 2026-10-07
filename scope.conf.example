@@ -1,9 +1,9 @@
 # Rutas donde el agente plex-naming puede escribir (hook hooks/enforce-agent-scope.js).
 #
-# Copia este fichero a ~/.config/plex-crew/scope.conf y ajusta las rutas a tu instalación:
+# Copia este fichero a ~/.claude/plex-crew/scope.conf y ajusta las rutas a tu instalación:
 #
-#   mkdir -p ~/.config/plex-crew
-#   cp scope.conf.example ~/.config/plex-crew/scope.conf
+#   mkdir -p ~/.claude/plex-crew
+#   cp scope.conf.example ~/.claude/plex-crew/scope.conf
 #
 # También puedes guardarlo en otro sitio y apuntar a él con la variable PLEX_CREW_CONFIG.
 #

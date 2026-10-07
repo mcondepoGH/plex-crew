@@ -35,17 +35,15 @@ Añade las credenciales al `.env` (raíz del repo):
 ```bash
 SONARR_URL="http://localhost:8989"
 SONARR_API_KEY="<tu_api_key>"
-SONARR_DEFAULT_QUALITY_PROFILE="1"  # Opcional: por defecto 1 si no se define
 ```
 
 **Variables de configuración:**
 - `SONARR_URL`: URL de tu servidor Sonarr (sin barra final)
 - `SONARR_API_KEY`: clave de API de Sonarr (Settings → General → API Key)
-- `SONARR_DEFAULT_QUALITY_PROFILE`: id del perfil de calidad (opcional, por defecto 1)
 
 ## Comandos
 
-Todos los comandos devuelven JSON.
+Solo `search-json` devuelve JSON; el resto imprime texto (con emojis en los mensajes de resultado). Sin comando muestra la ayuda (código 0); un comando desconocido la muestra y sale con 1. Si falta un argumento obligatorio o un id no es numérico, imprime el uso y sale con 1.
 
 ### Buscar series
 
@@ -54,7 +52,7 @@ bash .claude/skills/sonarr/scripts/sonarr.sh search "Breaking Bad"
 bash .claude/skills/sonarr/scripts/sonarr.sh search "The Office"
 ```
 
-**Salida:** lista numerada con ids de TVDB, títulos, años y sinopsis.
+**Salida:** texto, una línea por resultado con número, título, año y enlace a TVDB. Muestra como máximo los 10 primeros resultados y no incluye sinopsis (`search-json` devuelve todos los resultados y los datos completos).
 
 ### Comprobar si existe una serie
 
@@ -62,14 +60,16 @@ bash .claude/skills/sonarr/scripts/sonarr.sh search "The Office"
 bash .claude/skills/sonarr/scripts/sonarr.sh exists <tvdbId>
 ```
 
-**Salida:** booleano que indica si la serie está en la biblioteca.
+**Salida:** texto. `not_found` si no está; si está, `exists` y una segunda línea con el id interno de Sonarr, el título y el número de temporadas.
 
 ### Añadir una serie
 
 ```bash
-bash .claude/skills/sonarr/scripts/sonarr.sh add <tvdbId>              # Busca de inmediato (por defecto)
-bash .claude/skills/sonarr/scripts/sonarr.sh add <tvdbId> --no-search  # Añade sin buscar
+bash .claude/skills/sonarr/scripts/sonarr.sh add <tvdbId> <profileId>              # Busca de inmediato (por defecto)
+bash .claude/skills/sonarr/scripts/sonarr.sh add <tvdbId> <profileId> --no-search  # Añade sin buscar
 ```
+
+El `profileId` es obligatorio: si falta, el script imprime el uso, indica ejecutar `config` para ver los ids de perfil y sale con 1. Nunca se elige un perfil por defecto (el primero podría saltarse el filtro de español); consulta `config` y usa el que corresponda (p. ej. 7 Español, 8 VOSE). La carpeta raíz es siempre la primera. La serie se añade monitorizada (`monitor: all`, carpetas por temporada).
 
 ### Quitar una serie
 
@@ -78,7 +78,7 @@ bash .claude/skills/sonarr/scripts/sonarr.sh remove <tvdbId>                # Co
 bash .claude/skills/sonarr/scripts/sonarr.sh remove <tvdbId> --delete-files # Borra también los ficheros
 ```
 
-**Importante:** pregunta siempre al usuario si quiere borrar los ficheros al quitar una serie. Con `--delete-files` aplica la doble confirmación.
+**Importante:** pregunta siempre al usuario si quiere borrar los ficheros al quitar una serie. El hook `confirm-destructive` exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1` para cualquier `remove`.
 
 ### Consultar la configuración
 
@@ -92,7 +92,6 @@ bash .claude/skills/sonarr/scripts/sonarr.sh config
 
 ```bash
 bash .claude/skills/sonarr/scripts/sonarr.sh search-json "Breaking Bad"     # Igual que search, pero con salida JSON
-bash .claude/skills/sonarr/scripts/sonarr.sh add <tvdbId> <profileId>       # Añade con un perfil de calidad concreto
 bash .claude/skills/sonarr/scripts/sonarr.sh logs [n] [level]               # Últimas n líneas de log (nivel: info/warn/error)
 bash .claude/skills/sonarr/scripts/sonarr.sh search-id <seriesId>           # Lanza la búsqueda de una serie (id interno de Sonarr)
 bash .claude/skills/sonarr/scripts/sonarr.sh search-all                     # Lanza la búsqueda de TODOS los episodios que faltan
@@ -104,7 +103,7 @@ bash .claude/skills/sonarr/scripts/sonarr.sh search-all                     # La
 
 Cuando el usuario pregunte por series:
 
-1. **"Añade Breaking Bad a Sonarr"** → ejecuta `search "Breaking Bad"`, presenta los resultados con enlaces a TVDB y luego `add <tvdbId>`
+1. **"Añade Breaking Bad a Sonarr"** → ejecuta `search "Breaking Bad"`, presenta los resultados con enlaces a TVDB, ejecuta `config` para elegir el perfil (o pregúntalo) y luego `add <tvdbId> <profileId>`
 2. **"¿Tengo The Office en la biblioteca?"** → ejecuta `exists <tvdbId>`
 3. **"Quita Game of Thrones"** → pregunta por el borrado de ficheros y ejecuta `remove <tvdbId>` con el flag adecuado
 4. **"¿Qué perfiles de calidad tengo?"** → ejecuta `config`
@@ -114,7 +113,7 @@ Cuando el usuario pregunte por series:
 Incluye siempre enlaces a TVDB al presentar resultados:
 - Formato: `[Título (Año)](https://thetvdb.com/series/SLUG)`
 - Muestra una lista numerada para que el usuario elija
-- Incluye el año y una breve sinopsis
+- Incluye el año; la sinopsis solo está en `search-json`
 
 ### Añadir series
 
@@ -127,6 +126,7 @@ Incluye siempre enlaces a TVDB al presentar resultados:
 
 ### Comando add
 - `<tvdbId>`: id de TVDB de la serie (obligatorio)
+- `[profileId]`: id del perfil de calidad (opcional)
 - `--no-search`: no buscar episodios después de añadirla
 
 ### Comando remove
@@ -137,9 +137,10 @@ Incluye siempre enlaces a TVDB al presentar resultados:
 
 - Requiere acceso de red al servidor de Sonarr
 - Usa la API v3 de Sonarr
-- Todas las operaciones de datos devuelven JSON
+- Solo `search-json` devuelve JSON; el resto es texto
 - Los ids de perfil de calidad varían según la instalación: usa `config` para descubrir los tuyos
-- El valor de `SONARR_DEFAULT_QUALITY_PROFILE` del `.env` se usa al añadir series (por defecto 1)
+- No hay perfil por defecto: `add` exige el `profileId` explícito
+- Sonarr no tiene `add-collection` (es un comando solo de Radarr)
 
 ## Referencia
 
