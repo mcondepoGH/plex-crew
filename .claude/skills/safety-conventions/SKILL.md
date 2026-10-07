@@ -12,6 +12,9 @@ Antes de cualquier operación destructiva, pide confirmación explícita **dos v
 
 Destructivo incluye: borrar, parar o reiniciar contenedores, `rm`/`rm -rf`, sobrescribir ficheros, `git reset --hard`, force-push, `chown`/`chmod` masivo, borrar datos, borrar releases de zurg (se eliminan de todas las cuentas del proveedor, sin deshacer) y cualquier acción difícil de revertir. Los renombrados masivos también: prueba con un elemento y pide la segunda confirmación antes del resto.
 
+## Marcador de confirmación
+Tras la doble confirmación del usuario (dos mensajes distintos), el comando destructivo se ejecuta prefijado con `PLEX_CREW_CONFIRMED=1 ` (p. ej. `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`). El hook `confirm-destructive.js` bloquea (deny) los destructivos sin marcador; si te bloquea, no lo ejecutes: devuelve la propuesta (qué y rutas exactas) al orquestador. Nunca pongas el marcador sin doble confirmación real.
+
 ## Permisos
 - Todo fichero tocado acaba con propietario `mcondepo:docker-stacker` y modo `770`. En contenedores usa los ids numéricos: `chown 1000:1003 <fichero>` y `chmod 770 <fichero>`. Verifica con `stat -c '%u:%g %a'`, no solo con el código de salida.
 - **Excepción:** nunca `chown`/`chmod` bajo el mount de zurg. Es root por rclone FUSE.
