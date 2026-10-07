@@ -1,0 +1,15 @@
+# Secretos: nunca se suben
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*token*.json
+.credentials.json
+
+# Datos de sesión / temporales
+*.jsonl
+scratch/
+tmp/
+node_modules/
+.claude/settings.local.json
