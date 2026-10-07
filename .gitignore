@@ -13,3 +13,8 @@ scratch/
 tmp/
 node_modules/
 .claude/settings.local.json
+
+# Montajes del contenedor claude-code (el repo es /workspace)
+/plex-stack/
+/arr-stack/
+/zurg-mnt/
