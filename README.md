@@ -1,55 +1,107 @@
 # plex-crew
 
-Orquestador y subagentes de Claude Code para operar un homelab Plex (zurg, Radarr, Sonarr, Prowlarr, cli_debrid, Seerr).
+Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema (zurg, Radarr, Sonarr, Prowlarr, Seerr, Tautulli, cli_debrid). Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
-## Arranque
-1. Un único `.env` como fuente de datos: copia `.env.example` a `.env` y rellena URLs, claves y `ZURG_MCP_URL`. `.env` está ignorado por git.
-2. Arranca Claude Code con ese `.env` cargado en el entorno:
-   - En Docker: el servicio apunta al `.env` con `env_file`, p. ej. `env_file: ./claude-code/plex-crew/.env` en el servicio `claude-code` de `compose.yml` (la ruta debe resolver al `.env` de este repo).
-   - Fuera de Docker: `scripts/start.sh` (carga `.env`, o `$HOMELAB_ENV` si está definido, y lanza `claude`; falla si falta el fichero o `ZURG_MCP_URL`).
-3. `.claude/settings.json` fija `orchestrator` como agente de la sesión.
-4. Pide lo que necesites; el orquestador elige especialista.
+## Instalación y arranque
 
-Alternativa: `claude --agent orchestrator`.
+1. Clona el repositorio y entra en la carpeta.
+2. Copia la plantilla de credenciales y rellena solo los servicios que uses:
+   ```bash
+   cp .env.example .env
+   ```
+3. Define `ZURG_MCP_URL` en el `.env` (si arrancas con `scripts/start.sh`) o expórtala en tu shell.
+4. Arranca el orquestador:
+   ```bash
+   scripts/start.sh               # carga el .env y ejecuta claude
+   claude --agent orchestrator    # con ZURG_MCP_URL ya exportada
+   ```
+5. La primera vez Claude Code pide aprobar el servidor MCP `zurg` (definido en `.mcp.json`). Apruébalo.
+6. Configura el alcance de escritura de `plex-naming`:
+   ```bash
+   mkdir -p ~/.config/plex-crew
+   cp scope.conf.example ~/.config/plex-crew/scope.conf
+   ```
+   Edita el fichero con las rutas absolutas donde puede escribir (una por línea). Sin él, el hook deniega toda escritura a ese agente.
+
+## Variables del `.env`
+
+El `.env` no se versiona. Plantilla: `.env.example`.
+
+| Variable | Servicio | Obligatoria |
+|---|---|---|
+| `ZURG_MCP_URL` | zurg (MCP) | Sí, para usar zurg |
+| `PROWLARR_URL`, `PROWLARR_API_KEY` | Prowlarr | Si usas la skill |
+| `RADARR_URL`, `RADARR_API_KEY` | Radarr | Si usas la skill |
+| `RADARR_DEFAULT_QUALITY_PROFILE` | Radarr | No |
+| `SONARR_URL`, `SONARR_API_KEY` | Sonarr | Si usas la skill |
+| `SONARR_DEFAULT_QUALITY_PROFILE` | Sonarr | No |
+| `PLEX_URL`, `PLEX_TOKEN` | Plex | Si usas la skill |
+| `TAUTULLI_URL`, `TAUTULLI_API_KEY` | Tautulli | Si usas la skill |
+| `SEERR_URL`, `SEERR_API_KEY` | Seerr / Overseerr | Si usas la skill |
+| `CLI_DEBRID_URL`, `CLI_DEBRID_USER`, `CLI_DEBRID_PASSWORD` | cli_debrid | Si usas la skill |
+| `HOMELAB_ENV` | Skills y `scripts/start.sh` | No: ruta alternativa al `.env` de la raíz |
+| `PLEX_CREW_CONFIG` | Hook `enforce-agent-scope` | No: ruta alternativa a `~/.config/plex-crew/scope.conf`; se define en el entorno, no en el `.env` |
 
 ## Agentes
-| Agente | Dominio |
-|---|---|
-| `orchestrator` | Enruta y sintetiza. No ejecuta. |
-| `plex-naming` | Nombres, ids, especiales, emparejados erróneos. |
-| `zurg-ops` | Estado, config, diagnóstico y backups de zurg. |
-| `arr-acquisition` | Búsqueda y descarga, filtros de idioma, indexadores. |
 
-Los subagentes no pueden lanzar otros subagentes: por eso el orquestador es el agente principal.
+Solo el orquestador lanza subagentes; los especialistas devuelven sus propuestas a él.
 
-## MCP Servers
-
-La configuración de servidores MCP vive en `.mcp.json`, en la raíz de este repo. Usa `${ZURG_MCP_URL}`, que Claude Code expande desde el entorno del proceso `claude`; el valor se define en `.env` (ver `.env.example`). Claude Code no lee `.env` por sí mismo: hay que cargarlo en el entorno antes de arrancar. Rellena `ZURG_MCP_URL` en el único `.env` (copia de `.env.example`) y usa una de estas vías:
-
-- Docker: `env_file` en el servicio `claude-code`, apuntando a ese `.env`:
-  ```yaml
-  env_file: ./claude-code/plex-crew/.env
-  ```
-- Fuera de Docker: `scripts/start.sh`.
-
-Sin la variable, `zurg` no carga y no hay tools `mcp__zurg__*`. La primera vez, Claude Code pide aprobar el servidor `zurg` de `.mcp.json` (aprobación manual).
-
-**zurg** — fuente: https://github.com/debridmediamanager/zurg. MCP nativo del binario oficial, activado vía `config.yml: mcp.enabled: true` (no es código propio de este repo). Tools `mcp__zurg__*` usadas por agente, agrupadas por prefijo funcional con descripción de una línea cada grupo:
-
-- `zurg-ops` usa: `clients_*` (paths, status, qbittorrent_jobs, sabnzbd_jobs — estado de clientes conectados), `config_*` (drift, file, get, keys, set — lectura/edición de config.yml), `diagnostics_*` (logs, traffic, process, memory — diagnóstico del proceso), `library_list`, `library_search`, `library_status` (listado/búsqueda de releases), `mount_status` (estado del mount), `plex_status` (estado integración Plex), `provider_*` (account, health, list, test, traffic — estado de proveedores debrid), `release_get`, `release_files` (detalle de un release), `repair_status`, `repair_outlook` (reparación), `server_info`, `system_backups`, `system_backup_create`, `system_doctor` (sistema y backups).
-- `plex-naming` usa: `library_search`, `library_list`, `library_directories` (búsqueda/listado), `release_get`, `release_files`, `release_rename`, `release_files_rename`, `release_set_external_id` (renombrar y fijar ids), `plex_match_release`, `plex_match_all`, `plex_status`, `plex_scan_releases` (emparejado con Plex).
-- `arr-acquisition` usa: `library_search`, `clients_paths`, `clients_status` (búsqueda y verificación de rutas/clientes).
+| Agente | Para qué sirve | Documentación |
+|---|---|---|
+| `orchestrator` | Sesión principal: clasifica, delega, pide confirmaciones, gestiona crons y artefactos | [README](.claude/agents/orchestrator/README.md) |
+| `plex-naming` | Renombra series y películas al formato de Plex y corrige emparejados | [README](.claude/agents/plex-naming/README.md) |
+| `zurg-ops` | Diagnóstico y operación de zurg y del mount de Real-Debrid | [README](.claude/agents/zurg-ops/README.md) |
+| `arr-acquisition` | Búsqueda, adquisición y auditoría con Radarr, Sonarr, Prowlarr, Seerr y cli_debrid | [README](.claude/agents/arr-acquisition/README.md) |
 
 ## Skills
-- Reglas: `plex-naming-rules`, `zurg-rules`, `arr-language-filters`, `safety-conventions`.
-- Servicios: `prowlarr`, `radarr`, `sonarr`, `plex`, `tautulli`, `seerr`, `cli_debrid`. Cargan credenciales con `scripts/load-env.sh` (`HOMELAB_ENV` permite usar otro `.env`).
 
-## Hooks
-- `hooks/confirm-destructive.js`: bloquea comandos Bash destructivos salvo que lleven el marcador `PLEX_CREW_CONFIRMED=1` tras la doble confirmación.
-- `hooks/enforce-agent-scope.js`: limita las rutas de escritura de un agente.
+### Reglas
 
-**Permisos de Bash (opcional, local)**: para ejecutar Bash sin avisos de permiso, cada persona puede crear `.claude/settings.local.json` (ignorado por git, personal) con `{"permissions":{"allow":["Bash"]}}`. Aun así, el hook `confirm-destructive.js` bloquea los comandos destructivos y solo los deja pasar con el prefijo `PLEX_CREW_CONFIRMED=1 ` tras la doble confirmación del usuario en dos mensajes.
+| Skill | Propósito |
+|---|---|
+| [`plex-naming-rules`](.claude/skills/plex-naming-rules/README.md) | Reglas de nombrado de Plex para series, películas, especiales e identificadores |
+| [`zurg-rules`](.claude/skills/zurg-rules/README.md) | Reglas de operación sobre zurg y el mount de Real-Debrid |
+| [`arr-language-filters`](.claude/skills/arr-language-filters/README.md) | Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr y sus límites |
 
-## Requisitos
-- Servidores MCP configurados — ver sección "MCP Servers".
-- `node` para los hooks.
+### Servicios
+
+| Skill | Propósito |
+|---|---|
+| [`prowlarr`](.claude/skills/prowlarr/README.md) | Buscar en indexadores y gestionarlos |
+| [`radarr`](.claude/skills/radarr/README.md) | Gestión de películas |
+| [`sonarr`](.claude/skills/sonarr/README.md) | Gestión de series |
+| [`plex`](.claude/skills/plex/README.md) | Explorar bibliotecas, buscar y ver sesiones de Plex |
+| [`tautulli`](.claude/skills/tautulli/README.md) | Estadísticas y actividad de Plex |
+| [`seerr`](.claude/skills/seerr/README.md) | Buscar y gestionar solicitudes en Seerr/Overseerr |
+| [`cli_debrid`](.claude/skills/cli_debrid/README.md) | Estado, cola, descargas y logs de cli_debrid |
+
+La carpeta [`_lib`](.claude/skills/_lib/README.md) no es una skill: contiene el código de shell compartido por los scripts.
+
+## Hooks y seguridad
+
+| Hook | Para qué sirve | Documentación |
+|---|---|---|
+| `confirm-destructive.js` | Bloquea comandos `Bash` destructivos sin doble confirmación (todos los agentes) | [hooks/README.md](hooks/README.md#confirm-destructivejs) |
+| `enforce-agent-scope.js` | Limita las rutas donde escribe `plex-naming` según `scope.conf` | [hooks/README.md](hooks/README.md#enforce-agent-scopejs) |
+
+Son una red de seguridad, no un sandbox.
+
+- Doble confirmación: toda operación destructiva exige dos mensajes distintos del usuario, incluso en modo automático. El subagente propone y el orquestador pide las confirmaciones.
+- Los secretos viven en `.env` (ignorado por git); nunca se imprimen ni se escriben en ficheros versionados.
+
+## Estructura de carpetas
+
+```
+.
+├── CLAUDE.md                  Reglas globales del proyecto
+├── README.md                  Este índice
+├── .env.example               Plantilla de credenciales
+├── .mcp.json                  Servidor MCP de zurg
+├── scope.conf.example         Plantilla del alcance de escritura
+├── .claude/
+│   ├── settings.json          Agente por defecto y hook confirm-destructive
+│   ├── agents/                Definiciones de los agentes y un README.md por agente
+│   └── skills/                Una carpeta por skill (con su README.md) y _lib/
+├── hooks/                     Hooks de seguridad (README.md y los dos .js)
+└── scripts/                   start.sh
+```

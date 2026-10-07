@@ -1,0 +1,63 @@
+# Hooks
+
+Dos hooks `PreToolUse` en Node que actúan como red de seguridad ante errores. No son un sandbox: no protegen frente a un adversario.
+
+| Hook | Dónde se registra | Para qué sirve |
+|---|---|---|
+| `confirm-destructive.js` | `.claude/settings.json`, sobre `Bash`, para todos los agentes | Bloquea comandos destructivos sin doble confirmación |
+| `enforce-agent-scope.js` | Frontmatter de `.claude/agents/plex-naming.md` (solo ese agente) | Limita las rutas donde puede escribir |
+
+## confirm-destructive.js
+
+Se registra en `.claude/settings.json` como `PreToolUse` con `matcher: "Bash"` y un timeout de 10 s. Se aplica a todos los agentes que tengan `Bash` (el orquestador y `zurg-ops` no lo tienen).
+
+Qué vigila: el texto del comando `Bash`. Si casa con algún patrón destructivo y no lleva el marcador, lo deniega con un mensaje que explica la regla. Lo que no casa pasa sin salida.
+
+Patrones principales:
+
+- `rm`, `unlink`, `shred`, `truncate`, `mkfs`.
+- `dd` con `of=`.
+- `git reset --hard`, `git clean -f`, `git push --force` o `-f`, `git checkout --`, `git restore`.
+- `docker` / `docker compose` con `rm`, `rmi`, `down`, `kill`, `system prune`, `volume rm`.
+- `find` con `-delete` o `-exec rm`.
+- `DELETE FROM`, `DROP TABLE`, `DROP DATABASE`.
+- `curl -X DELETE`.
+
+Marcador `PLEX_CREW_CONFIRMED=1`: si el comando lo lleva como asignación de entorno al inicio (por ejemplo `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`, también tras `;`, `&` o `|`), el hook lo deja pasar. Solo se pone tras la doble confirmación del usuario (dos mensajes distintos, incluso en modo automático). Sin marcador, el subagente no ejecuta el comando y devuelve la propuesta al orquestador, que pide las confirmaciones.
+
+Si el JSON de entrada no se puede leer, no bloquea.
+
+## enforce-agent-scope.js
+
+Está registrado únicamente en el frontmatter de `plex-naming`; el resto de agentes no lo tienen. Actúa sobre `Edit`, `Write`, `NotebookEdit` y `Bash`.
+
+Qué vigila: que toda escritura quede dentro de las rutas permitidas (incluye todo lo que cuelga de ellas; se resuelven los enlaces simbólicos).
+
+- `Edit`, `Write`, `NotebookEdit`: comprueba `file_path` o `notebook_path`.
+- `Bash`: analiza el comando de forma conservadora. Lo trocea por `;`, `&&`, `||`, `|`, `&` y saltos de línea, y comprueba las rutas afectadas por `mv`, `cp`, `rm`, `rmdir`, `mkdir`, `touch`, `ln`, `tee`, `truncate`, `install`, `sed -i` y redirecciones `>` / `>>`. También revisa las sustituciones `$(...)` y las rutas que aparecen en código inline de `python`, `perl`, `node` y `ruby`.
+- Ante la duda deniega: `eval`, `xargs`, `bash -c` (y shells similares), `find` con `-exec` o `-delete`, rutas con expansiones sin resolver o directorio de trabajo desconocido. El mensaje pide simplificar el comando.
+
+### scope.conf
+
+Las rutas permitidas se leen de:
+
+1. El fichero indicado en la variable de entorno `PLEX_CREW_CONFIG`, o si no existe, `~/.config/plex-crew/scope.conf`.
+2. Argumentos de línea de comandos opcionales del hook, que se añaden como rutas extra.
+
+Formato: una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`; se admite `~` al principio. La plantilla es [`scope.conf.example`](../scope.conf.example):
+
+```
+mkdir -p ~/.config/plex-crew
+cp scope.conf.example ~/.config/plex-crew/scope.conf
+```
+
+`PLEX_CREW_CONFIG` se define en el entorno de la shell, no en el `.env`.
+
+Si el fichero falta o no tiene rutas, el hook deniega toda escritura con un mensaje que explica cómo crearlo.
+
+## Límites
+
+- No es un sandbox: es una red de seguridad contra errores, no contra un adversario. Una orden construida a propósito puede esquivar el análisis.
+- Solo ve `Bash`, `Edit`, `Write` y `NotebookEdit`. No ve las tools MCP (`mcp__zurg__*`), así que no controla lo que hagan.
+- `confirm-destructive` trabaja sobre el texto del comando; una operación destructiva que no case con los patrones pasa.
+- `enforce-agent-scope` solo cubre a `plex-naming`.

@@ -2,7 +2,7 @@
 // lleven el marcador `PLEX_CREW_CONFIRMED=1` como asignación de entorno al inicio
 // de un comando (p. ej. `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`).
 // El marcador solo se pone tras la doble confirmación del usuario (dos mensajes
-// distintos, ver skill `safety-conventions`). Sin marcador no hay aviso en la UI:
+// distintos, incluso en modo automático). Sin marcador no hay aviso en la UI:
 // el comando se deniega y el subagente debe devolver la propuesta al orquestador.
 // Lo que no casa con un patrón destructivo pasa sin salida (exit 0).
 const fs = require('fs');
@@ -45,8 +45,10 @@ process.stdin.on('end', () => {
         permissionDecision: 'deny',
         permissionDecisionReason:
           'Comando destructivo bloqueado. Regla del stack: doble confirmación del usuario en dos mensajes distintos antes de ejecutarlo. ' +
-          'NO lo ejecutes: devuelve al orquestador la propuesta (qué se borra o modifica, con las rutas exactas) y espera la orden explícita del usuario, ' +
-          'que incluirá el prefijo `PLEX_CREW_CONFIRMED=1 ` delante del comando.',
+          'Si el usuario ya ha confirmado dos veces, en dos mensajes distintos y de forma explícita, reintenta el mismo comando anteponiendo `PLEX_CREW_CONFIRMED=1 ` ' +
+          '(por ejemplo `PLEX_CREW_CONFIRMED=1 <comando>`). ' +
+          'No pongas ese marcador sin una doble confirmación real: ni por iniciativa propia ni tras una sola respuesta del usuario. ' +
+          'Si todavía no hay confirmación, NO ejecutes el comando: devuelve al orquestador la propuesta (qué se borra o modifica, con las rutas exactas) para que pida las dos confirmaciones al usuario.',
       },
     })
   );

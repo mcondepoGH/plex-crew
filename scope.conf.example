@@ -1,0 +1,16 @@
+# Rutas donde el agente plex-naming puede escribir (hook hooks/enforce-agent-scope.js).
+#
+# Copia este fichero a ~/.config/plex-crew/scope.conf y ajusta las rutas a tu instalación:
+#
+#   mkdir -p ~/.config/plex-crew
+#   cp scope.conf.example ~/.config/plex-crew/scope.conf
+#
+# También puedes guardarlo en otro sitio y apuntar a él con la variable PLEX_CREW_CONFIG.
+#
+# Formato: una ruta absoluta por línea. Las líneas vacías y las que empiezan por # se ignoran.
+# Se admite ~ al principio de la ruta. Cada ruta incluye todo lo que cuelga de ella.
+# Si no hay ninguna ruta configurada, el hook deniega toda escritura.
+
+/media/plex/movies
+/media/plex/shows
+/media/downloads

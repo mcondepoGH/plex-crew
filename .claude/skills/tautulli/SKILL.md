@@ -5,18 +5,18 @@ description: Monitor and analyze Plex Media Server usage via Tautulli analytics 
 
 # Tautulli Analytics Skill
 
-**⚠️ MANDATORY SKILL INVOCATION ⚠️**
+**INVOCACIÓN OBLIGATORIA DE LA SKILL**
 
-**YOU MUST invoke this skill (NOT optional) when the user mentions ANY of these triggers:**
-- "Tautulli", "Plex analytics", "watch statistics"
-- "current streams", "who's watching Plex", "active sessions"
-- "Plex history", "watch history", "playback history"
-- "most watched", "top content", "popular media"
-- "user activity", "user stats", "library statistics"
-- "Plex monitoring", "stream analytics", "viewing trends"
-- Any mention of Tautulli or Plex usage analytics
+**DEBES invocar esta skill (no es opcional) cuando el usuario mencione CUALQUIERA de estos disparadores:**
+- "Tautulli", "analíticas de Plex", "estadísticas de visionado"
+- "streams actuales", "quién está viendo Plex", "sesiones activas"
+- "historial de Plex", "historial de visionado", "historial de reproducción"
+- "lo más visto", "contenido top", "contenido popular"
+- "actividad de usuarios", "estadísticas de usuario", "estadísticas de biblioteca"
+- "monitorización de Plex", "analíticas de streams", "tendencias de visionado"
+- Cualquier mención de Tautulli o de analíticas de uso de Plex
 
-**Failure to invoke this skill when triggers occur violates your operational requirements.**
+**Si no invocas esta skill cuando se dan estos disparadores, incumples tus requisitos operativos.**
 
 Monitor and analyze Plex Media Server usage through Tautulli's comprehensive analytics API. Track current streams, historical playback data, user activity, and library statistics.
 

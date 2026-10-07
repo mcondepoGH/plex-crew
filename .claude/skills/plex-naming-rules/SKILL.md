@@ -21,8 +21,8 @@ La documentación oficial (support.plex.tv) manda sobre cualquier hábito o supo
 - La carpeta `Season` va siempre en inglés (`Season 01`).
 
 ## Calidad en el nombre
-- Añade la calidad al final (`[HDTV 720p][AC3 5.1 Castellano]`) solo con lo validado con `ffprobe` (alto del vídeo, `codec_name` y canales del audio).
-- Si la etiqueta del original es falsa, corrígela sin preguntar e informa de qué corregiste. Si el original no define calidad, no la inventes.
+- Añade la calidad al final (`[HDTV 720p][AC3 5.1 Castellano]`) solo si el nombre original ya la define; no se comprueba contra el fichero.
+- Si el original no define calidad, no la inventes.
 - Idioma: `spa` en metadatos; "Castellano" viene del nombre de la release original.
 
 ## Patrón estándar de arreglo (temporada o release mal nombrada)

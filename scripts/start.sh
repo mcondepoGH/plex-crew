@@ -1,5 +1,5 @@
 #!/bin/bash
-# Arranca Claude Code cargando el .env único del proyecto. Para uso fuera de Docker.
+# Arranca Claude Code cargando el .env único del proyecto. Pensado para uso local.
 # Fichero de entorno: $HOMELAB_ENV si está definido; si no, <raíz-repo>/.env
 set -euo pipefail
 

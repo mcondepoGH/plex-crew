@@ -6,7 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_LOAD_ENV="$SCRIPT_DIR/../../../../scripts/load-env.sh"
+_LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
 source "$_LOAD_ENV" || { echo "ERROR: load-env.sh not found. Copia .env.example a .env" >&2; exit 1; }
 
@@ -19,7 +19,7 @@ DEFAULT_QUALITY_PROFILE="${SONARR_DEFAULT_QUALITY_PROFILE:-1}"
 API="$SONARR_URL/api/v3"
 AUTH="X-Api-Key: $SONARR_API_KEY"
 
-_ARR_API="$SCRIPT_DIR/../../../../scripts/arr-api.sh"
+_ARR_API="$SCRIPT_DIR/../../_lib/arr-api.sh"
 # shellcheck source=/dev/null
 source "$_ARR_API" || { echo "ERROR: arr-api.sh not found" >&2; exit 1; }
 

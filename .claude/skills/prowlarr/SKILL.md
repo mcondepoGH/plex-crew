@@ -5,16 +5,16 @@ description: Search indexers and manage Prowlarr. Use when the user asks to "sea
 
 # Prowlarr Skill
 
-**⚠️ MANDATORY SKILL INVOCATION ⚠️**
+**INVOCACIÓN OBLIGATORIA DE LA SKILL**
 
-**YOU MUST invoke this skill (NOT optional) when the user mentions ANY of these triggers:**
-- "search for a torrent", "search indexers", "find a release"
-- "search Prowlarr", "Prowlarr indexers", "indexer search"
-- "check indexer status", "test indexers", "Prowlarr stats"
-- "list indexers", "sync indexers", "push indexers to Sonarr"
-- Any mention of Prowlarr or indexer management
+**DEBES invocar esta skill (no es opcional) cuando el usuario mencione CUALQUIERA de estos disparadores:**
+- "buscar un torrent", "buscar en los indexadores", "encontrar un release"
+- "buscar en Prowlarr", "indexadores de Prowlarr", "búsqueda en indexadores"
+- "estado de los indexadores", "probar indexadores", "estadísticas de Prowlarr"
+- "listar indexadores", "sincronizar indexadores", "enviar indexadores a Sonarr"
+- Cualquier mención de Prowlarr o de la gestión de indexadores
 
-**Failure to invoke this skill when triggers occur violates your operational requirements.**
+**Si no invocas esta skill cuando se dan estos disparadores, incumples tus requisitos operativos.**
 
 Search across all your indexers and manage Prowlarr via API.
 

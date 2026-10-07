@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_LOAD_ENV="$SCRIPT_DIR/../../../../scripts/load-env.sh"
+_LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
 source "$_LOAD_ENV" || { echo "ERROR: load-env.sh not found" >&2; exit 1; }
 

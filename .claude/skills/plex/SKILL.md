@@ -5,15 +5,15 @@ description: Control Plex Media Server - browse libraries, search media, check w
 
 # Plex Media Server Skill
 
-**⚠️ MANDATORY SKILL INVOCATION ⚠️**
+**INVOCACIÓN OBLIGATORIA DE LA SKILL**
 
-**YOU MUST invoke this skill (NOT optional) when the user mentions ANY of these triggers:**
-- "Plex library", "search Plex", "what's on Plex"
-- "Plex sessions", "who's watching", "active streams"
-- "browse Plex", "check Plex", "Plex status"
-- Any mention of Plex Media Server or querying media
+**DEBES invocar esta skill (no es opcional) cuando el usuario mencione CUALQUIERA de estos disparadores:**
+- "biblioteca de Plex", "buscar en Plex", "qué hay en Plex"
+- "sesiones de Plex", "quién está viendo", "streams activos"
+- "explorar Plex", "comprobar Plex", "estado de Plex"
+- Cualquier mención de Plex Media Server o de consultar contenido multimedia
 
-**Failure to invoke this skill when triggers occur violates your operational requirements.**
+**Si no invocas esta skill cuando se dan estos disparadores, incumples tus requisitos operativos.**
 
 Control and query Plex Media Server using the Plex API. Browse libraries, search media, and monitor active sessions.
 
@@ -52,7 +52,7 @@ PLEX_TOKEN="<your_plex_token>"
 
 All commands output JSON. Use `jq` for formatting or filtering.
 
-The `plex-api.sh` helper script simplifies API access. Located at: `skills/plex/scripts/plex-api.sh`
+El script auxiliar `plex-api.sh` simplifica el acceso a la API. Ubicación: `.claude/skills/plex/scripts/plex-api.sh`
 
 ### Server Info
 
