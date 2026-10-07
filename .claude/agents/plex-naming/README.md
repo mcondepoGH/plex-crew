@@ -21,8 +21,12 @@ Límites:
 
 ## Funciones
 
-- Renombrar carpetas y ficheros de series y películas según `plex-naming-rules`: `SxxExx`, ids `{imdb-...}`, calidad, especiales `S00Exx`.
-- Detectar y corregir emparejados erróneos (`match_release`, `set_external_id`).
+- Renombrar carpetas y ficheros de series y películas según `plex-naming-rules`:
+  - `SxxExx`
+  - ids `{imdb-...}`
+  - calidad
+  - especiales `S00Exx`
+- Detectar y corregir emparejados erróneos con `match_release` y `set_external_id`.
 - Descubrir rutas de zurg (biblioteca) y bibliotecas locales (skill `plex`), separando hallazgos locales y de Real-Debrid.
 - Comprobar si Season Fix cubre el caso antes de renombrar episodios en zurg.
 - Añadir la calidad al nombre solo si el nombre original ya la define; no se comprueba contra el fichero.
@@ -31,30 +35,42 @@ Límites:
 
 ## Tools
 
-| Tool | Para qué sirve |
-|---|---|
-| `Read`, `Glob`, `Grep` | Leer y localizar ficheros |
-| `Bash` | Comandos de shell (por ejemplo, renombrados locales); sujeto a ambos hooks |
-| `Edit` | Editar ficheros; sujeto a `enforce-agent-scope` |
+- Lectura de ficheros:
+  - `Read`: leer ficheros
+  - `Glob`: localizar ficheros por patrón
+  - `Grep`: buscar contenido
+- Escritura y shell:
+  - `Bash`: comandos de shell (por ejemplo, renombrados locales); sujeto a ambos hooks
+  - `Edit`: editar ficheros; sujeto a `enforce-agent-scope`
 
 ### Tools `mcp__zurg__*`
 
-| Prefijo | Tool | Uso |
-|---|---|---|
-| `library` | `zurg_library_search` | Localizar releases por texto |
-| `library` | `zurg_library_list` | Listar releases de la biblioteca |
-| `library` | `zurg_library_directories` | Descubrir las carpetas de la biblioteca |
-| `release` | `zurg_release_get` | Ver los datos de un release |
-| `release` | `zurg_release_files` | Listar los ficheros de un release |
-| `release` | `zurg_release_rename` | Renombrar un release |
-| `release` | `zurg_release_files_rename` | Renombrar ficheros dentro de un release |
-| `release` | `zurg_release_set_external_id` | Fijar el id externo (imdb, tmdb, tvdb) |
-| `plex` | `zurg_plex_match_release` | Comprobar cómo empareja Plex un release |
-| `plex` | `zurg_plex_match_all` | Comprobar el emparejado de todos los releases |
-| `plex` | `zurg_plex_status` | Estado de la integración con Plex |
-| `plex` | `zurg_plex_scan_releases` | Pedir a Plex el escaneo de releases concretos |
+- `library`
+  - `zurg_library_search`: localizar releases por texto
+  - `zurg_library_list`: listar releases de la biblioteca
+  - `zurg_library_directories`: descubrir las carpetas de la biblioteca
+- `release`
+  - `zurg_release_get`: ver los datos de un release
+  - `zurg_release_files`: listar los ficheros de un release
+  - `zurg_release_rename`: renombrar un release
+  - `zurg_release_files_rename`: renombrar ficheros dentro de un release
+  - `zurg_release_set_external_id`: fijar el id externo (imdb, tmdb o tvdb)
+- `plex`
+  - `zurg_plex_match_release`: comprobar cómo empareja Plex un release
+  - `zurg_plex_match_all`: comprobar el emparejado de todos los releases
+  - `zurg_plex_status`: estado de la integración con Plex
+  - `zurg_plex_scan_releases`: pedir a Plex el escaneo de releases concretos
 
-Los prefijos `clients`, `config`, `diagnostics`, `mount`, `provider`, `repair`, `server` y `system` no están declarados para este agente.
+No están declarados para este agente los grupos de tools siguientes:
+
+- `clients`
+- `config`
+- `diagnostics`
+- `mount`
+- `provider`
+- `repair`
+- `server`
+- `system`
 
 ## Skills que usa
 
@@ -67,7 +83,7 @@ Los prefijos `clients`, `config`, `diagnostics`, `mount`, `provider`, `repair`, 
 | Salvaguarda | Efecto |
 |---|---|
 | [`confirm-destructive`](../../../hooks/README.md#confirm-destructivejs) | Deniega comandos `Bash` destructivos salvo que lleven `PLEX_CREW_CONFIRMED=1`, que solo se pone tras la doble confirmación |
-| [`enforce-agent-scope`](../../../hooks/README.md#enforce-agent-scopejs) | Registrado en el frontmatter de este agente (`Edit`, `Write`, `NotebookEdit`, `Bash`); es el único agente que lo tiene. Solo deja escribir bajo las rutas de `scope.conf` |
+| [`enforce-agent-scope`](../../../hooks/README.md#enforce-agent-scopejs) | Registrado en el frontmatter de este agente (para las cuatro tools que detalla el README de hooks); es el único agente que lo tiene. Solo deja escribir bajo las rutas de `scope.conf` |
 | Doble confirmación | Dos mensajes distintos del usuario antes de cualquier operación destructiva, incluso en modo automático |
 
 `scope.conf` se busca en `$PLEX_CREW_CONFIG` o, si no existe, en `~/.claude/plex-crew/scope.conf` (plantilla: `scope.conf.example`). Admite una ruta absoluta por línea, comentarios con `#` y `~`. Sin rutas, el hook deniega toda escritura. Ante la duda (sustituciones, `eval`, `xargs`, intérpretes...) también deniega. No es un sandbox y no ve las tools MCP.

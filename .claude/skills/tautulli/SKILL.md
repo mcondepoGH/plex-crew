@@ -1,9 +1,9 @@
 ---
 name: tautulli
-description: Monitor and analyze Plex Media Server usage via Tautulli analytics API. Use when the user asks to "check Tautulli", "Plex analytics", "watch statistics", "current streams", "who's watching", "Plex history", "most watched", "user activity", "library stats", or mentions Tautulli/Plex monitoring.
+description: Analíticas de uso de Plex a través de Tautulli. Úsala cuando el usuario pida "Tautulli", "analíticas de Plex", "estadísticas de visionado", "streams actuales", "historial de Plex", "lo más visto", "actividad de usuarios", "estadísticas de biblioteca", o mencione la monitorización de Plex con Tautulli.
 ---
 
-# Tautulli Analytics Skill
+# Skill de analíticas de Plex con Tautulli
 
 **INVOCACIÓN OBLIGATORIA DE LA SKILL**
 
@@ -18,345 +18,210 @@ description: Monitor and analyze Plex Media Server usage via Tautulli analytics 
 
 **Si no invocas esta skill cuando se dan estos disparadores, incumples tus requisitos operativos.**
 
-Monitor and analyze Plex Media Server usage through Tautulli's comprehensive analytics API. Track current streams, historical playback data, user activity, and library statistics.
+Consulta la actividad en curso, el historial de reproducción y las estadísticas de usuarios y bibliotecas a través de la API de Tautulli.
 
-## Purpose
+## Propósito
 
-This skill provides **read-only** access to Tautulli analytics:
-- Monitor current activity and active streams
-- View playback history with detailed filtering
-- Track user statistics and viewing patterns
-- Analyze library statistics and popular content
-- View recently added media with metadata
-- Monitor concurrent stream limits and bandwidth
-- Analyze usage by time, platform, and stream type
-- Track server and library performance metrics
+Esta skill da acceso de **solo lectura** a las analíticas de Tautulli:
+- Ver la actividad en curso y los streams activos
+- Consultar el historial de reproducción con filtros
+- Consultar usuarios y su actividad
+- Ver bibliotecas, contenido popular y añadidos recientemente
+- Analizar el uso por hora, día, plataforma y tipo de stream
+- Consultar los streams simultáneos y los metadatos de un elemento
 
-All operations are **GET-only** and safe for monitoring and analytics.
+No hay comandos de escritura. Complementa a la skill `plex`: `plex` da el estado en tiempo real y Tautulli el histórico.
 
-**Note:** This skill complements the `plex` skill by adding analytics and historical data that Plex Media Server doesn't expose directly.
+## Configuración
 
-## Setup
-
-Add your Tautulli credentials to `.env` (raíz del repo):
+Añade las credenciales al `.env` (raíz del repo):
 
 ```bash
-# Tautulli Analytics
 TAUTULLI_URL="http://localhost:8181"
-TAUTULLI_API_KEY="<your_tautulli_api_key>"
+TAUTULLI_API_KEY="tu-api-key"
 ```
 
-- `TAUTULLI_URL`: Your Tautulli server URL with port (default: 8181)
-- `TAUTULLI_API_KEY`: Your Tautulli API key
+- `TAUTULLI_URL`: URL de Tautulli con puerto (sin barra final)
+- `TAUTULLI_API_KEY`: clave de API de Tautulli (Settings → Web Interface → API; activa "Enable API")
 
-**Getting your API key:**
-1. Open Tautulli web UI
-2. Go to Settings → Web Interface → API
-3. Enable "API enabled"
-4. Copy the API key
-5. Optionally set API HTTP Basic Authentication if desired
+## Comandos
 
-## Commands
+Todos los comandos devuelven JSON con el sobre estándar de Tautulli (`response.result` y `response.data`), salvo `logs`, que devuelve un array JSON recortado. Sin comando muestra la ayuda (código 0); un comando desconocido la muestra por stderr y sale con 1. Si falta un argumento obligatorio, falta el valor de una opción, un valor numérico no es un número o hay una opción desconocida, imprime el uso por stderr y sale con 1. Si Tautulli responde con HTTP distinto de 2xx o con `result` igual a `error` (la API lo devuelve con HTTP 200), imprime `ERROR:` por stderr y sale con 1.
 
-All commands use the `tautulli-api.sh` wrapper script and return JSON output (`logs` devuelve un array recortado; véase su sección).
-
-The helper script is located at: `.claude/skills/tautulli/scripts/tautulli-api.sh`
-
-### Server Information
-
-Get server identity and version:
+### Información del servidor
 
 ```bash
-.claude/skills/tautulli/scripts/tautulli-api.sh server-info
+bash .claude/skills/tautulli/scripts/tautulli-api.sh server-info
 ```
 
-### Current Activity
+**Salida:** JSON con la versión, el nombre y la dirección del servidor Plex conectado.
 
-Monitor active streams and current playback:
+### Actividad en curso
 
 ```bash
-# All active sessions
-.claude/skills/tautulli/scripts/tautulli-api.sh activity
-
-# --details se acepta pero NO cambia la petición (equivale a activity)
-.claude/skills/tautulli/scripts/tautulli-api.sh activity --details
+bash .claude/skills/tautulli/scripts/tautulli-api.sh activity
 ```
 
-**Returns:** Current streams with user, media, player, bandwidth, transcode info. `--details` es una opción aceptada por compatibilidad: el script la lee y la ignora.
+**Salida:** JSON con los streams activos: usuario, contenido, reproductor, ancho de banda y transcodificación. No admite opciones.
 
-### Playback History
-
-View historical playback data:
+### Historial de reproducción
 
 ```bash
-# Recent history (default: 25 items)
-.claude/skills/tautulli/scripts/tautulli-api.sh history
-
-# History with filters
-.claude/skills/tautulli/scripts/tautulli-api.sh history --user "username" --limit 50
-.claude/skills/tautulli/scripts/tautulli-api.sh history --days 7 --media-type movie
-.claude/skills/tautulli/scripts/tautulli-api.sh history --section-id 1 --limit 100
-
-# Search history
-.claude/skills/tautulli/scripts/tautulli-api.sh history --search "Inception"
+bash .claude/skills/tautulli/scripts/tautulli-api.sh history
+bash .claude/skills/tautulli/scripts/tautulli-api.sh history --user "usuario" --limit 50
+bash .claude/skills/tautulli/scripts/tautulli-api.sh history --days 7 --media-type movie
+bash .claude/skills/tautulli/scripts/tautulli-api.sh history --search "Inception"
 ```
 
-**Parameters:**
-- `--user <username>`: Filter by username
-- `--section-id <id>`: Filter by library section
-- `--media-type <type>`: Filter by movie, episode, track, etc.
-- `--days <n>`: History from last N days
-- `--limit <n>`: Maximum results (default: 25)
-- `--search <query>`: Search in titles
+**Salida:** JSON con `response.data.data`, una entrada por reproducción (25 por defecto). `--days` se traduce a `start_date` con formato `AAAA-MM-DD`.
 
-### User Statistics
-
-Track user activity and viewing patterns:
+### Estadísticas de usuarios
 
 ```bash
-# All users watch stats
-.claude/skills/tautulli/scripts/tautulli-api.sh user-stats
-
-# Specific user details
-.claude/skills/tautulli/scripts/tautulli-api.sh user-stats --user "username"
-
-# Top users by play count
-.claude/skills/tautulli/scripts/tautulli-api.sh user-stats --sort-by plays --limit 10
+bash .claude/skills/tautulli/scripts/tautulli-api.sh user-stats
+bash .claude/skills/tautulli/scripts/tautulli-api.sh user-stats --sort-by plays --limit 10
+bash .claude/skills/tautulli/scripts/tautulli-api.sh user-stats --user "usuario"
 ```
 
-**Parameters:**
-- `--user <username>`: Specific user statistics
-- `--sort-by <metric>`: Sort by plays, duration, last_seen
-- `--limit <n>`: Maximum results
-- `--days <n>`: Stats from last N days
+**Salida:** JSON. Sin opciones devuelve la lista de usuarios (`get_users`). Con cualquier opción devuelve la tabla de usuarios (`get_users_table`) con reproducciones, duración y última vez visto. `--sort-by` acepta `plays`, `duration` o `last_seen` y ordena de mayor a menor. `--user` busca por texto. Para la actividad de un usuario en un periodo usa `history --user ... --days N`.
 
-### Library Statistics
-
-Analyze library usage and popular content:
+### Bibliotecas
 
 ```bash
-# All library sections
-.claude/skills/tautulli/scripts/tautulli-api.sh libraries
-
-# Specific library stats
-.claude/skills/tautulli/scripts/tautulli-api.sh library-stats --section-id 1
-
-# Popular content in library
-.claude/skills/tautulli/scripts/tautulli-api.sh popular --section-id 1 --limit 10
-.claude/skills/tautulli/scripts/tautulli-api.sh popular --media-type movie --days 30
+bash .claude/skills/tautulli/scripts/tautulli-api.sh libraries
+bash .claude/skills/tautulli/scripts/tautulli-api.sh library-stats --section-id 1
 ```
 
-**Parameters:**
-- `--section-id <id>`: Se envía a Tautulli como parámetro
-- `--media-type <type>`: Se envía como parámetro, pero **no cambia la estadística**
-- `--days <n>`: Timeframe for popularity (por defecto 30)
-- `--limit <n>`: Maximum results (por defecto 10)
+**Salida:** JSON. `libraries` lista las secciones; `library-stats` devuelve los datos de una sección (`--section-id` obligatorio y numérico).
 
-**Limitación:** `popular` pide siempre `get_home_stats` con `stat_id=popular_movies` (películas populares). Para series u otros tipos no hay un `popular` distinto: usa `home-stats`, que devuelve también las series y música más vistas.
-
-### Recently Added
-
-View recently added media with rich metadata:
+### Contenido popular
 
 ```bash
-# Recently added (default: 25 items)
-.claude/skills/tautulli/scripts/tautulli-api.sh recent
-
-# Recent with filters
-.claude/skills/tautulli/scripts/tautulli-api.sh recent --section-id 1 --limit 50
-.claude/skills/tautulli/scripts/tautulli-api.sh recent --media-type movie --days 7
+bash .claude/skills/tautulli/scripts/tautulli-api.sh popular
+bash .claude/skills/tautulli/scripts/tautulli-api.sh popular --media-type tv --days 30 --limit 10
+bash .claude/skills/tautulli/scripts/tautulli-api.sh popular --section-id 1 --limit 10
 ```
 
-### Home Statistics
+**Salida:** JSON con `response.data.rows` (películas, series o artistas más reproducidos). `--media-type` selecciona la estadística: `movie` (por defecto) usa `popular_movies`, `tv` (o `show`, `episode`) usa `popular_tv` y `music` (o `track`) usa `popular_music`. Por defecto 30 días y 10 resultados.
 
-Get homepage dashboard statistics:
+### Añadidos recientemente
 
 ```bash
-# Overview stats (most popular, most active, etc.)
-.claude/skills/tautulli/scripts/tautulli-api.sh home-stats
-
-# Stats for specific timeframe
-.claude/skills/tautulli/scripts/tautulli-api.sh home-stats --days 30
+bash .claude/skills/tautulli/scripts/tautulli-api.sh recent
+bash .claude/skills/tautulli/scripts/tautulli-api.sh recent --section-id 1 --limit 50
+bash .claude/skills/tautulli/scripts/tautulli-api.sh recent --media-type movie --days 7
 ```
 
-### Stream Analytics
+**Salida:** JSON con `response.data.recently_added` (25 por defecto). La API no filtra por fecha: con `--days` el script descarta localmente los elementos añadidos antes del corte, después de limitar a `--limit`.
 
-Analyze stream types and platform usage:
+### Estadísticas del panel
 
 ```bash
-# Plays by stream type (direct/transcode)
-.claude/skills/tautulli/scripts/tautulli-api.sh plays-by-stream --days 30
-
-# Plays by platform
-.claude/skills/tautulli/scripts/tautulli-api.sh plays-by-platform --days 30
-
-# Plays by date/time
-.claude/skills/tautulli/scripts/tautulli-api.sh plays-by-date --days 30
-.claude/skills/tautulli/scripts/tautulli-api.sh plays-by-hour --days 7
-.claude/skills/tautulli/scripts/tautulli-api.sh plays-by-day --days 30
+bash .claude/skills/tautulli/scripts/tautulli-api.sh home-stats --days 30
 ```
 
-### Concurrent Streams
+**Salida:** JSON con las tarjetas del panel principal (más popular, más activo, etc.). 30 días por defecto.
 
-Monitor concurrent stream patterns:
+### Analíticas de reproducciones
 
 ```bash
-# Concurrent stream history
-.claude/skills/tautulli/scripts/tautulli-api.sh concurrent-streams --days 30
-
-# Con --peak
-.claude/skills/tautulli/scripts/tautulli-api.sh concurrent-streams --days 7 --peak
+bash .claude/skills/tautulli/scripts/tautulli-api.sh plays-by-stream --days 30
+bash .claude/skills/tautulli/scripts/tautulli-api.sh plays-by-platform --days 30
+bash .claude/skills/tautulli/scripts/tautulli-api.sh plays-by-date --days 30
+bash .claude/skills/tautulli/scripts/tautulli-api.sh plays-by-hour --days 7
+bash .claude/skills/tautulli/scripts/tautulli-api.sh plays-by-day --days 30
 ```
 
-Sin `--peak` consulta `get_concurrent_streams_by_stream_type` (streams simultáneos por tipo: direct play, direct stream, transcode). Con `--peak` cambia a `get_plays_per_month` con `y_axis=concurrent`: no es un cálculo propio del pico, solo la serie que devuelve Tautulli para esa consulta. Interprétala con cuidado y contrasta con `activity` o `history` si necesitas el máximo exacto.
+**Salida:** JSON con `categories` y `series` (reproducciones por tipo de stream, plataforma, fecha, hora del día o día de la semana). 30 días por defecto.
+
+### Streams simultáneos
+
+```bash
+bash .claude/skills/tautulli/scripts/tautulli-api.sh concurrent-streams --days 30
+bash .claude/skills/tautulli/scripts/tautulli-api.sh concurrent-streams --days 7 --peak
+```
+
+**Salida:** JSON con una serie por tipo de stream (Direct Play, Direct Stream, Transcode) y la serie "Max. Concurrent Streams", por día. Con `--peak` devuelve solo la serie "Max. Concurrent Streams".
+
+### Metadatos
+
+```bash
+bash .claude/skills/tautulli/scripts/tautulli-api.sh metadata --rating-key 12345
+bash .claude/skills/tautulli/scripts/tautulli-api.sh metadata --guid "plex://movie/5d776..."
+```
+
+**Salida:** JSON con los metadatos del elemento. Exige `--rating-key` (numérico) o `--guid`.
 
 ### Logs
 
 ```bash
-# Últimas 25 líneas del log de Tautulli (por defecto)
-.claude/skills/tautulli/scripts/tautulli-api.sh logs
-
-# Log del servidor Plex (get_plex_log, log_type=server), 100 líneas
-.claude/skills/tautulli/scripts/tautulli-api.sh logs --plex --limit 100
+bash .claude/skills/tautulli/scripts/tautulli-api.sh logs
+bash .claude/skills/tautulli/scripts/tautulli-api.sh logs --plex --limit 100
 ```
 
-- `--limit <n>`: máximo de líneas (por defecto 25)
-- `--plex`: lee el log del servidor Plex en lugar del propio de Tautulli
+**Salida:** array JSON con las primeras `n` entradas de `response.data` (25 por defecto), sin el sobre `response`. Con `--plex` lee el log del servidor Plex; si Tautulli no tiene configurada la carpeta de logs de Plex, el comando falla con `ERROR:` y código 1.
 
-A diferencia del resto, `logs` no devuelve el sobre `response` completo: filtra con `jq` y devuelve solo un array JSON con las primeras `n` entradas de `response.data`.
+## Flujo de trabajo
 
-### Media Metadata
+Cuando el usuario pregunte por analíticas de Plex:
 
-Get detailed metadata for specific media:
+1. **"¿Quién está viendo ahora?"** → ejecuta `activity`
+2. **"¿Qué es lo más visto?"** → ejecuta `popular --media-type movie --days 30` (y `--media-type tv` para series)
+3. **"Historial reciente"** → ejecuta `history --limit 25`
+4. **"¿Cuánto ha visto [usuario] esta semana?"** → ejecuta `history --user "usuario" --days 7`
+5. **"¿Qué hay nuevo?"** → ejecuta `recent --limit 10`
+6. **"¿A qué hora se ve más?"** → ejecuta `plays-by-hour --days 30`
+7. **"¿Llegamos al límite de streams?"** → ejecuta `concurrent-streams --days 7 --peak`
+
+Para extraer campos concretos, filtra con `jq`:
 
 ```bash
-# By rating key
-.claude/skills/tautulli/scripts/tautulli-api.sh metadata --rating-key 12345
-
-# By GUID
-.claude/skills/tautulli/scripts/tautulli-api.sh metadata --guid "plex://movie/5d776..."
+bash .claude/skills/tautulli/scripts/tautulli-api.sh history | jq '.response.data.data[] | {user: .friendly_name, title: .full_title, date: .date}'
 ```
 
-## Workflow
+## Parámetros
 
-When the user asks about Plex analytics:
+### Comando history
+- `--user <usuario>`: filtra por usuario
+- `--section-id <id>`: filtra por sección (numérico)
+- `--media-type <tipo>`: `movie`, `episode`, `track`...
+- `--days <n>`: últimos n días (numérico)
+- `--limit <n>`: máximo de resultados (numérico; 25 por defecto)
+- `--search <texto>`: busca en los títulos
 
-1. **"Who's watching right now?"** → Run `activity`
-2. **"What are the most watched movies?"** → Run `popular --media-type movie --days 30`
-3. **"Show me recent watch history"** → Run `history --limit 25`
-4. **"How much has [user] watched this week?"** → Run `user-stats --user "username" --days 7`
-5. **"What's new in my library?"** → Run `recent --limit 10`
-6. **"When do people watch most?"** → Run `plays-by-hour --days 30`
-7. **"Are we hitting stream limits?"** → Run `concurrent-streams --days 7 --peak`
+### Comando user-stats
+- `--user <texto>`: busca un usuario
+- `--sort-by <plays|duration|last_seen>`: criterio de orden (descendente)
+- `--limit <n>`: máximo de resultados (numérico)
 
-### Activity Monitoring Flow
+### Comando popular
+- `--media-type <movie|tv|music>`: tipo de estadística (`movie` por defecto)
+- `--section-id <id>`: filtra por sección (numérico)
+- `--days <n>`: periodo (numérico; 30 por defecto)
+- `--limit <n>`: máximo de resultados (numérico; 10 por defecto)
 
-1. Check current activity for active streams
-2. If issues detected (buffering, transcoding), investigate specific session
-3. Review user's watch history to understand patterns
-4. Check library statistics to identify popular content
-5. Analyze stream types to optimize server settings
+### Comando recent
+- `--section-id <id>`: filtra por sección (numérico)
+- `--media-type <tipo>`: tipo de contenido
+- `--days <n>`: solo los añadidos en los últimos n días (numérico)
+- `--limit <n>`: máximo de resultados (numérico; 25 por defecto)
 
-### Analytics Flow
+### Comando logs
+- `--limit <n>`: máximo de líneas (numérico; 25 por defecto)
+- `--plex`: lee el log del servidor Plex en lugar del de Tautulli
 
-1. Get home statistics for overview
-2. Drill into specific libraries with library-stats
-3. Identify popular content with popular command
-4. Analyze user behavior with user-stats
-5. Review temporal patterns with plays-by-hour/date/day
-6. Monitor platform distribution with plays-by-platform
+## Notas
 
-## Output Format
+- Requiere acceso de red al servidor de Tautulli, conectado a su vez a Plex
+- Todas las operaciones son peticiones GET de solo lectura a `/api/v2`
+- A diferencia de radarr y sonarr, todos los comandos devuelven JSON (y `logs` un array); no hay salida en texto
+- Los errores salen por stderr con el prefijo `ERROR:`, también cuando Tautulli responde HTTP 200 con `result` igual a `error`
+- Los ids de sección coinciden con las claves de sección de Plex
+- Los datos históricos dependen de la retención configurada en Tautulli
+- Para otro servidor Tautulli, sobrescribe `TAUTULLI_URL` y `TAUTULLI_API_KEY` en el entorno al llamar al script
+- Esta skill no tiene comandos destructivos, así que el hook `confirm-destructive` no interviene
 
-All commands return JSON with standard Tautulli response structure:
+## Referencia
 
-```json
-{
-  "response": {
-    "result": "success",
-    "message": null,
-    "data": { ... }
-  }
-}
-```
-
-Use `jq` to extract and format data:
-
-```bash
-# Get just the data
-.claude/skills/tautulli/scripts/tautulli-api.sh activity | jq '.response.data'
-
-# Extract specific fields
-.claude/skills/tautulli/scripts/tautulli-api.sh history | jq '.response.data.data[] | {user: .friendly_name, title: .full_title, date: .date}'
-```
-
-## Notes
-
-- Requires network access to your Tautulli server
-- All operations are **read-only GET requests**
-- Tautulli must be connected to your Plex Media Server
-- Library section IDs match Plex library section keys
-- Historical data depends on Tautulli's configured retention period
-- Some statistics require sufficient historical data to be meaningful
-- Response times may vary based on database size and query complexity
-- Rating keys are Plex's unique identifiers for media items
-- User-friendly names are shown by default (can show usernames with flags)
-
-## Integration with Plex Skill
-
-This skill complements the `plex` skill:
-
-- **Plex skill**: Real-time server state (libraries, search, sessions)
-- **Tautulli skill**: Historical analytics (trends, statistics, watch history)
-
-Use both together:
-1. Find content with `plex` skill search
-2. Check popularity with `tautulli` skill analytics
-3. Monitor current playback with either skill
-4. Analyze viewing patterns with `tautulli` skill
-
-## Multiple Servers
-
-To use multiple Tautulli instances (monitoring different Plex servers):
-
-```bash
-# In .env (raíz del repo)
-TAUTULLI1_URL="http://server1:8181"
-TAUTULLI1_API_KEY="key1"
-
-TAUTULLI2_URL="http://server2:8181"
-TAUTULLI2_API_KEY="key2"
-```
-
-Then override environment variables:
-
-```bash
-# Use server 1 (default)
-.claude/skills/tautulli/scripts/tautulli-api.sh activity
-
-# Use server 2
-TAUTULLI_URL="$TAUTULLI2_URL" TAUTULLI_API_KEY="$TAUTULLI2_API_KEY" \
-  .claude/skills/tautulli/scripts/tautulli-api.sh activity
-```
-
-## Reference
-
-- [Tautulli API Documentation](https://github.com/Tautulli/Tautulli/wiki/Tautulli-API-Reference)
-- [Tautulli GitHub](https://github.com/Tautulli/Tautulli)
-- [Tautulli Homepage](https://tautulli.com)
-
----
-
-## 🔧 Agent Tool Usage Requirements
-
-**CRITICAL:** When invoking scripts from this skill via the zsh-tool, **ALWAYS use `pty: true`**.
-
-Without PTY mode, command output will not be visible even though commands execute successfully.
-
-**Correct invocation pattern:**
-```typescript
-<invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">.claude/skills/tautulli/scripts/tautulli-api.sh [command] [args]</parameter>
-<parameter name="pty">true</parameter>
-</invoke>
-```
+- [Referencia de la API de Tautulli](https://github.com/Tautulli/Tautulli/wiki/Tautulli-API-Reference)
+- [Repositorio de Tautulli](https://github.com/Tautulli/Tautulli)

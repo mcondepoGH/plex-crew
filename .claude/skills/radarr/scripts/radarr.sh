@@ -1,14 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-# Radarr API wrapper
+# Wrapper de la API v3 de Radarr: películas, colecciones, búsquedas y logs.
 
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
-source "$_LOAD_ENV" || { echo "ERROR: load-env.sh not found. Copia .env.example a .env" >&2; exit 1; }
+source "$_LOAD_ENV" || { echo "ERROR: no se pudo cargar load-env.sh. Copia .env.example a .env" >&2; exit 1; }
 
-# Load credentials from .env
+# Carga las credenciales desde el .env
 load_service_credentials "radarr" "RADARR_URL" "RADARR_API_KEY"
 
 API="$RADARR_URL/api/v3"
@@ -16,7 +16,7 @@ AUTH="X-Api-Key: $RADARR_API_KEY"
 
 _ARR_API="$SCRIPT_DIR/../../_lib/arr-api.sh"
 # shellcheck source=/dev/null
-source "$_ARR_API" || { echo "ERROR: arr-api.sh not found" >&2; exit 1; }
+source "$_ARR_API" || { echo "ERROR: no se pudo cargar arr-api.sh" >&2; exit 1; }
 
 usage() {
   cat <<'USAGE'
@@ -97,7 +97,7 @@ case "$cmd" in
     arr_get "/movie/lookup?term=$(echo "$query" | jq -sRr @uri)" | jq -r '
       to_entries | .[] |
       "\(.key + 1). \(.value.title) (\(.value.year)) - https://themoviedb.org/movie/\(.value.tmdbId)" +
-      (if .value.collection.tmdbId then " [Collection: \(.value.collection.title)]" else "" end)
+      (if .value.collection.tmdbId then " [Colección: \(.value.collection.title)]" else "" end)
     '
     ;;
 
@@ -116,15 +116,15 @@ case "$cmd" in
       echo "not_found"
     else
       echo "exists"
-      echo "$result" | jq -r '.[0] | "ID: \(.id), Title: \(.title), Has File: \(.hasFile)"'
+      echo "$result" | jq -r '.[0] | "ID: \(.id), Título: \(.title), Con fichero: \(.hasFile)"'
     fi
     ;;
 
   config)
-    echo "=== Root Folders ==="
+    echo "=== Carpetas raíz ==="
     arr_get "/rootfolder" | jq -r '.[] | "\(.id): \(.path)"'
     echo ""
-    echo "=== Quality Profiles ==="
+    echo "=== Perfiles de calidad ==="
     arr_get "/qualityprofile" | jq -r '.[] | "\(.id): \(.name)"'
     ;;
 
@@ -138,15 +138,18 @@ case "$cmd" in
     searchFlag="true"
     [[ "$NO_SEARCH" = "true" ]] && searchFlag="false"
 
-    # Get movie details from lookup
-    movie=$(arr_get "/movie/lookup/tmdb?tmdbId=$tmdbId")
+    # Detalles de la película desde el lookup
+    arr_call GET "/movie/lookup/tmdb?tmdbId=$tmdbId" || exit 1
+    movie="$ARR_BODY"
 
-    # Get default root folder
-    rootFolder=$(arr_get "/rootfolder" | jq -r '.[0].path')
+    # Carpeta raíz por defecto (la primera)
+    arr_call GET "/rootfolder" || exit 1
+    rootFolder=$(echo "$ARR_BODY" | jq -r '.[0].path // empty')
+    [[ -n "$rootFolder" ]] || { echo "ERROR: Radarr no tiene carpetas raíz configuradas" >&2; exit 1; }
 
     qualityProfile="$qualityProfileId"
 
-    # Build add request
+    # Petición de alta
     addRequest=$(echo "$movie" | jq --arg rf "$rootFolder" --argjson qp "$qualityProfile" --argjson search "$searchFlag" '
       . + {
         rootFolderPath: $rf,
@@ -158,16 +161,15 @@ case "$cmd" in
       }
     ')
 
-    result=$(arr_post "/movie" "$addRequest")
+    arr_call POST "/movie" "$addRequest" || exit 1
 
-    if echo "$result" | jq -e '.id' > /dev/null 2>&1; then
-      echo "✅ Added: $(echo "$result" | jq -r '.title') ($(echo "$result" | jq -r '.year'))"
-      if [ "$searchFlag" = "true" ]; then
-        echo "🔍 Search started"
-      fi
-    else
-      echo "❌ Failed to add movie"
-      echo "$result" | jq -r '.message // .'
+    if ! echo "$ARR_BODY" | jq -e '.id' > /dev/null 2>&1; then
+      echo "ERROR: Radarr respondió HTTP $ARR_CODE pero sin id de película; no se confirma el alta" >&2
+      exit 1
+    fi
+    echo "Añadida: $(echo "$ARR_BODY" | jq -r '.title') ($(echo "$ARR_BODY" | jq -r '.year'))"
+    if [ "$searchFlag" = "true" ]; then
+      echo "Búsqueda lanzada"
     fi
     ;;
 
@@ -182,61 +184,68 @@ case "$cmd" in
     searchFlag="true"
     [[ "$NO_SEARCH" = "true" ]] && searchFlag="false"
 
-    echo "🔍 Finding movies in collection..."
+    echo "Buscando las películas de la colección..."
 
-    # Try getting collection name from Radarr's collection list first
-    collections=$(arr_get "/collection")
-    collection=$(echo "$collections" | jq --argjson tid "$collectionTmdbId" '.[] | select(.tmdbId == $tid)')
+    # Primero intenta obtener el nombre de la colección desde la lista de Radarr
+    arr_call GET "/collection" || exit 1
+    collection=$(echo "$ARR_BODY" | jq --argjson tid "$collectionTmdbId" '.[] | select(.tmdbId == $tid)')
 
     if [ -n "$collection" ] && [ "$collection" != "null" ]; then
       collectionTitle=$(echo "$collection" | jq -r '.title')
-      # Remove "Collection" suffix for better search
+      # Quita el sufijo "Collection" para buscar mejor
       searchTerm=$(echo "$collectionTitle" | sed 's/ Collection$//')
     fi
 
-    # If no search term yet, use the provided one or fail
+    # Sin texto de búsqueda no se puede continuar
     if [ -z "$searchTerm" ]; then
-      echo "❌ Could not determine collection name. Please provide search term."
-      echo "Usage: add-collection <collectionTmdbId> <profileId> <searchTerm> [--no-search]"
+      echo "ERROR: no se pudo determinar el nombre de la colección; indica un texto de búsqueda" >&2
+      echo "Uso: radarr.sh add-collection <collectionTmdbId> <profileId> <searchTerm> [--no-search]" >&2
       exit 1
     fi
 
-    # Search for movies
-    allMovies=$(arr_get "/movie/lookup?term=$(echo "$searchTerm" | jq -sRr @uri)")
+    # Busca las películas
+    arr_call GET "/movie/lookup?term=$(echo "$searchTerm" | jq -sRr @uri)" || exit 1
+    allMovies="$ARR_BODY"
 
-    # Filter to only movies in our collection
+    # Se queda solo con las de nuestra colección
     moviesToAdd=$(echo "$allMovies" | jq --argjson cid "$collectionTmdbId" '[.[] | select(.collection.tmdbId == $cid)]')
     movieCount=$(echo "$moviesToAdd" | jq 'length')
 
     if [ "$movieCount" = "0" ]; then
-      echo "❌ No movies found for collection $collectionTmdbId"
+      echo "ERROR: no se encontraron películas para la colección $collectionTmdbId" >&2
       exit 1
     fi
 
-    echo "📦 Found $movieCount movies in collection"
+    echo "Encontradas $movieCount películas en la colección"
 
     # Carpeta raíz por defecto (la primera); el perfil es el indicado
-    rootFolder=$(arr_get "/rootfolder" | jq -r '.[0].path')
+    arr_call GET "/rootfolder" || exit 1
+    rootFolder=$(echo "$ARR_BODY" | jq -r '.[0].path // empty')
+    [[ -n "$rootFolder" ]] || { echo "ERROR: Radarr no tiene carpetas raíz configuradas" >&2; exit 1; }
     qualityProfile="$qualityProfileId"
 
-    # Add each movie
+    # Añade cada película
     added=0
     skipped=0
+    failed=0
     for i in $(seq 0 $((movieCount - 1))); do
       movie=$(echo "$moviesToAdd" | jq ".[$i]")
       tmdbId=$(echo "$movie" | jq -r '.tmdbId')
       title=$(echo "$movie" | jq -r '.title')
       year=$(echo "$movie" | jq -r '.year')
 
-      # Check if already exists
-      existing=$(arr_get "/movie?tmdbId=$tmdbId")
-      if [ "$existing" != "[]" ]; then
-        echo "⏭️  $title ($year) - already in library"
+      # Comprueba si ya está en la biblioteca
+      if ! arr_call GET "/movie?tmdbId=$tmdbId"; then
+        failed=$((failed + 1))
+        continue
+      fi
+      if [ "$ARR_BODY" != "[]" ]; then
+        echo "Omitida: $title ($year) - ya está en la biblioteca"
         skipped=$((skipped + 1))
         continue
       fi
 
-      # Add movie
+      # Añade la película
       addRequest=$(echo "$movie" | jq --arg rf "$rootFolder" --argjson qp "$qualityProfile" --argjson search "$searchFlag" '
         . + {
           rootFolderPath: $rf,
@@ -248,39 +257,43 @@ case "$cmd" in
         }
       ')
 
-      result=$(arr_post "/movie" "$addRequest")
-
-      if echo "$result" | jq -e '.id' > /dev/null 2>&1; then
-        echo "✅ $title ($year)"
+      if arr_call POST "/movie" "$addRequest" && echo "$ARR_BODY" | jq -e '.id' > /dev/null 2>&1; then
+        echo "Añadida: $title ($year)"
         added=$((added + 1))
       else
-        echo "❌ $title ($year) - $(echo "$result" | jq -r '.message // "failed"')"
+        echo "ERROR: no se pudo añadir $title ($year)" >&2
+        failed=$((failed + 1))
       fi
     done
 
     echo ""
-    echo "📊 Added: $added | Skipped: $skipped"
+    echo "Resumen: añadidas $added | omitidas $skipped | fallidas $failed"
     if [ "$searchFlag" = "true" ] && [ "$added" -gt 0 ]; then
-      echo "🔍 Search started for new movies"
+      echo "Búsqueda lanzada para las películas nuevas"
     fi
 
-    # Monitor the collection for future movies
-    collections=$(arr_get "/collection")
-    collection=$(echo "$collections" | jq --argjson tid "$collectionTmdbId" '.[] | select(.tmdbId == $tid)')
+    # Deja la colección monitorizada para futuras entregas
+    arr_call GET "/collection" || exit 1
+    collection=$(echo "$ARR_BODY" | jq --argjson tid "$collectionTmdbId" '.[] | select(.tmdbId == $tid)')
 
     if [ -n "$collection" ] && [ "$collection" != "null" ]; then
       collectionId=$(echo "$collection" | jq -r '.id')
 
-      # Get full collection details and update with monitoring
-      fullCollection=$(arr_get "/collection/$collectionId")
-      updatePayload=$(echo "$fullCollection" | jq '. + {monitored: true, searchOnAdd: true}')
-
-      updateResult=$(arr_put "/collection/$collectionId" "$updatePayload")
-
-      if echo "$updateResult" | jq -e '.monitored' > /dev/null 2>&1; then
-        echo "👁️ Collection monitored (new releases auto-added)"
+      # Obtiene la colección completa y la actualiza con monitorización
+      if arr_call GET "/collection/$collectionId"; then
+        updatePayload=$(echo "$ARR_BODY" | jq '. + {monitored: true, searchOnAdd: true}')
+        if arr_call PUT "/collection/$collectionId" "$updatePayload"; then
+          echo "Colección monitorizada (las nuevas entregas se añaden solas)"
+        else
+          echo "ERROR: no se pudo dejar la colección monitorizada" >&2
+          failed=$((failed + 1))
+        fi
+      else
+        failed=$((failed + 1))
       fi
     fi
+
+    [ "$failed" -eq 0 ] || exit 1
     ;;
 
   remove)
@@ -290,11 +303,12 @@ case "$cmd" in
     require_number "$tmdbId" "remove <tmdbId> [--delete-files]"
     deleteFiles="$DELETE_FILES"
 
-    # Get movie ID from library
-    movie=$(arr_get "/movie?tmdbId=$tmdbId")
+    # Obtiene el id interno de la biblioteca
+    arr_call GET "/movie?tmdbId=$tmdbId" || exit 1
+    movie="$ARR_BODY"
 
     if [ "$movie" = "[]" ]; then
-      echo "❌ Movie not found in library"
+      echo "ERROR: la película no está en la biblioteca" >&2
       exit 1
     fi
 
@@ -302,12 +316,12 @@ case "$cmd" in
     title=$(echo "$movie" | jq -r '.[0].title')
     year=$(echo "$movie" | jq -r '.[0].year')
 
-    arr_delete "/movie/$movieId?deleteFiles=$deleteFiles" > /dev/null
+    arr_call DELETE "/movie/$movieId?deleteFiles=$deleteFiles" || exit 1
 
     if [ "$deleteFiles" = "true" ]; then
-      echo "🗑️ Removed: $title ($year) + deleted files"
+      echo "Quitada: $title ($year) + ficheros borrados"
     else
-      echo "🗑️ Removed: $title ($year) (files kept)"
+      echo "Quitada: $title ($year) (ficheros conservados)"
     fi
     ;;
 
@@ -328,16 +342,16 @@ case "$cmd" in
     ;;
 
   search-all)
-    result=$(arr_post "/command" '{"name":"MissingMoviesSearch"}')
-    echo "$result" | jq -r '"🔍 Started: \(.name) (command id \(.id), status \(.status))"'
+    arr_call POST "/command" '{"name":"MissingMoviesSearch"}' || exit 1
+    echo "$ARR_BODY" | jq -r '"Lanzado: \(.name) (comando \(.id), estado \(.status))"'
     ;;
 
   search-id)
     movieId="${1:-}"
     [[ -n "$movieId" ]] || usage_error "falta el id interno de la película" "search-id <movieId>"
     require_number "$movieId" "search-id <movieId>"
-    result=$(arr_post "/command" "{\"name\":\"MoviesSearch\",\"movieIds\":[$movieId]}")
-    echo "$result" | jq -r --arg mid "$movieId" '"🔍 Started: \(.name) for movie \($mid) (command id \(.id), status \(.status))"'
+    arr_call POST "/command" "{\"name\":\"MoviesSearch\",\"movieIds\":[$movieId]}" || exit 1
+    echo "$ARR_BODY" | jq -r --arg mid "$movieId" '"Lanzado: \(.name) para la película \($mid) (comando \(.id), estado \(.status))"'
     ;;
 
   *)

@@ -37,13 +37,7 @@ Siempre que haya que renombrar carpetas o ficheros, arreglar un título mal empa
 
 Antes de renombrar episodios a mano se usa **Season Fix** de zurg (plan y luego apply con los `hashes` confirmados), que cubre numeración absoluta tipo fansub (`Show - 37.mkv`). A mano queda lo que no cubre: ya tiene token de temporada, extras NCOP/NCED/OAD, sin número de episodio o match sospechoso.
 
-## Variables de entorno
-
-Ninguna. La skill no ejecuta scripts ni llama a servicios por sí misma.
-
-## Ejemplos de uso
-
-Esta skill no tiene comandos. Un ejemplo de resultado aplicando las reglas:
+## Ejemplo de nombres resultantes
 
 ```text
 Carpeta:  Mi Serie (2015) {imdb-tt1234567}
@@ -55,6 +49,6 @@ Las operaciones de renombrado se hacen con las tools `mcp__zurg__zurg_release_re
 
 ## Notas y límites
 
-- Es documentación de reglas: el cumplimiento depende del agente que la carga.
+- Es documentación de reglas: no ejecuta nada y el cumplimiento depende del agente que la carga.
 - Para las operaciones sobre el mount de zurg (solo renombrar, nada de crear carpetas) véase `zurg-rules`.
 - Las convenciones de permisos y la doble confirmación están en el `CLAUDE.md` raíz y en el mensaje del hook `confirm-destructive`.

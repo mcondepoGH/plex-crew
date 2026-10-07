@@ -10,15 +10,15 @@ Para ver qué está haciendo cli_debrid o por qué un título no avanza. La carg
 
 Script: `.claude/skills/cli_debrid/scripts/cli_debrid.sh <comando> [args]`. En negrita, los que modifican estado o piden confirmación.
 
-| Comando | Para qué sirve (endpoint) | Argumentos | Tipo |
-|---------|---------------------------|------------|------|
-| `status` | Estado del programa, en marcha o parado (`/program_operation/api/program_status`). | Ninguno | Lectura |
-| `dashboard` | Estadísticas del panel con recuentos por estado (`/statistics/api/index`). | Ninguno | Lectura |
-| `queue` | Contenido de cada cola (`/queues/api/queue_contents`). | Ninguno | Lectura |
-| `downloads` | Descargas activas (`/statistics/api/active_downloads`). | Ninguno | Lectura |
-| `library-size` | Tamaño de la biblioteca (`/statistics/api/library_size`). | Ninguno | Lectura |
-| `logs` | Últimas N líneas de log (`/logs/api/logs?lines=N`). | `[n]` (100 por defecto) | Lectura |
-| **`trigger-task`** | Fuerza la ejecución inmediata de una tarea del planificador, por ejemplo `Scraping` (POST `/program_operation/trigger_task`). | `<nombre>` (obligatorio) | Escritura |
+| Comando | Para qué sirve (endpoint) | Argumentos / opciones | Tipo |
+|---------|---------------------------|-----------------------|------|
+| `status` | Estado del programa, en marcha o parado (`/program_operation/api/program_status`). | Ninguno | Lectura (JSON) |
+| `dashboard` | Estadísticas del panel con recuentos por estado (`/statistics/api/index`). | Ninguno | Lectura (JSON) |
+| `queue` | Contenido de cada cola (`/queues/api/queue_contents`). | Ninguno | Lectura (JSON) |
+| `downloads` | Descargas activas (`/statistics/api/active_downloads`). | Ninguno | Lectura (JSON) |
+| `library-size` | Tamaño de la biblioteca (`/statistics/api/library_size`). | Ninguno | Lectura (JSON) |
+| `logs` | Últimas líneas de log (`/logs/api/logs?lines=N`). | `[n]` (100 por defecto, numérico) | Lectura (JSON) |
+| **`trigger-task`** | Fuerza la ejecución inmediata de una tarea del planificador (POST `/program_operation/trigger_task`). | `<nombre>`, por ejemplo `Scraping` | Escritura |
 
 ## Variables de entorno
 
@@ -45,9 +45,9 @@ bash .claude/skills/cli_debrid/scripts/cli_debrid.sh trigger-task Scraping
 
 ## Notas y límites
 
-- No usa clave de API: autentica con usuario y contraseña mediante una sesión por cookie (el mismo login que la interfaz web), con POST a `/auth/login`.
-- La cookie se guarda en `/tmp/.cli_debrid_cookie_<hash de la URL>` y se reutiliza. Antes de cada petición se sondea `program_status`; si no responde 200, se vuelve a iniciar sesión. El script no comprueba si el login tuvo éxito.
-- A diferencia de las demás skills, lee siempre el fichero de entorno (`load_env_file`, y por tanto exige que exista `.env` o `HOMELAB_ENV`) en lugar de aceptar solo variables ya exportadas.
-- Las respuestas se imprimen tal cual, sin `jq`; la forma exacta depende de cli_debrid.
-- Sin argumentos o con un comando desconocido imprime el uso y sale con código 1; `trigger-task` sin nombre falla con el mensaje de uso.
-- `trigger-task` ejecuta la tarea de inmediato y no pide confirmación: debe hacerlo el agente.
+- Autentica con POST a `/auth/login`. La cookie vive en `/tmp/.cli_debrid_cookie_<hash de la URL>` (el hash sale de `cksum`), se crea con `umask 077` y permisos 600, y se reutiliza.
+- Antes de cada petición se sondea `program_status`; si no responde 200 se vuelve a iniciar sesión. Tras el login se vuelve a sondear: si sigue sin ser 200, el script sale con 1 y borra la cookie.
+- Solo exige el fichero `.env` (o `HOMELAB_ENV`) cuando alguna de las tres variables no está ya exportada.
+- Las respuestas se imprimen sin transformar; la forma exacta depende de cli_debrid. Una respuesta no 2xx o la falta de conexión salen con 1 y `ERROR:` por stderr.
+- Sin comando muestra la ayuda y sale con 0; un comando desconocido, `trigger-task` sin nombre o un `n` no numérico salen con 1.
+- `trigger-task` no pide confirmación por sí mismo: debe hacerlo el agente.

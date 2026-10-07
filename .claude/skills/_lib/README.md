@@ -17,7 +17,7 @@ Gracias a `load_service_credentials`, las variables ya exportadas en el entorno 
 
 ## arr-api.sh
 
-Cuatro funciones `curl -s` para APIs estilo Arr. El script que la carga debe definir antes `API` (URL base de la API, p. ej. `http://localhost:7878/api/v3`) y `AUTH` (cabecera completa, p. ej. `X-Api-Key: ...`).
+Cinco funciones `curl -s` para APIs estilo Arr. El script que la carga debe definir antes `API` (URL base de la API, p. ej. `http://localhost:7878/api/v3`) y `AUTH` (cabecera completa, p. ej. `X-Api-Key: ...`).
 
 | Función | Petición |
 |---------|----------|
@@ -25,15 +25,32 @@ Cuatro funciones `curl -s` para APIs estilo Arr. El script que la carga debe def
 | `arr_post <ruta> <json>` | POST con `Content-Type: application/json` |
 | `arr_put <ruta> <json>` | PUT con `Content-Type: application/json` |
 | `arr_delete <ruta>` | DELETE |
+| `arr_call <MÉTODO> <ruta> [json]` | Petición con comprobación del código HTTP (ver abajo) |
+
+### arr_call
+
+Es la función que deben usar las escrituras (regla 19 del estándar de [`../README.md`](../README.md)). Deja el cuerpo de la respuesta en `ARR_BODY` y el código HTTP en `ARR_CODE`, y devuelve 0 solo si el código es 2xx. En cualquier otro caso (4xx, 5xx o sin conexión) imprime por stderr `ERROR: <MÉTODO> <ruta> respondió HTTP <código>: <mensaje>` (el mensaje se extrae de `message` o `errorMessage` si existe) y devuelve 1. Se llama sin `$(...)` para conservar las variables:
+
+```bash
+arr_call POST "/movie" "$addRequest" || exit 1
+echo "$ARR_BODY" | jq -r '.title'
+```
 
 ## Qué skills los usan
 
-| Librería | Skills |
-|----------|--------|
-| `load-env.sh` | `prowlarr`, `radarr`, `sonarr`, `plex`, `tautulli`, `seerr` (vía `load_service_credentials`) y `cli_debrid` (vía `load_env_file` y `validate_env_vars`) |
-| `arr-api.sh` | `radarr` y `sonarr` |
+- `load-env.sh`
+  - `prowlarr`: vía `load_service_credentials`
+  - `radarr`: vía `load_service_credentials`
+  - `sonarr`: vía `load_service_credentials`
+  - `plex`: vía `load_service_credentials`
+  - `tautulli`: vía `load_service_credentials`
+  - `seerr`: vía `load_service_credentials`
+  - `cli_debrid`: vía `load_env_file` y `validate_env_vars`
+- `arr-api.sh`
+  - `radarr`
+  - `sonarr`
 
 ## Notas
 
-- Las funciones de `arr-api.sh` no comprueban códigos HTTP: devuelven lo que responda el servicio.
+- `arr_get`, `arr_post`, `arr_put` y `arr_delete` no comprueban códigos HTTP: devuelven lo que responda el servicio. Solo `arr_call` falla (rc 1, mensaje por stderr) si el código no es 2xx.
 - Los ficheros de entorno nunca se imprimen; los errores solo nombran la ruta o las variables que faltan.

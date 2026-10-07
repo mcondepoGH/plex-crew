@@ -30,13 +30,21 @@ El `.env` no se versiona. Plantilla: `.env.example`.
 | Variable | Servicio | Obligatoria |
 |---|---|---|
 | `ZURG_MCP_URL` | zurg (MCP) | Sí, para usar zurg |
-| `PROWLARR_URL`, `PROWLARR_API_KEY` | Prowlarr | Si usas la skill |
-| `RADARR_URL`, `RADARR_API_KEY` | Radarr | Si usas la skill |
-| `SONARR_URL`, `SONARR_API_KEY` | Sonarr | Si usas la skill |
-| `PLEX_URL`, `PLEX_TOKEN` | Plex | Si usas la skill |
-| `TAUTULLI_URL`, `TAUTULLI_API_KEY` | Tautulli | Si usas la skill |
-| `SEERR_URL`, `SEERR_API_KEY` | Seerr / Overseerr | Si usas la skill |
-| `CLI_DEBRID_URL`, `CLI_DEBRID_USER`, `CLI_DEBRID_PASSWORD` | cli_debrid | Si usas la skill |
+| `PROWLARR_URL` | Prowlarr | Si usas la skill |
+| `PROWLARR_API_KEY` | Prowlarr | Si usas la skill |
+| `RADARR_URL` | Radarr | Si usas la skill |
+| `RADARR_API_KEY` | Radarr | Si usas la skill |
+| `SONARR_URL` | Sonarr | Si usas la skill |
+| `SONARR_API_KEY` | Sonarr | Si usas la skill |
+| `PLEX_URL` | Plex | Si usas la skill |
+| `PLEX_TOKEN` | Plex | Si usas la skill |
+| `TAUTULLI_URL` | Tautulli | Si usas la skill |
+| `TAUTULLI_API_KEY` | Tautulli | Si usas la skill |
+| `SEERR_URL` | Seerr / Overseerr | Si usas la skill |
+| `SEERR_API_KEY` | Seerr / Overseerr | Si usas la skill |
+| `CLI_DEBRID_URL` | cli_debrid | Si usas la skill |
+| `CLI_DEBRID_USER` | cli_debrid | Si usas la skill |
+| `CLI_DEBRID_PASSWORD` | cli_debrid | Si usas la skill |
 | `HOMELAB_ENV` | Skills y `scripts/start.sh` | No: ruta alternativa al `.env` de la raíz |
 | `PLEX_CREW_CONFIG` | Hook `enforce-agent-scope` | No: ruta alternativa a `~/.claude/plex-crew/scope.conf`; se define en el entorno, no en el `.env` |
 

@@ -1,6 +1,6 @@
 # radarr
 
-Gestiona la biblioteca de películas de Radarr: buscar, comprobar si existe, añadir (sueltas o colecciones), quitar, lanzar búsquedas y leer logs. Envuelve la API v3.
+Gestiona la biblioteca de películas de Radarr: buscar, comprobar si existe, añadir (sueltas o colecciones), quitar, lanzar búsquedas y leer logs. Envuelve la API v3. Es una de las dos skills modelo del estándar descrito en [`../README.md`](../README.md).
 
 ## Cuándo se usa
 
@@ -18,11 +18,11 @@ Script: `.claude/skills/radarr/scripts/radarr.sh <comando> [args]`. En negrita, 
 | `config` | Carpetas raíz y perfiles de calidad con sus ids. | Ninguno | Lectura (texto) |
 | `collection-info` | Detalle de una colección de la biblioteca de Radarr. | `<collectionTmdbId>` | Lectura (JSON) |
 | `logs` | Últimas líneas de log, de más reciente a más antigua. | `[n]` (50 por defecto), `[nivel]` (`info`, `warn`, `error`) | Lectura (texto) |
-| **`add`** | Añade una película, monitorizada, en la primera carpeta raíz. Funciona con solo `<tmdbId>`. Busca al añadir salvo `--no-search`. | `<tmdbId> [profileId] [--no-search]` | Escritura |
-| **`add-collection`** | Añade todas las películas de una colección que aún no estén (con el perfil indicado y la primera carpeta raíz) y deja la colección monitorizada con `searchOnAdd`. | `<collectionTmdbId> <profileId> [searchTerm] [--no-search]` | Escritura |
-| **`remove`** | Quita una película de la biblioteca. Con `--delete-files` borra también los ficheros. | `<tmdbId> [--delete-files]` | Escritura, destructivo con `--delete-files` |
+| **`add`** | Añade una película, monitorizada, en la primera carpeta raíz. Busca al añadir salvo `--no-search`. | `<tmdbId> <profileId> [--no-search]` | Escritura |
+| **`add-collection`** | Añade todas las películas de una colección que aún no estén y deja la colección monitorizada con `searchOnAdd`. Confirma antes con el usuario. | `<collectionTmdbId> <profileId> [searchTerm] [--no-search]` | Escritura masiva |
+| **`remove`** | Quita una película de la biblioteca. Con `--delete-files` borra también los ficheros. | `<tmdbId> [--delete-files]` | Escritura, destructivo (hook) |
 | **`search-id`** | Lanza la búsqueda (`MoviesSearch`) de una película. | `<movieId>` (id interno de Radarr, no TMDB) | Escritura (dispara descargas) |
-| **`search-all`** | Lanza `MissingMoviesSearch` sobre toda la biblioteca. | Ninguno | Escritura masiva |
+| **`search-all`** | Lanza `MissingMoviesSearch` sobre toda la biblioteca. Confirma antes con el usuario. | Ninguno | Escritura masiva |
 
 ## Variables de entorno
 
@@ -44,14 +44,22 @@ bash .claude/skills/radarr/scripts/radarr.sh config
 
 # ESCRITURA: añadir sin lanzar búsqueda, con un perfil concreto
 bash .claude/skills/radarr/scripts/radarr.sh add 27205 7 --no-search
+
+# ESCRITURA destructiva: exige doble confirmación y el marcador del hook
+PLEX_CREW_CONFIRMED=1 bash .claude/skills/radarr/scripts/radarr.sh remove 27205
 ```
 
 ## Notas y límites
 
-- Sin comando muestra la ayuda y sale con 0; un comando desconocido muestra la ayuda y sale con 1. Si falta un argumento obligatorio o un id no es numérico, imprime el uso (`ERROR: ...` y `Uso: radarr.sh ...`) y sale con 1; nunca falla con `unbound variable`. Los flags `--no-search` y `--delete-files` se aceptan en cualquier posición.
-- `add <tmdbId> <profileId> [--no-search]`: el perfil es obligatorio y nunca se elige uno por defecto; si falta, imprime el uso, indica ejecutar `config` para ver los ids (p. ej. 7 Español, 8 VOSE) y sale con 1. Siempre usa la primera carpeta raíz (`/rootfolder`).
-- `add-collection <collectionTmdbId> <profileId> [searchTerm] [--no-search]`: mismo criterio para el perfil; usa la primera carpeta raíz. Localiza las películas buscando por el nombre de la colección (sin el sufijo "Collection") y filtrando por `collection.tmdbId`; si Radarr no conoce la colección y no se da `searchTerm`, aborta con código 1. Al terminar deja la colección monitorizada con `searchOnAdd` aunque se use `--no-search`.
-- `remove` busca la película por `tmdbId` en la biblioteca y llama a `DELETE /movie/<id>?deleteFiles=...`. El hook `confirm-destructive` exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1`.
-- `search-id` espera el id interno de Radarr (el de `exists`), no el de TMDB; `search-all` afecta a toda la biblioteca.
-- Solo `search-json` y `collection-info` devuelven JSON; `search`, `exists`, `config`, `logs` y los comandos de escritura imprimen texto.
-- Los mensajes de `add`, `add-collection` y `remove` llevan emojis y no se comprueba el código HTTP: el éxito de `add` y `add-collection` se deduce de que la respuesta tenga `id`; `remove` imprime que ha quitado la película sin verificar la respuesta del `DELETE`.
+- Sin comando muestra la ayuda y sale con 0. Un comando desconocido escribe `ERROR: comando desconocido: ...` y la ayuda por stderr y sale con 1. Si falta un argumento obligatorio o un id no es numérico, escribe `ERROR: ...` y `Uso: radarr.sh ...` por stderr y sale con 1; nunca falla con `unbound variable`. Los flags `--no-search` y `--delete-files` se aceptan en cualquier posición.
+- `add` y `add-collection` exigen el perfil y nunca eligen uno por defecto; si falta, indican ejecutar `config` para ver los ids (p. ej. 7 Español, 8 VOSE). Siempre usan la primera carpeta raíz (`/rootfolder`).
+- `add-collection` localiza las películas buscando por el nombre de la colección (sin el sufijo "Collection") y filtrando por `collection.tmdbId`. Si Radarr no conoce la colección y no se da `searchTerm`, aborta con código 1. Al terminar deja la colección monitorizada aunque se use `--no-search`. Si falla el alta de alguna película, sigue con las demás y sale con 1 al final.
+- `remove` busca la película por `tmdbId` y llama a `DELETE /movie/<id>?deleteFiles=...`. Está registrado en `DESTRUCTIVE` de `hooks/confirm-destructive.js` (véase [`hooks/README.md`](../../../hooks/README.md)): exige la doble confirmación y el marcador `PLEX_CREW_CONFIRMED=1`.
+- `search-id` espera el id interno de Radarr (el de `exists`), no el de TMDB. `search-all` afecta a toda la biblioteca.
+- Devuelven JSON `search-json` y `collection-info`. Imprimen texto:
+  - `search`
+  - `exists`
+  - `config`
+  - `logs`
+  - los comandos de escritura
+- Las escrituras (`add`, `add-collection`, `remove`, `search-id`, `search-all`) usan `arr_call` de [`_lib/arr-api.sh`](../_lib/README.md) y comprueban el código HTTP: si no es 2xx, escriben `ERROR: <método> <ruta> respondió HTTP <código>: <mensaje>` por stderr y salen con 1, sin imprimir un falso éxito. Los mensajes no llevan emojis.

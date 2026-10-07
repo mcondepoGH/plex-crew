@@ -1,14 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-# Sonarr API wrapper
+# Wrapper de la API v3 de Sonarr: series, búsquedas y logs.
 
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
-source "$_LOAD_ENV" || { echo "ERROR: load-env.sh not found. Copia .env.example a .env" >&2; exit 1; }
+source "$_LOAD_ENV" || { echo "ERROR: no se pudo cargar load-env.sh. Copia .env.example a .env" >&2; exit 1; }
 
-# Load credentials from .env
+# Carga las credenciales desde el .env
 load_service_credentials "sonarr" "SONARR_URL" "SONARR_API_KEY"
 
 API="$SONARR_URL/api/v3"
@@ -16,7 +16,7 @@ AUTH="X-Api-Key: $SONARR_API_KEY"
 
 _ARR_API="$SCRIPT_DIR/../../_lib/arr-api.sh"
 # shellcheck source=/dev/null
-source "$_ARR_API" || { echo "ERROR: arr-api.sh not found" >&2; exit 1; }
+source "$_ARR_API" || { echo "ERROR: no se pudo cargar arr-api.sh" >&2; exit 1; }
 
 usage() {
   cat <<'USAGE'
@@ -111,15 +111,15 @@ case "$cmd" in
       echo "not_found"
     else
       echo "exists"
-      echo "$result" | jq -r '.[0] | "ID: \(.id), Title: \(.title), Seasons: \(.statistics.seasonCount)"'
+      echo "$result" | jq -r '.[0] | "ID: \(.id), Título: \(.title), Temporadas: \(.statistics.seasonCount)"'
     fi
     ;;
 
   config)
-    echo "=== Root Folders ==="
+    echo "=== Carpetas raíz ==="
     arr_get "/rootfolder" | jq -r '.[] | "\(.id): \(.path)"'
     echo ""
-    echo "=== Quality Profiles ==="
+    echo "=== Perfiles de calidad ==="
     arr_get "/qualityprofile" | jq -r '.[] | "\(.id): \(.name)"'
     ;;
 
@@ -133,20 +133,23 @@ case "$cmd" in
     searchFlag="true"
     [[ "$NO_SEARCH" = "true" ]] && searchFlag="false"
 
-    # Get series details from lookup
-    series=$(arr_get "/series/lookup?term=tvdb:$tvdbId" | jq '.[0]')
+    # Detalles de la serie desde el lookup
+    arr_call GET "/series/lookup?term=tvdb:$tvdbId" || exit 1
+    series=$(echo "$ARR_BODY" | jq '.[0]')
 
     if [ "$series" = "null" ] || [ -z "$series" ]; then
-      echo "❌ Show not found with TVDB ID: $tvdbId"
+      echo "ERROR: no se encontró ninguna serie con el TVDB ID $tvdbId" >&2
       exit 1
     fi
 
-    # Get default root folder
-    rootFolder=$(arr_get "/rootfolder" | jq -r '.[0].path')
+    # Carpeta raíz por defecto (la primera)
+    arr_call GET "/rootfolder" || exit 1
+    rootFolder=$(echo "$ARR_BODY" | jq -r '.[0].path // empty')
+    [[ -n "$rootFolder" ]] || { echo "ERROR: Sonarr no tiene carpetas raíz configuradas" >&2; exit 1; }
 
     qualityProfile="$qualityProfileId"
 
-    # Build add request
+    # Petición de alta
     addRequest=$(echo "$series" | jq --arg rf "$rootFolder" --argjson qp "$qualityProfile" --argjson search "$searchFlag" '
       . + {
         rootFolderPath: $rf,
@@ -161,19 +164,18 @@ case "$cmd" in
       }
     ')
 
-    result=$(arr_post "/series" "$addRequest")
+    arr_call POST "/series" "$addRequest" || exit 1
 
-    if echo "$result" | jq -e '.id' > /dev/null 2>&1; then
-      title=$(echo "$result" | jq -r '.title')
-      year=$(echo "$result" | jq -r '.year')
-      seasons=$(echo "$result" | jq -r '.statistics.seasonCount // "?"')
-      echo "✅ Added: $title ($year) - $seasons seasons"
-      if [ "$searchFlag" = "true" ]; then
-        echo "🔍 Search started"
-      fi
-    else
-      echo "❌ Failed to add show"
-      echo "$result" | jq -r '.message // .'
+    if ! echo "$ARR_BODY" | jq -e '.id' > /dev/null 2>&1; then
+      echo "ERROR: Sonarr respondió HTTP $ARR_CODE pero sin id de serie; no se confirma el alta" >&2
+      exit 1
+    fi
+    title=$(echo "$ARR_BODY" | jq -r '.title')
+    year=$(echo "$ARR_BODY" | jq -r '.year')
+    seasons=$(echo "$ARR_BODY" | jq -r '.statistics.seasonCount // "?"')
+    echo "Añadida: $title ($year) - $seasons temporadas"
+    if [ "$searchFlag" = "true" ]; then
+      echo "Búsqueda lanzada"
     fi
     ;;
 
@@ -184,11 +186,12 @@ case "$cmd" in
     require_number "$tvdbId" "remove <tvdbId> [--delete-files]"
     deleteFiles="$DELETE_FILES"
 
-    # Get series ID from library
-    series=$(arr_get "/series?tvdbId=$tvdbId")
+    # Obtiene el id interno de la biblioteca
+    arr_call GET "/series?tvdbId=$tvdbId" || exit 1
+    series="$ARR_BODY"
 
     if [ "$series" = "[]" ]; then
-      echo "❌ Show not found in library"
+      echo "ERROR: la serie no está en la biblioteca" >&2
       exit 1
     fi
 
@@ -196,12 +199,12 @@ case "$cmd" in
     title=$(echo "$series" | jq -r '.[0].title')
     year=$(echo "$series" | jq -r '.[0].year')
 
-    arr_delete "/series/$seriesId?deleteFiles=$deleteFiles" > /dev/null
+    arr_call DELETE "/series/$seriesId?deleteFiles=$deleteFiles" || exit 1
 
     if [ "$deleteFiles" = "true" ]; then
-      echo "🗑️ Removed: $title ($year) + deleted files"
+      echo "Quitada: $title ($year) + ficheros borrados"
     else
-      echo "🗑️ Removed: $title ($year) (files kept)"
+      echo "Quitada: $title ($year) (ficheros conservados)"
     fi
     ;;
 
@@ -215,16 +218,16 @@ case "$cmd" in
     ;;
 
   search-all)
-    result=$(arr_post "/command" '{"name":"MissingEpisodeSearch"}')
-    echo "$result" | jq -r '"🔍 Started: \(.name) (command id \(.id), status \(.status))"'
+    arr_call POST "/command" '{"name":"MissingEpisodeSearch"}' || exit 1
+    echo "$ARR_BODY" | jq -r '"Lanzado: \(.name) (comando \(.id), estado \(.status))"'
     ;;
 
   search-id)
     seriesId="${1:-}"
     [[ -n "$seriesId" ]] || usage_error "falta el id interno de la serie" "search-id <seriesId>"
     require_number "$seriesId" "search-id <seriesId>"
-    result=$(arr_post "/command" "{\"name\":\"SeriesSearch\",\"seriesId\":$seriesId}")
-    echo "$result" | jq -r --arg sid "$seriesId" '"🔍 Started: \(.name) for series \($sid) (command id \(.id), status \(.status))"'
+    arr_call POST "/command" "{\"name\":\"SeriesSearch\",\"seriesId\":$seriesId}" || exit 1
+    echo "$ARR_BODY" | jq -r --arg sid "$seriesId" '"Lanzado: \(.name) para la serie \($sid) (comando \(.id), estado \(.status))"'
     ;;
 
   *)

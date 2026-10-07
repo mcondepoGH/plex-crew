@@ -1,9 +1,30 @@
 ---
 name: plex-naming-rules
-description: Reglas de nombrado de Plex para series, películas, especiales e identificadores. Úsala siempre que haya que renombrar carpetas o ficheros, arreglar un emparejado erróneo o añadir ids {imdb-...}.
+description: Reglas de nombrado de Plex para series, películas, especiales e identificadores. Úsala cuando el usuario pida "renombrar una serie", "renombrar episodios", "normalizar nombres", "este título sale mal emparejado en Plex", "añadir el id imdb", "poner {imdb-...}", "arreglar el nombre de una temporada", "cap.101" o "especiales S00".
 ---
 
-# Reglas de nombrado Plex
+# Skill de reglas de nombrado Plex
+
+**INVOCACIÓN OBLIGATORIA DE LA SKILL**
+
+**DEBES invocar esta skill (no es opcional) cuando se dé CUALQUIERA de estas situaciones:**
+- "renombrar una serie o película", "renombrar episodios", "normalizar nombres de carpetas o ficheros"
+- "este título sale mal emparejado en Plex", "Plex lo identifica mal", "arreglar un emparejado"
+- "añadir el id imdb, tmdb o tvdb", "poner {imdb-...}", "falta el año o el id en la carpeta"
+- Nombres tipo `cap.101` o `1x02`, especiales (`S00E01`) y temporadas mal nombradas
+- Cualquier mención de nombrado o identificación de contenido en Plex
+
+**Si no invocas esta skill cuando se dan estas situaciones, incumples tus requisitos operativos.**
+
+Aplica las reglas de nombrado de Plex a carpetas y ficheros de series y películas, y corrige los emparejados erróneos.
+
+## Propósito
+
+Esta skill fija cómo se nombran los contenidos para que Plex los identifique bien:
+- Formato de episodios, temporadas y especiales
+- Sintaxis y posición de los identificadores externos
+- Calidad en el nombre
+- Flujo para corregir un título mal emparejado
 
 La documentación oficial (support.plex.tv) manda sobre cualquier hábito o suposición. Verifica ahí antes de afirmar cómo Plex lee un nombre.
 
@@ -39,6 +60,7 @@ Aplícalo a **todos** los episodios de la release en una pasada, no solo al roto
 Antes de renombrar episodios a mano, usa **Season Fix** de zurg (plan y luego apply con los `hashes` confirmados). Cubre numeración absoluta tipo fansub (`Show - 37.mkv`). Deja a mano solo lo que Season Fix no cubre: ya tiene token de temporada, extras NCOP/NCED/OAD, sin número de episodio o match sospechoso.
 
 ## Lo que NO hay que hacer
+- No renombres en el mount de zurg con filesystem ni crees carpetas o ficheros nuevos: las reglas de operación están en `zurg-rules`.
 - No toques duplicados (mismo episodio o temporada en otra calidad): Plex elige la mejor versión. Solo infórmalos si es relevante.
 - No lances escaneos de Plex tras renombrar ni los ofrezcas: un script externo del usuario actualiza Plex. Informa del resultado y para.
 - Ignora cualquier carpeta `.@*` (`.@__thumb`): caché del NAS.

@@ -15,14 +15,36 @@ Qué vigila: el texto del comando `Bash`. Si casa con algún patrón destructivo
 
 Patrones principales:
 
-- `rm`, `unlink`, `shred`, `truncate`, `mkfs`.
+- Borrado de ficheros:
+  - `rm`
+  - `unlink`
+  - `shred`
+  - `truncate`
+  - `mkfs`
 - `dd` con `of=`.
-- `git reset --hard`, `git clean -f`, `git push --force` o `-f`, `git checkout --`, `git restore`.
-- `docker` / `docker compose` con `rm`, `rmi`, `down`, `kill`, `system prune`, `volume rm`.
+- Git:
+  - `git reset --hard`
+  - `git clean -f`
+  - `git push --force` o `-f`
+  - `git checkout --`
+  - `git restore`
+- `docker` / `docker compose` con:
+  - `rm`
+  - `rmi`
+  - `down`
+  - `kill`
+  - `system prune`
+  - `volume rm`
 - `find` con `-delete` o `-exec rm`.
-- `DELETE FROM`, `DROP TABLE`, `DROP DATABASE`.
+- SQL:
+  - `DELETE FROM`
+  - `DROP TABLE`
+  - `DROP DATABASE`
 - `curl -X DELETE`.
-- Skills de servicios: `radarr.sh remove` y `sonarr.sh remove` (con o sin `--delete-files`) y `prowlarr-api.sh delete`, con `bash`, ruta relativa o absoluta.
+- Skills de servicios (con `bash`, ruta relativa o absoluta):
+  - `radarr.sh remove` (con o sin `--delete-files`)
+  - `sonarr.sh remove` (con o sin `--delete-files`)
+  - `prowlarr-api.sh delete`
 
 Marcador `PLEX_CREW_CONFIRMED=1`: si el comando lo lleva como asignación de entorno al inicio (por ejemplo `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`, también tras `;`, `&` o `|`), el hook lo deja pasar. Solo se pone tras la doble confirmación del usuario (dos mensajes distintos, incluso en modo automático). Sin marcador, el subagente no ejecuta el comando y devuelve la propuesta al orquestador, que pide las confirmaciones.
 
@@ -30,13 +52,46 @@ Si el JSON de entrada no se puede leer, no bloquea.
 
 ## enforce-agent-scope.js
 
-Está registrado únicamente en el frontmatter de `plex-naming`; el resto de agentes no lo tienen. Actúa sobre `Edit`, `Write`, `NotebookEdit` y `Bash`.
+Está registrado únicamente en el frontmatter de `plex-naming`; el resto de agentes no lo tienen. Actúa sobre estas tools:
+
+- `Edit`
+- `Write`
+- `NotebookEdit`
+- `Bash`
 
 Qué vigila: que toda escritura quede dentro de las rutas permitidas (incluye todo lo que cuelga de ellas; se resuelven los enlaces simbólicos).
 
-- `Edit`, `Write`, `NotebookEdit`: comprueba `file_path` o `notebook_path`.
-- `Bash`: analiza el comando de forma conservadora. Lo trocea por `;`, `&&`, `||`, `|`, `&` y saltos de línea, y comprueba las rutas afectadas por `mv`, `cp`, `rm`, `rmdir`, `mkdir`, `touch`, `ln`, `tee`, `truncate`, `install`, `sed -i` y redirecciones `>` / `>>`. También revisa las sustituciones `$(...)` y las rutas que aparecen en código inline de `python`, `perl`, `node` y `ruby`.
-- Ante la duda deniega: `eval`, `xargs`, `bash -c` (y shells similares), `find` con `-exec` o `-delete`, rutas con expansiones sin resolver o directorio de trabajo desconocido. El mensaje pide simplificar el comando.
+- `Edit` y `Write`: comprueban `file_path`.
+- `NotebookEdit`: comprueba `notebook_path`.
+- `Bash`: analiza el comando de forma conservadora.
+  - Lo trocea por estos separadores:
+    - `;`
+    - `&&`
+    - `||`
+    - `|`
+    - `&`
+    - saltos de línea
+  - Comprueba las rutas afectadas por estos comandos:
+    - `mv`
+    - `cp`
+    - `rm`
+    - `rmdir`
+    - `mkdir`
+    - `touch`
+    - `ln`
+    - `tee`
+    - `truncate`
+    - `install`
+    - `sed -i`
+    - redirecciones `>` / `>>`
+  - También revisa las sustituciones `$(...)` y las rutas que aparecen en código inline de `python`, `perl`, `node` y `ruby`.
+- Ante la duda deniega, y el mensaje pide simplificar el comando. Casos:
+  - `eval`
+  - `xargs`
+  - `bash -c` (y shells similares)
+  - `find` con `-exec` o `-delete`
+  - rutas con expansiones sin resolver
+  - directorio de trabajo desconocido
 
 ### scope.conf
 
@@ -61,6 +116,6 @@ Si el fichero falta o no tiene rutas, el hook deniega toda escritura con un mens
 ## Límites
 
 - No es un sandbox: es una red de seguridad contra errores, no contra un adversario. Una orden construida a propósito puede esquivar el análisis.
-- Solo ve `Bash`, `Edit`, `Write` y `NotebookEdit`. No ve las tools MCP (`mcp__zurg__*`), así que no controla lo que hagan.
+- Solo ve las cuatro tools de la lista de `enforce-agent-scope` (arriba). No ve las tools MCP (`mcp__zurg__*`), así que no controla lo que hagan.
 - `confirm-destructive` trabaja sobre el texto del comando; una operación destructiva que no case con los patrones pasa.
 - `enforce-agent-scope` solo cubre a `plex-naming`.

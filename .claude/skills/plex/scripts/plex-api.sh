@@ -1,214 +1,221 @@
 #!/bin/bash
-# Plex Media Server API helper script
-# Usage: plex-api.sh <command> [args...]
-
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Wrapper de la API de Plex Media Server
+
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
-source "$_LOAD_ENV" || { echo "ERROR: load-env.sh not found. Copia .env.example a .env" >&2; exit 1; }
+source "$_LOAD_ENV" || { echo "ERROR: no se encuentra load-env.sh. Copia .env.example a .env" >&2; exit 1; }
 
-# Load credentials from .env
+# Credenciales desde el .env
 load_service_credentials "plex" "PLEX_URL" "PLEX_TOKEN"
 
-# Map to script's internal variable names
-PLEX_URL="${PLEX_URL%/}"  # Remove trailing slash
-PLEX_TOKEN="$PLEX_TOKEN"
-
-# Make authenticated API call to Plex
-api_call() {
-    local method="$1"
-    local endpoint="$2"
-    shift 2
-
-    # Add token to URL if not already present
-    local separator="?"
-    if [[ "$endpoint" == *"?"* ]]; then
-        separator="&"
-    fi
-
-    curl -sS -X "$method" \
-        -H "Accept: application/json" \
-        -H "X-Plex-Token: $PLEX_TOKEN" \
-        "$@" \
-        "${PLEX_URL}${endpoint}${separator}X-Plex-Token=${PLEX_TOKEN}"
-}
+# Quita la barra final de la URL
+PLEX_URL="${PLEX_URL%/}"
 
 usage() {
-    cat <<EOF
-Plex Media Server API CLI
+  cat <<'USAGE'
+Uso: plex-api.sh <comando> [args]
 
-Usage: $(basename "$0") <command> [options]
+Todos los comandos devuelven JSON, salvo refresh (texto).
 
-Commands:
-  info                           Server information and capabilities
-  identity                       Server identity details
-
-  libraries                      List all library sections
+Comandos:
+  info                                  Información y capacidades del servidor
+  identity                              Identidad del servidor
+  libraries                             Secciones de biblioteca (para conocer sus claves)
   library <section-id> [--limit N] [--offset O]
-                                Browse library contents
-  recent [--limit N]            Recently added media (default: 20)
-  ondeck [--limit N]            Continue watching list (default: 10)
+                                        Contenido de una sección
+  recent [--limit N]                    Añadidos recientemente (20 por defecto)
+  ondeck [--limit N]                    Lista "continuar viendo" (10 por defecto)
+  search <texto> [--limit N]            Búsqueda en todas las bibliotecas
+  metadata <rating-key>                 Metadatos de un elemento
+  children <rating-key>                 Hijos de un elemento (p. ej. temporadas de una serie)
+  sessions                              Reproducciones en curso
+  clients                               Clientes conectados
+  playlists                             Listas de reproducción
+  accounts                              Cuentas de usuario (requiere ser administrador)
+  prefs                                 Preferencias del servidor (requiere ser administrador)
+  refresh <section-id>                  ESCRITURA: lanza un escaneo de la sección (texto)
 
-  search <query> [--limit N]    Search across all libraries
-  metadata <rating-key>         Get metadata for specific item
-  children <rating-key>         Get children of item (e.g., seasons)
-
-  sessions                       Currently playing sessions
-  clients                        List connected clients/players
-
-  playlists                      List all playlists
-  accounts                       List user accounts (admin only)
-  prefs                          Server preferences (admin only)
-
-  refresh <section-id>          Refresh library section (scan for new media)
-
-Examples:
-  $(basename "$0") libraries
-  $(basename "$0") library 1 --limit 50
-  $(basename "$0") search "Inception"
-  $(basename "$0") recent --limit 10
-  $(basename "$0") sessions
-  $(basename "$0") refresh 1
-EOF
+Opciones cortas: -l equivale a --limit y -o a --offset.
+Sin comando se muestra esta ayuda.
+USAGE
 }
 
-cmd_info() {
-    api_call GET "/"
+# Error de uso: mensaje + línea de uso y salida con código 1
+usage_error() {
+  echo "ERROR: $1" >&2
+  echo "Uso: plex-api.sh $2" >&2
+  exit 1
 }
 
-cmd_identity() {
-    api_call GET "/identity"
+require_number() {
+  [[ "$1" =~ ^[0-9]+$ ]] || usage_error "'$1' no es un número válido ($3)" "$2"
 }
 
-cmd_libraries() {
-    api_call GET "/library/sections"
+# Comprueba que la opción $1 tiene valor; $2 es el número de argumentos restantes
+# y $3 el siguiente argumento. Uso: need_value "$1" "$#" "${2:-}" "<uso>"
+need_value() {
+  if [[ "$2" -lt 2 || "$3" == -* ]]; then
+    usage_error "falta el valor de $1" "$4"
+  fi
+}
+
+unknown_option() {
+  usage_error "opción desconocida: $1" "$2"
+}
+
+# Llamada autenticada a Plex. Imprime el cuerpo solo si el HTTP es 2xx;
+# si no, avisa por stderr y sale con 1.
+api_call() {
+  local method="$1"
+  local endpoint="$2"
+
+  local resp code body
+  resp=$(curl -sS -X "$method" \
+      -H "Accept: application/json" \
+      -H "X-Plex-Token: $PLEX_TOKEN" \
+      -w $'\n%{http_code}' \
+      "${PLEX_URL}${endpoint}") \
+    || { echo "ERROR: no se pudo conectar con Plex" >&2; exit 1; }
+  code="${resp##*$'\n'}"
+  body="${resp%$'\n'*}"
+
+  if [[ ! "$code" =~ ^2 ]]; then
+    echo "ERROR: Plex respondió HTTP $code en $method $endpoint" >&2
+    exit 1
+  fi
+  [[ -z "$body" ]] || printf '%s\n' "$body"
+}
+
+# Comando sin argumentos: $1 es el nombre, el resto lo recibido
+no_args() {
+  local name="$1"
+  shift
+  [[ $# -eq 0 ]] || unknown_option "$1" "$name"
 }
 
 cmd_library() {
-    local section_id="$1"; shift
-    local limit="" offset=""
+  local u="library <section-id> [--limit N] [--offset O]"
+  local section_id="${1:-}"
+  [[ -n "$section_id" ]] || usage_error "falta el section-id" "$u"
+  require_number "$section_id" "$u" "section-id"
+  shift
+  local limit="" offset=""
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --limit|-l) limit="$2"; shift 2 ;;
-            --offset|-o) offset="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --limit|-l)
+        need_value "$1" "$#" "${2:-}" "$u"; require_number "$2" "$u" "--limit"
+        limit="$2"; shift 2 ;;
+      --offset|-o)
+        need_value "$1" "$#" "${2:-}" "$u"; require_number "$2" "$u" "--offset"
+        offset="$2"; shift 2 ;;
+      *) unknown_option "$1" "$u" ;;
+    esac
+  done
 
-    local params=()
-    [[ -n "$limit" ]] && params+=("X-Plex-Container-Size=$limit")
-    [[ -n "$offset" ]] && params+=("X-Plex-Container-Start=$offset")
+  local query=""
+  [[ -n "$limit" ]] && query+="&X-Plex-Container-Size=$limit"
+  [[ -n "$offset" ]] && query+="&X-Plex-Container-Start=$offset"
 
-    local query=""
-    if [[ ${#params[@]} -gt 0 ]]; then
-        query="&$(IFS='&'; echo "${params[*]}")"
-    fi
-
-    api_call GET "/library/sections/${section_id}/all${query}"
+  api_call GET "/library/sections/${section_id}/all${query:+?${query#&}}"
 }
 
-cmd_recent() {
-    local limit="20"
+# recent y ondeck: $1 endpoint, $2 nombre, $3 límite por defecto, resto: opciones
+cmd_listing() {
+  local endpoint="$1" name="$2" limit="$3"
+  shift 3
+  local u="$name [--limit N]"
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --limit|-l) limit="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --limit|-l)
+        need_value "$1" "$#" "${2:-}" "$u"; require_number "$2" "$u" "--limit"
+        limit="$2"; shift 2 ;;
+      *) unknown_option "$1" "$u" ;;
+    esac
+  done
 
-    api_call GET "/library/recentlyAdded?X-Plex-Container-Size=$limit"
-}
-
-cmd_ondeck() {
-    local limit="10"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --limit|-l) limit="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call GET "/library/onDeck?X-Plex-Container-Size=$limit"
+  api_call GET "${endpoint}?X-Plex-Container-Size=$limit"
 }
 
 cmd_search() {
-    local query="$1"; shift
-    local limit=""
+  local u="search <texto> [--limit N]"
+  local query="${1:-}"
+  [[ -n "$query" ]] || usage_error "falta el texto de búsqueda" "$u"
+  shift
+  local limit=""
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --limit|-l) limit="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --limit|-l)
+        need_value "$1" "$#" "${2:-}" "$u"; require_number "$2" "$u" "--limit"
+        limit="$2"; shift 2 ;;
+      *) unknown_option "$1" "$u" ;;
+    esac
+  done
 
-    # URL encode the query
-    query=$(echo -n "$query" | jq -sRr @uri)
+  # Codifica el texto para la URL
+  local encoded
+  encoded=$(printf '%s' "$query" | jq -sRr @uri)
 
-    local params="query=$query"
-    [[ -n "$limit" ]] && params+="&limit=$limit"
+  local params="query=$encoded"
+  [[ -n "$limit" ]] && params+="&limit=$limit"
 
-    api_call GET "/search?$params"
+  api_call GET "/search?$params"
 }
 
-cmd_metadata() {
-    local rating_key="$1"
-    api_call GET "/library/metadata/$rating_key"
-}
-
-cmd_children() {
-    local rating_key="$1"
-    api_call GET "/library/metadata/$rating_key/children"
-}
-
-cmd_sessions() {
-    api_call GET "/status/sessions"
-}
-
-cmd_clients() {
-    api_call GET "/clients"
-}
-
-cmd_playlists() {
-    api_call GET "/playlists"
-}
-
-cmd_accounts() {
-    api_call GET "/accounts"
-}
-
-cmd_prefs() {
-    api_call GET "/:/prefs"
+# metadata y children: $1 nombre, $2 sufijo del endpoint, resto: argumentos
+cmd_item() {
+  local name="$1" suffix="$2"
+  shift 2
+  local u="$name <rating-key>"
+  local rating_key="${1:-}"
+  [[ -n "$rating_key" ]] || usage_error "falta el rating-key" "$u"
+  require_number "$rating_key" "$u" "rating-key"
+  [[ $# -le 1 ]] || unknown_option "$2" "$u"
+  api_call GET "/library/metadata/${rating_key}${suffix}"
 }
 
 cmd_refresh() {
-    local section_id="$1"
-    api_call GET "/library/sections/${section_id}/refresh"
-    echo '{"status": "ok", "message": "Library refresh initiated"}'
+  local u="refresh <section-id>"
+  local section_id="${1:-}"
+  [[ -n "$section_id" ]] || usage_error "falta el section-id" "$u"
+  require_number "$section_id" "$u" "section-id"
+  [[ $# -le 1 ]] || unknown_option "$2" "$u"
+
+  # api_call sale con 1 si Plex no responde 2xx
+  api_call GET "/library/sections/${section_id}/refresh" > /dev/null
+  echo "Escaneo de la sección $section_id solicitado a Plex (HTTP 2xx)"
 }
 
-# Main dispatch
-case "${1:-}" in
-    info) shift; cmd_info "$@" ;;
-    identity) shift; cmd_identity "$@" ;;
-    libraries) shift; cmd_libraries "$@" ;;
-    library) shift; cmd_library "$@" ;;
-    recent) shift; cmd_recent "$@" ;;
-    ondeck) shift; cmd_ondeck "$@" ;;
-    search) shift; cmd_search "$@" ;;
-    metadata) shift; cmd_metadata "$@" ;;
-    children) shift; cmd_children "$@" ;;
-    sessions) shift; cmd_sessions "$@" ;;
-    clients) shift; cmd_clients "$@" ;;
-    playlists) shift; cmd_playlists "$@" ;;
-    accounts) shift; cmd_accounts "$@" ;;
-    prefs) shift; cmd_prefs "$@" ;;
-    refresh) shift; cmd_refresh "$@" ;;
-    -h|--help|help|"") usage ;;
-    *) echo "Unknown command: $1" >&2; usage; exit 1 ;;
+# Despacho
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  "") usage; exit 0 ;;
+  -h|--help|help) usage; exit 0 ;;
+  info) no_args info "$@"; api_call GET "/" ;;
+  identity) no_args identity "$@"; api_call GET "/identity" ;;
+  libraries) no_args libraries "$@"; api_call GET "/library/sections" ;;
+  library) cmd_library "$@" ;;
+  recent) cmd_listing "/library/recentlyAdded" recent 20 "$@" ;;
+  ondeck) cmd_listing "/library/onDeck" ondeck 10 "$@" ;;
+  search) cmd_search "$@" ;;
+  metadata) cmd_item metadata "" "$@" ;;
+  children) cmd_item children "/children" "$@" ;;
+  sessions) no_args sessions "$@"; api_call GET "/status/sessions" ;;
+  clients) no_args clients "$@"; api_call GET "/clients" ;;
+  playlists) no_args playlists "$@"; api_call GET "/playlists" ;;
+  accounts) no_args accounts "$@"; api_call GET "/accounts" ;;
+  prefs) no_args prefs "$@"; api_call GET "/:/prefs" ;;
+  refresh) cmd_refresh "$@" ;;
+  *)
+    echo "ERROR: comando desconocido: $cmd" >&2
+    usage >&2
+    exit 1
+    ;;
 esac

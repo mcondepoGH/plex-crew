@@ -1,6 +1,6 @@
 # tautulli
 
-Consulta las analíticas de uso de Plex a través de Tautulli: actividad en curso, historial de reproducción, estadísticas por usuario y biblioteca, y gráficas de reproducciones. Devuelve JSON con la estructura estándar de Tautulli (`response.result`, `response.data`).
+Consulta las analíticas de uso de Plex a través de Tautulli: actividad en curso, historial de reproducción, usuarios, bibliotecas, contenido popular y gráficas de reproducciones. Envuelve la API v2 y devuelve JSON con el sobre estándar de Tautulli (`response.result`, `response.data`).
 
 ## Cuándo se usa
 
@@ -8,29 +8,27 @@ Para preguntas sobre uso histórico: lo más visto, actividad de usuarios, horas
 
 ## Comandos
 
-Script: `.claude/skills/tautulli/scripts/tautulli-api.sh <comando> [opciones]`. Todos son de lectura (peticiones GET a `/api/v2`).
+Script: `.claude/skills/tautulli/scripts/tautulli-api.sh <comando> [args]`. Todos son de lectura (peticiones GET a `/api/v2`); no hay comandos de escritura.
 
-| Comando | Para qué sirve (comando de la API) | Opciones | Tipo |
-|---------|------------------------------------|----------|------|
-| `server-info` | Versión e información del servidor (`get_server_info`). | Ninguna | Lectura |
-| `activity` | Streams activos (`get_activity`). | `--details` (se acepta pero no cambia la petición) | Lectura |
-| `history` | Historial de reproducción (`get_history`). | `--user`, `--section-id`, `--media-type`, `--days N`, `--limit N` (25 por defecto), `--search` | Lectura |
-| `user-stats` | Sin opciones: lista de usuarios (`get_users`). Con opciones: `get_user_stats`. | `--user`, `--sort-by`, `--limit`, `--days` | Lectura |
-| `libraries` | Secciones de biblioteca (`get_libraries`). | Ninguna | Lectura |
-| `library-stats` | Datos de una sección (`get_library`). | `--section-id <id>` (obligatoria) | Lectura |
-| `popular` | Contenido popular: pide siempre `get_home_stats` con `stat_id=popular_movies`; `--media-type` no cambia la estadística. | `--section-id`, `--media-type`, `--days N` (30), `--limit N` (10) | Lectura |
-| `recent` | Añadidos recientemente (`get_recently_added`). | `--section-id`, `--media-type`, `--days N`, `--limit N` (25) | Lectura |
-| `home-stats` | Estadísticas del panel principal (`get_home_stats`). | `--days N` (30) | Lectura |
-| `plays-by-stream` | Reproducciones por tipo de stream (`get_plays_by_stream_type`). | `--days N` (30) | Lectura |
-| `plays-by-platform` | Por plataforma, top 10 (`get_plays_by_top_10_platforms`). | `--days N` (30) | Lectura |
-| `plays-by-date` | Por fecha (`get_plays_by_date`). | `--days N` (30) | Lectura |
-| `plays-by-hour` | Por hora del día (`get_plays_by_hourofday`). | `--days N` (30) | Lectura |
-| `plays-by-day` | Por día de la semana (`get_plays_by_dayofweek`). | `--days N` (30) | Lectura |
-| `concurrent-streams` | Streams simultáneos por tipo (`get_concurrent_streams_by_stream_type`); con `--peak` usa `get_plays_per_month` con `y_axis=concurrent` (no es un máximo calculado por el script, solo la serie que devuelve Tautulli). | `--days N` (30), `--peak` | Lectura |
-| `metadata` | Metadatos de un elemento (`get_metadata`). | `--rating-key <key>` o `--guid <guid>` | Lectura |
-| `logs` | Log de Tautulli (`get_logs`) o del servidor Plex (`get_plex_log`), recortado con `jq`: devuelve solo un array con las primeras `n` entradas de `response.data`, sin el sobre `response`. | `--limit N` (25), `--plex` | Lectura |
-
-Sin argumentos, `-h`, `--help` o `help` muestran la ayuda.
+| Comando | Para qué sirve | Argumentos / opciones | Tipo |
+|---------|----------------|-----------------------|------|
+| `server-info` | Versión e información del servidor (`get_server_info`). | Ninguno | Lectura (JSON) |
+| `activity` | Streams activos (`get_activity`). | Ninguno | Lectura (JSON) |
+| `history` | Historial de reproducción (`get_history`). | `[--user U] [--section-id N] [--media-type T] [--days N] [--limit N] [--search S]` | Lectura (JSON) |
+| `user-stats` | Sin opciones, usuarios (`get_users`); con opciones, tabla de usuarios (`get_users_table`). | `[--user S] [--sort-by plays\|duration\|last_seen] [--limit N]` | Lectura (JSON) |
+| `libraries` | Secciones de biblioteca (`get_libraries`). | Ninguno | Lectura (JSON) |
+| `library-stats` | Datos de una sección (`get_library`). | `--section-id N` (obligatoria) | Lectura (JSON) |
+| `popular` | Contenido popular (`get_home_stats`, con `popular_movies`, `popular_tv` o `popular_music` según el tipo). | `[--media-type movie\|tv\|music] [--section-id N] [--days N] [--limit N]` | Lectura (JSON) |
+| `recent` | Añadidos recientemente (`get_recently_added`); `--days` filtra en local. | `[--section-id N] [--media-type T] [--days N] [--limit N]` | Lectura (JSON) |
+| `home-stats` | Estadísticas del panel principal (`get_home_stats`). | `[--days N]` | Lectura (JSON) |
+| `plays-by-stream` | Reproducciones por tipo de stream. | `[--days N]` | Lectura (JSON) |
+| `plays-by-platform` | Reproducciones por plataforma (top 10). | `[--days N]` | Lectura (JSON) |
+| `plays-by-date` | Reproducciones por fecha. | `[--days N]` | Lectura (JSON) |
+| `plays-by-hour` | Reproducciones por hora del día. | `[--days N]` | Lectura (JSON) |
+| `plays-by-day` | Reproducciones por día de la semana. | `[--days N]` | Lectura (JSON) |
+| `concurrent-streams` | Streams simultáneos por tipo y su máximo diario. | `[--days N] [--peak]` | Lectura (JSON) |
+| `metadata` | Metadatos de un elemento (`get_metadata`). | `--rating-key N` o `--guid G` | Lectura (JSON) |
+| `logs` | Log de Tautulli o del servidor Plex, recortado a un array con las primeras n entradas. | `[--limit N] [--plex]` | Lectura (JSON, array) |
 
 ## Variables de entorno
 
@@ -49,22 +47,23 @@ bash .claude/skills/tautulli/scripts/tautulli-api.sh activity | jq '.response.da
 # Lectura: historial de la última semana de películas
 bash .claude/skills/tautulli/scripts/tautulli-api.sh history --days 7 --media-type movie --limit 50
 
-# Lectura: horas con más reproducciones en el último mes
-bash .claude/skills/tautulli/scripts/tautulli-api.sh plays-by-hour --days 30
+# Lectura: series más vistas del último mes
+bash .claude/skills/tautulli/scripts/tautulli-api.sh popular --media-type tv --days 30
 
-# Lectura: pico de streams simultáneos
+# Lectura: pico diario de streams simultáneos
 bash .claude/skills/tautulli/scripts/tautulli-api.sh concurrent-streams --days 7 --peak
 ```
 
-No hay comandos de escritura en esta skill.
-
 ## Notas y límites
 
-- `--days` en `history` y `user-stats` se convierte con `date -d "N days ago" +%s` (GNU date) y se envía como `start_date` en epoch; en `recent` se envía como `start`.
-- `popular` pide siempre `stat_id=popular_movies`; `--media-type` y `--section-id` se pasan como parámetros pero el script no cambia la estadística según el tipo.
-- `activity --details` se acepta pero no cambia la petición.
-- `user-stats --sort-by` se envía como `order_column`.
+- Sin comando muestra la ayuda y sale con 0; un comando desconocido muestra la ayuda por stderr y sale con 1. Un argumento obligatorio que falta, una opción sin valor, un valor no numérico o una opción desconocida imprimen el uso por stderr y salen con 1.
+- Los errores salen por stderr con el prefijo `ERROR:` y código 1:
+  - HTTP distinto de 2xx
+  - Respuesta sin JSON válido
+  - `result` igual a `error` (Tautulli lo devuelve con HTTP 200)
+- `history --days` se envía como `start_date` (`AAAA-MM-DD`). `recent --days` no tiene equivalente en la API y se aplica con `jq` sobre `added_at`, después de limitar a `--limit`.
+- `user-stats` no admite `--days`: para la actividad de un usuario en un periodo usa `history --user ... --days N`.
+- `concurrent-streams --peak` devuelve solo la serie "Max. Concurrent Streams" de la misma consulta.
+- `logs --plex` falla si Tautulli no tiene configurada la carpeta de logs de Plex.
 - La clave de API va en la query string de la URL, por lo que no conviene copiar las URLs a logs o mensajes.
-- Opciones desconocidas abortan con "Unknown option". Con `set -u`, una opción con valor sin valor (`--days` al final) falla con "unbound variable".
-- Para varios servidores Tautulli se pueden sobrescribir `TAUTULLI_URL` y `TAUTULLI_API_KEY` en el entorno antes de llamar al script.
 - Los datos dependen de la retención histórica configurada en Tautulli.

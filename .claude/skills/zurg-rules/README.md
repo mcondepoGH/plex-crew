@@ -10,14 +10,26 @@ Para cualquier tarea que toque zurg, releases, el mount o su configuración. La 
 
 | Regla | Qué obliga | Cuándo aplica |
 |-------|------------|---------------|
-| Siempre vía MCP | Toda operación usa las tools `mcp__zurg__zurg_*` (library, magic, release, mount, plex, provider, repair, usenet, config, system), que ya traen confirmaciones en lo destructivo. Solo se cae a filesystem o curl si ninguna tool cubre el caso y no hay alternativa. | Siempre. |
+| Siempre vía MCP | Toda operación usa las tools `mcp__zurg__zurg_*` (grupos por prefijo, listados bajo la tabla), que ya traen confirmaciones en lo destructivo. Solo se cae a filesystem o curl si ninguna tool cubre el caso y no hay alternativa. | Siempre. |
 | Solo renombrar | En el mount nunca se crean carpetas ni ficheros (ni `mkdir`, ni copias, ni symlinks, ni `Show/Season 01/`). Solo se renombra lo existente con `zurg_release_rename` y `zurg_release_files_rename`. | Cualquier cambio en el mount. |
 | Estructura serie/temporada | Solo aplica a la biblioteca local `shows`, no a zurg. | Al organizar. |
 | El mount permite renombrar | No se da por solo lectura. | Siempre. |
 | Renombrados masivos | Se prueba con un elemento y se pide la segunda confirmación (en mensajes distintos) antes del resto. | Lotes. |
 | Clasificación movies/shows | Un release con patrón `SxxExx` en su nombre se reclasifica solo a `shows`; sin él cae en `movies`. No es instantáneo y no se mueve nada a mano (`zurg_magic_move` solo opera dentro de `__magic__`). Se renombra bien, se espera la siguiente pasada y se recomprueba con `zurg_plex_match_release`. | Episodios mal clasificados. |
 | Documentación | Dudas sobre zurg, `__magic__` o la integración con Radarr, Sonarr, qBittorrent y SABnzbd: consultar https://notes.debridmediamanager.com y citar lo que dice; si no cubre algo, decirlo. | Dudas de configuración. |
-| Reinicio diario | El servidor se actualiza y reinicia sobre las 12:00 (Europe/Madrid). Un "Unable to connect" cerca de esa hora no es un incidente: esperar y reintentar; si sigue pasadas las 12:15 aprox., es fallo real. | Fallos de conexión. |
+
+Grupos de tools `mcp__zurg__zurg_*` que cubre la regla "Siempre vía MCP":
+
+- `library`: biblioteca de releases
+- `magic`: operaciones dentro de `__magic__`
+- `release`: datos, ficheros y renombrado de releases
+- `mount`: estado del montaje
+- `plex`: integración con Plex
+- `provider`: proveedores y cuota
+- `repair`: reparaciones
+- `usenet`: Usenet
+- `config`: configuración
+- `system`: backups y chequeos
 
 ## Diagnósticos descritos
 
@@ -26,13 +38,28 @@ Para cualquier tarea que toque zurg, releases, el mount o su configuración. La 
 
 ## Tools que menciona la skill
 
-`zurg_release_rename`, `zurg_release_files_rename`, `zurg_magic_move`, `zurg_plex_match_release`, `zurg_clients_paths`, `zurg_config_set`, `zurg_diagnostics_traffic`, `zurg_diagnostics_logs` (todas con prefijo `mcp__zurg__`).
+Todas con prefijo `mcp__zurg__`:
+
+- `release`
+  - `zurg_release_rename`: renombrar un release
+  - `zurg_release_files_rename`: renombrar ficheros dentro de un release
+- `magic`
+  - `zurg_magic_move`: mover dentro de `__magic__`
+- `plex`
+  - `zurg_plex_match_release`: comprobar cómo empareja Plex un release
+- `clients`
+  - `zurg_clients_paths`: rutas que ven Radarr y Sonarr
+- `config`
+  - `zurg_config_set`: cambiar una clave de configuración
+- `diagnostics`
+  - `zurg_diagnostics_traffic`: tráfico del servicio
+  - `zurg_diagnostics_logs`: logs
 
 ## Variables de entorno
 
 La skill no usa variables. Las tools MCP se conectan a través de `.mcp.json`, que lee `ZURG_MCP_URL` de `.env.example` (obligatoria para que el MCP de zurg funcione; sin valor por defecto).
 
-## Ejemplos de uso
+## Ejemplos de llamadas
 
 Son llamadas a tools, no scripts:
 
@@ -43,6 +70,6 @@ Son llamadas a tools, no scripts:
 
 ## Notas y límites
 
-- Es documentación de reglas: no hay comprobaciones automáticas en la skill.
+- Es documentación de reglas: no ejecuta nada ni comprueba automáticamente su cumplimiento.
 - Las operaciones destructivas (borrar releases, reiniciar el servicio) requieren la doble confirmación descrita en `CLAUDE.md`.
 - La skill no cubre el nombrado de Plex; para eso véase `plex-naming-rules`.

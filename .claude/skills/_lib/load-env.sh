@@ -3,7 +3,7 @@
 # Fichero de entorno: $HOMELAB_ENV si existe; si no, <raíz-repo>/.env
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "Error: esta librería se carga con source, no se ejecuta" >&2
+    echo "ERROR: esta librería se carga con source, no se ejecuta" >&2
     exit 1
 fi
 

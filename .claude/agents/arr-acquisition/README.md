@@ -31,18 +31,20 @@ Límites:
 
 ## Tools
 
-| Tool | Para qué sirve |
-|---|---|
-| `Read`, `Glob`, `Grep` | Leer y localizar ficheros |
-| `Bash` | Ejecutar los scripts de las skills (`.claude/skills/<skill>/scripts/`); nunca curl con claves |
+- Lectura de ficheros:
+  - `Read`: leer ficheros
+  - `Glob`: localizar ficheros por patrón
+  - `Grep`: buscar contenido
+- Shell:
+  - `Bash`: ejecutar los scripts de las skills (`.claude/skills/<skill>/scripts/`); nunca curl con claves
 
 ### Tools `mcp__zurg__*`
 
-| Prefijo | Tool | Uso |
-|---|---|---|
-| `library` | `zurg_library_search` | Comprobar si algo ya está en la biblioteca |
-| `clients` | `zurg_clients_paths` | Diagnosticar rutas de import de Radarr y Sonarr |
-| `clients` | `zurg_clients_status` | Estado de la integración con los clientes |
+- `library`
+  - `zurg_library_search`: comprobar si algo ya está en la biblioteca
+- `clients`
+  - `zurg_clients_paths`: diagnosticar rutas de import de Radarr y Sonarr
+  - `zurg_clients_status`: estado de la integración con los clientes
 
 ## Skills que usa
 

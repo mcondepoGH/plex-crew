@@ -1,9 +1,30 @@
 ---
 name: arr-language-filters
-description: Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr/Torrentio en este stack, y límites conocidos. Úsala al diagnosticar por qué un título se descarga, se rechaza o no aparece.
+description: Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr/Torrentio en este stack, y límites conocidos. Úsala cuando el usuario pregunte "por qué se descargó en otro idioma", "por qué se rechaza esta release", "por qué no aparece este título", "falso positivo o negativo del filtro de idioma", "MinFormatScore", "perfil Español o VOSE", "Audio-ES", "RD-Bloqueado", "Torrentio devuelve Fight Club" o pida sincronizar carpetas con Radarr.
 ---
 
-# Filtros de idioma del stack de adquisición
+# Skill de filtros de idioma del stack de adquisición
+
+**INVOCACIÓN OBLIGATORIA DE LA SKILL**
+
+**DEBES invocar esta skill (no es opcional) cuando se dé CUALQUIERA de estas situaciones:**
+- "por qué se descargó en otro idioma", "por qué se rechaza esta release", "por qué no aparece este título"
+- "el filtro deja pasar algo que no debería" o "bloquea algo que sí es en español" (falsos positivos y negativos)
+- "idioma", "filtros", "perfil Español o VOSE", "MinFormatScore", "Audio-ES", "RD-Bloqueado"
+- "Torrentio devuelve resultados que no son" (Fight Club, Reacher) o búsquedas sin `imdbid`
+- "sincronizar las carpetas del mount con Radarr"
+
+**Si no invocas esta skill cuando se dan estas situaciones, incumples tus requisitos operativos.**
+
+Explica cómo filtran el idioma los tres sistemas de adquisición del stack y qué límites conocidos tienen.
+
+## Propósito
+
+Esta skill permite diagnosticar por qué un título se descarga, se rechaza o no aparece:
+- Reglas de idioma de cli_debrid
+- Perfiles y Custom Formats de Radarr y Sonarr
+- Fallo de búsqueda por texto en Torrentio
+- Flujo para sincronizar las carpetas del mount con Radarr
 
 Tres sistemas independientes. Objetivo común: **audio en español**. Un subtitulado al español con audio en otro idioma no es lo que se busca.
 
@@ -35,3 +56,9 @@ Cuando haya que renombrar carpetas del mount a `Title (Year)` para que Library I
 - Año incorrecto en la carpeta: corrige al año real de IMDb/TMDB. Si el destino ya existe, no sobrescribas.
 - Packs con varias películas: sepáralos en `Title (Year)/Title (Year).ext` solo si sabes con certeza qué es cada fichero.
 - Reporta cada lote con detalle (duplicados resueltos, ignorados, años corregidos).
+
+## Lo que NO hay que hacer
+- No repitas el arreglo de quitar `search: [q]` de la definición de Torrentio: rompe el indexador entero.
+- No rebajes `MinFormatScore` ni cambies los perfiles (ids 7 y 8) para "arreglar" un rechazo sin confirmarlo con el usuario: el bloqueo es intencional.
+- No propongas un fallback a inglés en cli_debrid: el filtro binario es deliberado.
+- Esta skill solo documenta: no modifica configuración por sí sola.

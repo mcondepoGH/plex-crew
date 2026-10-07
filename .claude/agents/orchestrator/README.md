@@ -15,7 +15,7 @@ Ejemplos de peticiones:
 
 Límites:
 
-- No escribe ficheros ni ejecuta comandos (no tiene `Bash`, `Edit` ni `Write`).
+- No escribe ficheros ni ejecuta comandos: no tiene ninguna tool de escritura ni de shell (ni `Bash` ni las de edición).
 - No opera directamente sobre zurg ni sobre los servicios homelab: siempre pasa por un subagente.
 - Si la petición queda fuera de los tres dominios (nombrado, zurg, adquisición), lo dice y pregunta cómo seguir.
 
@@ -35,7 +35,7 @@ Límites:
 |---|---|
 | Nombre, id o emparejado mal en Plex; renombrar series o películas; especiales; calidad en el nombre | [`plex-naming`](../plex-naming/README.md) |
 | Algo dentro de zurg: estado, releases, config, backups, doctor, mount, errores de import ligados a zurg | [`zurg-ops`](../zurg-ops/README.md) |
-| Buscar, añadir, descargar, indexadores, idioma, Radarr, Sonarr, Prowlarr, Seerr, cli_debrid, qué indexador usó un grab | [`arr-acquisition`](../arr-acquisition/README.md) |
+| Buscar, añadir, descargar, indexadores, idioma, servicios arr (Radarr, Sonarr, Prowlarr, Seerr, cli_debrid), qué indexador usó un grab | [`arr-acquisition`](../arr-acquisition/README.md) |
 | Mixta (por ejemplo "añade X y deja el nombre bien") | Varios: en paralelo si son independientes, en orden si uno depende de otro |
 
 ## Proceso
@@ -48,22 +48,29 @@ Límites:
 
 ## Tools
 
-| Tool | Para qué sirve |
-|---|---|
-| `Agent` | Delegar en un subagente (es el único agente que puede hacerlo) |
-| `Read`, `Glob`, `Grep` | Consultar ficheros del repositorio para entender el contexto |
-| `AskUserQuestion` | Hacer una pregunta corta al usuario o pedir cada confirmación |
-| `CronCreate`, `CronList`, `CronDelete` | Crear, listar y borrar tareas programadas |
-| `Artifact` | Publicar, leer y actualizar artefactos |
-| `ArtifactData` | Leer y escribir la base de datos de un artefacto |
-| `ArtifactCheck` | Está entre sus tools (declarada en el frontmatter); el cuerpo del agente no detalla su uso |
-| `ArtifactComments` | Leer y responder los comentarios de un artefacto |
+- Delegación:
+  - `Agent`: delegar en un subagente (es el único agente que puede hacerlo)
+- Lectura de ficheros (para entender el contexto del repositorio):
+  - `Read`
+  - `Glob`
+  - `Grep`
+- Interacción con el usuario:
+  - `AskUserQuestion`: hacer una pregunta corta o pedir cada confirmación
+- Tareas programadas:
+  - `CronCreate`: crear una tarea
+  - `CronList`: listar las tareas
+  - `CronDelete`: borrar una tarea
+- Artefactos:
+  - `Artifact`: publicar, leer y actualizar artefactos
+  - `ArtifactData`: leer y escribir la base de datos de un artefacto
+  - `ArtifactCheck`: está entre sus tools (declarada en el frontmatter); el cuerpo del agente no detalla su uso
+  - `ArtifactComments`: leer y responder los comentarios de un artefacto
 
 No tiene tools `mcp__zurg__*`.
 
 ## Crons y artefactos
 
-El orquestador es quien gestiona las tareas programadas (`CronCreate`, `CronList`, `CronDelete`) y los artefactos (`Artifact`, `ArtifactData`, `ArtifactComments`; `ArtifactCheck` también está entre sus tools).
+El orquestador es quien gestiona las tareas programadas y los artefactos con las tools de las listas anteriores (`Cron*` y `Artifact*`).
 
 Los crons son solo de sesión: no persisten entre sesiones y caducan a los 7 días, así que hay que recrearlos al reconectar.
 
