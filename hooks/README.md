@@ -13,6 +13,12 @@ Se registra en `hooks/hooks.json` (plugin) como `PreToolUse` con `matcher: "Bash
 
 Qué vigila: el texto del comando `Bash`. Si casa con algún patrón destructivo y no lleva el marcador, lo deniega con un mensaje que explica la regla. Lo que no casa pasa sin salida.
 
+Alcance (solo el ecosistema del plugin):
+
+- Git: solo si el repo afectado (`cwd` o `git -C`) está dentro de este repositorio.
+- Borrado de ficheros (`rm`, `unlink`, `shred`, `truncate`, `mkfs`, `dd of=`, `find -delete`): solo si el comando o el `cwd` tocan rutas de `scope.conf` (carpetas de medios de Plex) o este repositorio.
+- `docker`, SQL, `curl -X DELETE` (o `--request DELETE`), `arr_delete` y subcomandos destructivos de las skills: siempre.
+
 Patrones principales:
 
 - Borrado de ficheros:
