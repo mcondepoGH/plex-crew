@@ -1,0 +1,13 @@
+{
+  "name": "plex-crew",
+  "displayName": "Plex Crew",
+  "version": "0.2.0",
+  "description": "Orquestador y subagentes para operar un homelab Plex (Radarr, Sonarr, Prowlarr...)",
+  "author": {
+    "name": "mcondepoGH"
+  },
+  "homepage": "https://github.com/mcondepoGH/plex-crew",
+  "repository": "https://github.com/mcondepoGH/plex-crew",
+  "license": "MIT",
+  "keywords": ["plex", "homelab", "radarr", "sonarr", "prowlarr", "tautulli", "seerr"]
+}

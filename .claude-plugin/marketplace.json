@@ -1,0 +1,16 @@
+{
+  "name": "plex-crew",
+  "owner": {
+    "name": "mcondepoGH"
+  },
+  "metadata": {
+    "description": "Orquestador, subagentes, skills y hooks de Claude Code para operar un homelab Plex"
+  },
+  "plugins": [
+    {
+      "name": "plex-crew",
+      "source": "./",
+      "description": "Orquestador y subagentes para operar un homelab Plex (Radarr, Sonarr, Prowlarr...)"
+    }
+  ]
+}

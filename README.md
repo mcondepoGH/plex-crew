@@ -1,52 +1,117 @@
 # plex-crew
 
-Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema (zurg, Radarr, Sonarr, Prowlarr, Seerr, Tautulli, cli_debrid). Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
+Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
-## Instalación y arranque
+## Resumen
 
-1. Clona el repositorio y entra en la carpeta.
-2. Copia la plantilla de credenciales y rellena solo los servicios que uses:
-   ```bash
-   cp .env.example .env
+`plex-crew` reúne tres piezas en un mismo proyecto:
+
+- Un orquestador (agente de la sesión principal) y dos especialistas que reparten el trabajo.
+- Skills de servicio, que envuelven cada servicio con un script, y skills de reglas, que documentan criterios curados.
+- Hooks de seguridad.
+
+Servicios cubiertos:
+
+- Plex
+- Tautulli
+- Radarr
+- Sonarr
+- Prowlarr
+- Seerr
+- cli_debrid
+
+Este README es un índice: dice qué existe y dónde está documentado. Los comandos y herramientas de cada pieza viven en su propio README.
+
+## Instalación
+
+Prerrequisitos: Claude Code, `node` (lo usan los hooks), `bash`, `curl` y `jq` (los usan los scripts de las skills). En Windows, Git Bash o WSL.
+
+1. Añade el marketplace e instala el plugin:
    ```
-3. Define `ZURG_MCP_URL` en el `.env` (si arrancas con `scripts/start.sh`) o expórtala en tu shell.
-4. Arranca el orquestador:
-   ```bash
-   scripts/start.sh               # carga el .env y ejecuta claude
-   claude --agent orchestrator    # con ZURG_MCP_URL ya exportada
+   /plugin marketplace add mcondepoGH/plex-crew
+   /plugin install plex-crew@plex-crew
    ```
-5. La primera vez Claude Code pide aprobar el servidor MCP `zurg` (definido en `.mcp.json`). Apruébalo.
-6. Configura el alcance de escritura de `plex-naming`:
+2. Crea el fichero de credenciales fuera del plugin, para que sobreviva a las actualizaciones, y rellena solo los servicios que uses (la plantilla es `.env.example` en la raíz del repositorio):
    ```bash
    mkdir -p ~/.claude/plex-crew
-   cp scope.conf.example ~/.claude/plex-crew/scope.conf
+   cp .env.example ~/.claude/plex-crew/.env
+   chmod 600 ~/.claude/plex-crew/.env
    ```
-   Edita el fichero con las rutas absolutas donde puede escribir (una por línea). Sin él, el hook deniega toda escritura a ese agente.
+3. Configura el alcance de escritura de `plex-naming` (ver [Configuración](#configuración)).
 
-## Variables del `.env`
+Si faltan las variables de un servicio, la skill de ese servicio no funciona. Para probar sin instalar: `claude --plugin-dir <ruta-del-repo>`.
 
-El `.env` no se versiona. Plantilla: `.env.example`.
+## Modelo de credenciales
 
-| Variable | Servicio | Obligatoria |
+Todas las credenciales viven en un único `.env` en `~/.claude/plex-crew/.env`, fuera del plugin (la carpeta del plugin se reemplaza en cada actualización). La plantilla es `.env.example`, con valores vacíos.
+
+- Todas las skills cargan las variables desde ese fichero (vía `skills/_lib/load-env.sh`) cuando no están ya exportadas en el entorno.
+- Los secretos nunca se imprimen ni se escriben en ficheros versionados.
+- El código de shell común está documentado en [`skills/_lib/README.md`](skills/_lib/README.md).
+
+### Referencia de variables
+
+Una fila por variable. Se rellenan solo los servicios que uses.
+
+#### Medios
+
+| Variable | Obligatoria | Descripción |
 |---|---|---|
-| `ZURG_MCP_URL` | zurg (MCP) | Sí, para usar zurg |
-| `PROWLARR_URL` | Prowlarr | Si usas la skill |
-| `PROWLARR_API_KEY` | Prowlarr | Si usas la skill |
-| `RADARR_URL` | Radarr | Si usas la skill |
-| `RADARR_API_KEY` | Radarr | Si usas la skill |
-| `SONARR_URL` | Sonarr | Si usas la skill |
-| `SONARR_API_KEY` | Sonarr | Si usas la skill |
-| `PLEX_URL` | Plex | Si usas la skill |
-| `PLEX_TOKEN` | Plex | Si usas la skill |
-| `TAUTULLI_URL` | Tautulli | Si usas la skill |
-| `TAUTULLI_API_KEY` | Tautulli | Si usas la skill |
-| `SEERR_URL` | Seerr / Overseerr | Si usas la skill |
-| `SEERR_API_KEY` | Seerr / Overseerr | Si usas la skill |
-| `CLI_DEBRID_URL` | cli_debrid | Si usas la skill |
-| `CLI_DEBRID_USER` | cli_debrid | Si usas la skill |
-| `CLI_DEBRID_PASSWORD` | cli_debrid | Si usas la skill |
-| `HOMELAB_ENV` | Skills y `scripts/start.sh` | No: ruta alternativa al `.env` de la raíz |
-| `PLEX_CREW_CONFIG` | Hook `enforce-agent-scope` | No: ruta alternativa a `~/.claude/plex-crew/scope.conf`; se define en el entorno, no en el `.env` |
+| `PLEX_URL` | Si usas la skill `plex` | URL base de Plex |
+| `PLEX_TOKEN` | Si usas la skill `plex` | Token de autenticación de Plex |
+| `TAUTULLI_URL` | Si usas la skill `tautulli` | URL base de Tautulli |
+| `TAUTULLI_API_KEY` | Si usas la skill `tautulli` | Clave de API de Tautulli |
+
+#### Adquisición
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `PROWLARR_URL` | Si usas la skill `prowlarr` | URL base de Prowlarr |
+| `PROWLARR_API_KEY` | Si usas la skill `prowlarr` | Clave de API de Prowlarr |
+| `RADARR_URL` | Si usas la skill `radarr` | URL base de Radarr |
+| `RADARR_API_KEY` | Si usas la skill `radarr` | Clave de API de Radarr |
+| `SONARR_URL` | Si usas la skill `sonarr` | URL base de Sonarr |
+| `SONARR_API_KEY` | Si usas la skill `sonarr` | Clave de API de Sonarr |
+| `SEERR_URL` | Si usas la skill `seerr` | URL base de Seerr / Overseerr |
+| `SEERR_API_KEY` | Si usas la skill `seerr` | Clave de API de Seerr / Overseerr |
+| `CLI_DEBRID_URL` | Si usas la skill `cli_debrid` | URL base de cli_debrid |
+| `CLI_DEBRID_USER` | Si usas la skill `cli_debrid` | Usuario de cli_debrid |
+| `CLI_DEBRID_PASSWORD` | Si usas la skill `cli_debrid` | Contraseña de cli_debrid |
+
+#### Ajustes opcionales
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `HOMELAB_ENV` | No | Ruta alternativa a `~/.claude/plex-crew/.env`; la leen las skills |
+| `PLEX_CREW_CONFIG` | No | Ruta alternativa a `~/.claude/plex-crew/scope.conf` para el hook `enforce-agent-scope`; se define en el entorno, no en el `.env` |
+
+## Skills
+
+Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de las skills de jmagar (`radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli`), que siguen en inglés. La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
+
+### Skills de servicio adaptadas de jmagar
+
+Adaptadas de las skills del repositorio [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (licencia MIT, ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)). Se han cambiado la carga de credenciales (ahora `skills/_lib/load-env.sh`) y las rutas de ejecución.
+
+| Skill | Servicio | Propósito |
+|---|---|---|
+| [`prowlarr`](skills/prowlarr/README.md) | Prowlarr | Buscar en indexadores y gestionarlos |
+| [`radarr`](skills/radarr/README.md) | Radarr | Gestión de películas |
+| [`sonarr`](skills/sonarr/README.md) | Sonarr | Gestión de series |
+| [`plex`](skills/plex/README.md) | Plex | Explorar bibliotecas, buscar y ver sesiones |
+| [`tautulli`](skills/tautulli/README.md) | Tautulli | Estadísticas y actividad de Plex |
+
+### Skills propias
+
+| Skill | Tipo | Propósito |
+|---|---|---|
+| [`seerr`](skills/seerr/README.md) | Servicio | Buscar y gestionar solicitudes en Seerr / Overseerr |
+| [`cli_debrid`](skills/cli_debrid/README.md) | Servicio | Estado, cola, descargas y logs de cli_debrid |
+| [`plex-crew-rules`](skills/plex-crew-rules/README.md) | Reglas | Reglas globales: idioma, hora, doble confirmación, secretos, tareas programadas |
+| [`plex-naming-rules`](skills/plex-naming-rules/README.md) | Reglas | Nombrado de Plex para series, películas, especiales e identificadores |
+| [`arr-language-filters`](skills/arr-language-filters/README.md) | Reglas | Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr, y sus límites |
+
+La carpeta [`_lib`](skills/_lib/README.md) no es una skill: contiene el código de shell compartido por los scripts.
 
 ## Agentes
 
@@ -54,34 +119,9 @@ Solo el orquestador lanza subagentes; los especialistas devuelven sus propuestas
 
 | Agente | Para qué sirve | Documentación |
 |---|---|---|
-| `orchestrator` | Sesión principal: clasifica, delega, pide confirmaciones, gestiona crons y artefactos | [README](.claude/agents/orchestrator/README.md) |
-| `plex-naming` | Renombra series y películas al formato de Plex y corrige emparejados | [README](.claude/agents/plex-naming/README.md) |
-| `zurg-ops` | Diagnóstico y operación de zurg y del mount de Real-Debrid | [README](.claude/agents/zurg-ops/README.md) |
-| `arr-acquisition` | Búsqueda, adquisición y auditoría con Radarr, Sonarr, Prowlarr, Seerr y cli_debrid | [README](.claude/agents/arr-acquisition/README.md) |
-
-## Skills
-
-### Reglas
-
-| Skill | Propósito |
-|---|---|
-| [`plex-naming-rules`](.claude/skills/plex-naming-rules/README.md) | Reglas de nombrado de Plex para series, películas, especiales e identificadores |
-| [`zurg-rules`](.claude/skills/zurg-rules/README.md) | Reglas de operación sobre zurg y el mount de Real-Debrid |
-| [`arr-language-filters`](.claude/skills/arr-language-filters/README.md) | Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr y sus límites |
-
-### Servicios
-
-| Skill | Propósito |
-|---|---|
-| [`prowlarr`](.claude/skills/prowlarr/README.md) | Buscar en indexadores y gestionarlos |
-| [`radarr`](.claude/skills/radarr/README.md) | Gestión de películas |
-| [`sonarr`](.claude/skills/sonarr/README.md) | Gestión de series |
-| [`plex`](.claude/skills/plex/README.md) | Explorar bibliotecas, buscar y ver sesiones de Plex |
-| [`tautulli`](.claude/skills/tautulli/README.md) | Estadísticas y actividad de Plex |
-| [`seerr`](.claude/skills/seerr/README.md) | Buscar y gestionar solicitudes en Seerr/Overseerr |
-| [`cli_debrid`](.claude/skills/cli_debrid/README.md) | Estado, cola, descargas y logs de cli_debrid |
-
-La carpeta [`_lib`](.claude/skills/_lib/README.md) no es una skill: contiene el código de shell compartido por los scripts.
+| `orchestrator` | Sesión principal: clasifica, delega, pide confirmaciones, gestiona crons y artefactos | [README](docs/agents/orchestrator.md) |
+| `plex-naming` | Renombra series y películas al formato de Plex y corrige emparejados | [README](docs/agents/plex-naming.md) |
+| `arr-acquisition` | Búsqueda, adquisición y auditoría con Radarr, Sonarr, Prowlarr, Seerr y cli_debrid | [README](docs/agents/arr-acquisition.md) |
 
 ## Hooks y seguridad
 
@@ -93,21 +133,66 @@ La carpeta [`_lib`](.claude/skills/_lib/README.md) no es una skill: contiene el 
 Son una red de seguridad, no un sandbox.
 
 - Doble confirmación: toda operación destructiva exige dos mensajes distintos del usuario, incluso en modo automático. El subagente propone y el orquestador pide las confirmaciones.
-- Los secretos viven en `.env` (ignorado por git); nunca se imprimen ni se escriben en ficheros versionados.
+- Las reglas globales del proyecto están en la skill [`plex-crew-rules`](skills/plex-crew-rules/README.md).
 
-## Estructura de carpetas
+## Configuración
+
+| Fichero | Para qué sirve |
+|---|---|
+| `.env` (en `~/.claude/plex-crew/`) | Credenciales de los servicios (ver [Modelo de credenciales](#modelo-de-credenciales)) |
+| `.claude-plugin/plugin.json` | Manifiesto del plugin (metadatos) |
+| `.claude-plugin/marketplace.json` | Catálogo del marketplace |
+| `settings.json` | Agente de sesión por defecto (`orchestrator`), aportado por el plugin |
+| `hooks/hooks.json` | Registro de los hooks `confirm-destructive` y `enforce-agent-scope` (plugin) |
+| `~/.claude/plex-crew/scope.conf` | Rutas donde puede escribir `plex-naming` |
+
+### Alcance de escritura (`scope.conf`)
+
+La plantilla es `scope.conf.example`. Cópiala y ajusta las rutas:
+
+```bash
+mkdir -p ~/.claude/plex-crew
+cp scope.conf.example ~/.claude/plex-crew/scope.conf
+```
+
+Una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`. Sin rutas configuradas, el hook deniega toda escritura a `plex-naming`. Para guardarlo en otro sitio, define `PLEX_CREW_CONFIG`. Detalle en [hooks/README.md](hooks/README.md#scopeconf).
+
+## Desarrollo
+
+- Crear o revisar una skill: sigue [`skills/README.md`](skills/README.md), que fija estructura, plantilla y estándar.
+- Credenciales en scripts: cárgalas siempre con las librerías de [`_lib`](skills/_lib/README.md).
+- Añadir un agente: una definición `agents/<agente>.md` y su documentación en `docs/agents/<agente>.md` (no dentro de `agents/`: el plugin cargaría cualquier `.md` ahí como agente).
+- Añadir un hook: un `.js` en `hooks/`, documentado en [hooks/README.md](hooks/README.md) y registrado en `hooks/hooks.json`.
+- Al añadir o quitar piezas, actualiza las tablas de este README.
+
+## Estructura del repositorio
 
 ```
 .
-├── CLAUDE.md                  Reglas globales del proyecto
+├── CLAUDE.md                  Guía de desarrollo del repositorio (no se carga instalado)
 ├── README.md                  Este índice
-├── .env.example               Plantilla de credenciales
-├── .mcp.json                  Servidor MCP de zurg
+├── LICENSE                    Licencia MIT
+├── THIRD_PARTY_NOTICES.md     Avisos de terceros (jmagar/claude-homelab)
+├── .env.example              Plantilla de credenciales
+├── .claude-plugin/            plugin.json y marketplace.json
+├── settings.json              Agente de sesión por defecto (orchestrator)
 ├── scope.conf.example         Plantilla del alcance de escritura
-├── .claude/
-│   ├── settings.json          Agente por defecto y hook confirm-destructive
-│   ├── agents/                Definiciones de los agentes y un README.md por agente
-│   └── skills/                Una carpeta por skill (con su README.md) y _lib/
-├── hooks/                     Hooks de seguridad (README.md y los dos .js)
-└── scripts/                   start.sh
+├── agents/                    Definiciones de los agentes
+├── docs/agents/               Un .md de documentación por agente
+├── skills/                    Una carpeta por skill (con su README.md) y _lib/
+└── hooks/                     hooks.json, README.md y los dos .js
 ```
+
+## Ficheros relacionados
+
+- [`CLAUDE.md`](CLAUDE.md): guía de desarrollo y estructura del proyecto.
+- [`.env.example`](.env.example): plantilla de credenciales.
+- [`scope.conf.example`](scope.conf.example): plantilla del alcance de escritura.
+- [`skills/README.md`](skills/README.md): estándar para crear skills.
+- [`hooks/README.md`](hooks/README.md): hooks de seguridad.
+
+## Proyectos relacionados
+
+| Proyecto | Relación |
+|---|---|
+| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de las skills de servicio `prowlarr`, `radarr`, `sonarr`, `plex` y `tautulli` |

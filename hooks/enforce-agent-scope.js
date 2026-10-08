@@ -1,4 +1,7 @@
-// PreToolUse (Edit|Write|NotebookEdit|Bash): limita dónde puede escribir un agente.
+// PreToolUse (Edit|Write|NotebookEdit|Bash): limita dónde puede escribir el agente plex-naming.
+// Se registra en hooks/hooks.json (plugin) y salta en todas las llamadas; solo actúa si el
+// input trae agent_type `plex-naming` o `<plugin>:plex-naming`. Sin agent_type no decide,
+// salvo que PLEX_CREW_ENFORCE_ALL=1 (pruebas).
 //
 // Rutas permitidas, en este orden de lectura:
 //   1. Fichero indicado en $PLEX_CREW_CONFIG, o si no existe la variable,
@@ -433,6 +436,14 @@ process.stdin.on('end', () => {
   } catch {
     process.exit(0);
   }
+  // Registrado a nivel de plugin: salta para todas las llamadas. Solo restringe al
+  // agente plex-naming (agent_type `plex-naming` o `<plugin>:plex-naming`).
+  const agentType = payload.agent_type || '';
+  const isTarget = agentType
+    ? agentType === 'plex-naming' || agentType.endsWith(':plex-naming')
+    : process.env.PLEX_CREW_ENFORCE_ALL === '1';
+  if (!isTarget) process.exit(0);
+
   const tool = payload.tool_name || '';
   const input = payload.tool_input || {};
   if (!['Edit', 'Write', 'NotebookEdit', 'Bash'].includes(tool)) process.exit(0);

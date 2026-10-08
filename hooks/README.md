@@ -4,12 +4,12 @@ Dos hooks `PreToolUse` en Node que actúan como red de seguridad ante errores. N
 
 | Hook | Dónde se registra | Para qué sirve |
 |---|---|---|
-| `confirm-destructive.js` | `.claude/settings.json`, sobre `Bash`, para todos los agentes | Bloquea comandos destructivos sin doble confirmación |
-| `enforce-agent-scope.js` | Frontmatter de `.claude/agents/plex-naming.md` (solo ese agente) | Limita las rutas donde puede escribir |
+| `confirm-destructive.js` | `hooks/hooks.json` (plugin), sobre `Bash`, para todos los agentes | Bloquea comandos destructivos sin doble confirmación |
+| `enforce-agent-scope.js` | Frontmatter de `agents/plex-naming.md` (solo ese agente) | Limita las rutas donde puede escribir |
 
 ## confirm-destructive.js
 
-Se registra en `.claude/settings.json` como `PreToolUse` con `matcher: "Bash"` y un timeout de 10 s. Se aplica a todos los agentes que tengan `Bash` (el orquestador y `zurg-ops` no lo tienen).
+Se registra en `hooks/hooks.json` (plugin) como `PreToolUse` con `matcher: "Bash"` y un timeout de 10 s. Se aplica a todos los agentes que tengan `Bash` (el orquestador no lo tiene).
 
 Qué vigila: el texto del comando `Bash`. Si casa con algún patrón destructivo y no lleva el marcador, lo deniega con un mensaje que explica la regla. Lo que no casa pasa sin salida.
 
@@ -52,7 +52,7 @@ Si el JSON de entrada no se puede leer, no bloquea.
 
 ## enforce-agent-scope.js
 
-Está registrado únicamente en el frontmatter de `plex-naming`; el resto de agentes no lo tienen. Actúa sobre estas tools:
+Está registrado en `hooks/hooks.json` (plugin) para todas las llamadas, pero solo restringe cuando el `agent_type` del input es `plex-naming` o `<plugin>:plex-naming`; en cualquier otro caso sale sin decidir (con `PLEX_CREW_ENFORCE_ALL=1` restringe también sin `agent_type`, para pruebas). Actúa sobre estas tools:
 
 - `Edit`
 - `Write`
@@ -116,6 +116,6 @@ Si el fichero falta o no tiene rutas, el hook deniega toda escritura con un mens
 ## Límites
 
 - No es un sandbox: es una red de seguridad contra errores, no contra un adversario. Una orden construida a propósito puede esquivar el análisis.
-- Solo ve las cuatro tools de la lista de `enforce-agent-scope` (arriba). No ve las tools MCP (`mcp__zurg__*`), así que no controla lo que hagan.
+- Solo ve las cuatro tools de la lista de `enforce-agent-scope` (arriba); no controla ninguna otra.
 - `confirm-destructive` trabaja sobre el texto del comando; una operación destructiva que no case con los patrones pasa.
 - `enforce-agent-scope` solo cubre a `plex-naming`.

@@ -1,4 +1,4 @@
-# Secretos: nunca se suben
+# ── Secrets ──
 .env
 .env.*
 !.env.example
@@ -7,12 +7,47 @@
 *token*.json
 .credentials.json
 
-# Datos de sesión / temporales
+# ── Runtime artifacts ──
+logs/
+backups/
+data/
+*.log
+*.pid
+*.bak
+*.bak-*
 *.jsonl
 scratch/
 tmp/
-node_modules/
-.claude/settings.local.json
 
-# Montajes locales (no versionar)
+# ── Claude Code local ──
+.claude/
+CLAUDE.local.md
+CLAUDE.md.local
+
+# ── IDE ──
+.vscode/
+.cursor/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Caches ──
+.cache/
+
+# ── Python ──
+__pycache__/
+*.py[oc]
+.venv/
+
+# ── Node ──
+node_modules/
+dist/
+
+# ── Montajes locales (montajes locales, no versionar) ──
 /mnt

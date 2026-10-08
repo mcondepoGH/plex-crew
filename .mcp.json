@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "zurg": {
-      "type": "http",
-      "url": "${ZURG_MCP_URL}"
-    }
-  }
-}
