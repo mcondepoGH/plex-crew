@@ -6,7 +6,7 @@ Este documento fija el estándar para crear y revisar skills en `skills/`. Cada 
 
 | Tipo | Qué es | Contiene | Ejemplos |
 |------|--------|----------|----------|
-| Servicio | Envuelve un servicio del homelab con un script de shell. | `SKILL.md`, `README.md`, `scripts/<skill>.sh` y `references/` | `radarr`, `sonarr` (modelo), `prowlarr`, `plex`, `tautulli` (adaptadas de jmagar), `seerr`, `cli_debrid` |
+| Servicio | Envuelve un servicio del homelab con un script de shell. | `SKILL.md`, `README.md`, `scripts/<skill>.sh` y `references/` | `radarr`, `sonarr` (modelo), `prowlarr`, `plex` (adaptadas de jmagar), `tautulli` (propia, reescrita en sala limpia), `seerr`, `cli_debrid` |
 | Reglas | Documenta reglas curadas que el agente debe aplicar; no ejecuta nada. | `SKILL.md`, `README.md` y `references/` | `plex-crew-rules`, `plex-naming-rules`, `arr-language-filters` |
 
 ## Estructura de directorios
@@ -64,7 +64,7 @@ Resumen de una frase de lo que hace la skill.
 
 Reglas de contenido:
 
-- Todo va en español e imperativo. El bloque zsh-tool / pty de las skills de jmagar no se usa aquí. Excepción: los `references/` de las skills copiadas de jmagar (`radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli`) siguen en inglés.
+- Todo va en español e imperativo. El bloque zsh-tool / pty de las skills de jmagar no se usa aquí. Excepción: los `references/` de las skills copiadas de jmagar (`radarr`, `sonarr`, `prowlarr`, `plex`) siguen en inglés. `tautulli` es propia (no es copia de jmagar) y sus `references/` están en español.
 - El párrafo de `## Comandos` indica qué comandos devuelven JSON y cuáles texto; que sin comando se muestra la ayuda (rc 0); que un comando desconocido da rc 1; y que un argumento ausente o un id no numérico imprime el uso y da rc 1.
 - Cada `###` lleva un ejemplo `bash "${CLAUDE_PLUGIN_ROOT}/skills/<skill>/scripts/<skill>.sh" ...` y un párrafo **Salida:**.
 - Un comando destructivo indica que el hook `confirm-destructive` exige doble confirmación y `PLEX_CREW_CONFIRMED=1`.

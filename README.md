@@ -102,7 +102,7 @@ Las URL del `.env` van sin barra final (`http://host:puerto`).
 
 ## Skills
 
-Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de las skills de jmagar (`radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli`), que siguen en inglés. La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
+Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de las skills de jmagar (`radarr`, `sonarr`, `prowlarr`, `plex`), que siguen en inglés (`tautulli` es propia y está toda en español). La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
 
 ### Skills de servicio adaptadas de jmagar
 
@@ -114,12 +114,12 @@ Adaptadas de las skills del repositorio [jmagar/claude-homelab](https://github.c
 | [`radarr`](skills/radarr/README.md) | Radarr | Gestión de películas |
 | [`sonarr`](skills/sonarr/README.md) | Sonarr | Gestión de series |
 | [`plex`](skills/plex/README.md) | Plex | Explorar bibliotecas, buscar y ver sesiones |
-| [`tautulli`](skills/tautulli/README.md) | Tautulli | Estadísticas y actividad de Plex |
 
 ### Skills propias
 
 | Skill | Tipo | Propósito |
 |---|---|---|
+| [`tautulli`](skills/tautulli/README.md) | Servicio | Estadísticas y actividad de Plex (reescrita en sala limpia) |
 | [`seerr`](skills/seerr/README.md) | Servicio | Buscar y gestionar solicitudes en Seerr / Overseerr |
 | [`cli_debrid`](skills/cli_debrid/README.md) | Servicio | Estado, cola, descargas y logs de cli_debrid |
 | [`agregarr`](skills/agregarr/README.md) | Servicio | Listas y colecciones de Agregarr (nueva en 0.3.0) |
@@ -235,4 +235,4 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 
 | Proyecto | Relación |
 |---|---|
-| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de las skills de servicio `prowlarr`, `radarr`, `sonarr`, `plex` y `tautulli` |
+| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de las skills de servicio `prowlarr`, `radarr`, `sonarr` y `plex` |

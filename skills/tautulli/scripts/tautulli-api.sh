@@ -1,376 +1,282 @@
 #!/bin/bash
-# Tautulli API helper script
-# Usage: tautulli-api.sh <command> [args...]
-
+# Envoltorio de solo lectura de la API de Tautulli: analítica de uso de Plex.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
-source "$_LOAD_ENV" || { echo "ERROR: no se encuentra load-env.sh" >&2; exit 1; }
-
-# Load credentials from .env
+source "$SCRIPT_DIR/../../_lib/load-env.sh" || { echo "ERROR: no se encuentra load-env.sh" >&2; exit 1; }
 load_service_credentials "tautulli" "TAUTULLI_URL" "TAUTULLI_API_KEY"
 
-# Remove trailing slash from URL
-TAUTULLI_URL="${TAUTULLI_URL%/}"
-TAUTULLI_API_KEY="$TAUTULLI_API_KEY"
-
-# Make authenticated API call to Tautulli
-api_call() {
-    local cmd="$1"
-    shift
-
-    # Build query parameters
-    local params="apikey=${TAUTULLI_API_KEY}&cmd=${cmd}&out_type=json"
-
-    # Add additional parameters
-    while [[ $# -gt 0 ]]; do
-        params+="&$1"
-        shift
-    done
-
-    # Make request
-    curl -sS -X GET "${TAUTULLI_URL}/api/v2?${params}"
-}
+BASE_URL="${TAUTULLI_URL%/}"
 
 usage() {
-    cat <<EOF
-Tautulli Analytics API CLI
+  cat <<'USAGE'
+Uso: tautulli-api.sh <comando> [opciones]
 
-Usage: $(basename "$0") <command> [options]
+Todos los comandos son de solo lectura y devuelven JSON (el cuerpo completo de Tautulli).
 
-Commands:
-  server-info                    Server version and information
+Comandos:
+  server-info                         Información del servidor
+  activity [--details]                Streams en curso (--details se acepta sin efecto)
+  history [--user U] [--section-id N] [--media-type T] [--days N] [--limit N] [--search TEXTO]
+                                      Historial de reproducción (límite 25 por defecto)
+  user-stats [--user U] [--sort-by COL] [--limit N] [--days N]
+                                      Sin opciones lista los usuarios; con opciones, sus estadísticas
+                                      (COL sugerida: plays, duration, last_seen)
+  libraries                           Bibliotecas de Plex
+  library-stats --section-id N        Estadísticas de una biblioteca
+  popular [--section-id N] [--media-type T] [--days N] [--limit N]
+                                      Contenido popular (30 días y 10 resultados por defecto)
+  recent [--section-id N] [--media-type T] [--days N] [--limit N]
+                                      Añadido recientemente (límite 25 por defecto)
+  home-stats [--days N]               Estadísticas de portada (30 días por defecto)
+  plays-by-stream [--days N]          Reproducciones por tipo de stream
+  plays-by-platform [--days N]        Reproducciones por plataforma (top 10)
+  plays-by-date [--days N]            Reproducciones por fecha
+  plays-by-hour [--days N]            Reproducciones por hora del día
+  plays-by-day [--days N]             Reproducciones por día de la semana
+  concurrent-streams [--days N] [--peak]
+                                      Streams simultáneos; --peak da el máximo mensual
+  metadata (--rating-key N | --guid TEXTO)
+                                      Metadatos de un elemento
 
-  activity [--details]          Current activity and active streams
-
-  history [options]             Playback history
-    --user <username>              Filter by user
-    --section-id <id>              Filter by library section
-    --media-type <type>            Filter by media type (movie, episode, track, etc.)
-    --days <n>                     Last N days
-    --limit <n>                    Maximum results (default: 25)
-    --search <query>               Search in titles
-
-  user-stats [options]          User statistics
-    --user <username>              Specific user
-    --sort-by <metric>             Sort by plays, duration, last_seen
-    --limit <n>                    Maximum results
-    --days <n>                     Last N days
-
-  libraries                     List all library sections
-  library-stats --section-id <id>
-                                Library statistics for section
-
-  popular [options]             Most popular content
-    --section-id <id>              Filter by library section
-    --media-type <type>            Filter by media type
-    --days <n>                     Timeframe (default: 30)
-    --limit <n>                    Maximum results (default: 10)
-
-  recent [options]              Recently added media
-    --section-id <id>              Filter by library section
-    --media-type <type>            Filter by media type
-    --days <n>                     Last N days
-    --limit <n>                    Maximum results (default: 25)
-
-  home-stats [--days <n>]       Homepage dashboard statistics
-
-  plays-by-stream [--days <n>]  Plays by stream type (direct/transcode)
-  plays-by-platform [--days <n>]
-                                Plays by platform/device
-  plays-by-date [--days <n>]    Plays by date
-  plays-by-hour [--days <n>]    Plays by hour of day
-  plays-by-day [--days <n>]     Plays by day of week
-
-  concurrent-streams [options]  Concurrent stream history
-    --days <n>                     Timeframe
-    --peak                         Show peak concurrent streams
-
-  metadata [options]            Media metadata
-    --rating-key <key>             Plex rating key
-    --guid <guid>                  Plex GUID
-
-Examples:
-  $(basename "$0") activity
-  $(basename "$0") history --user "john" --days 7
-  $(basename "$0") user-stats --sort-by plays --limit 10
-  $(basename "$0") popular --media-type movie --days 30
-  $(basename "$0") recent --section-id 1 --limit 50
-  $(basename "$0") plays-by-hour --days 7
-EOF
+Tipos de medio habituales: movie, episode, track.
+USAGE
 }
 
-cmd_server_info() {
-    api_call "get_server_info"
+# Error de uso: mensaje + línea de uso, salida con código 1
+usage_error() {
+  echo "ERROR: $1" >&2
+  echo "Uso: tautulli-api.sh $2" >&2
+  exit 1
 }
 
-cmd_activity() {
-    local details="0"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --details) details="1"; shift ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call "get_activity"
+# Marca de tiempo Unix (segundos) de hace $1 días
+days_ago() {
+  date -d "$1 days ago" +%s
 }
 
-cmd_history() {
-    local params=()
-    local limit="25"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --user) params+=("user=$2"); shift 2 ;;
-            --section-id) params+=("section_id=$2"); shift 2 ;;
-            --media-type) params+=("media_type=$2"); shift 2 ;;
-            --days)
-                local start_date=$(date -d "$2 days ago" +%s)
-                params+=("start_date=$start_date")
-                shift 2
-                ;;
-            --limit) limit="$2"; shift 2 ;;
-            --search) params+=("search=$2"); shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    params+=("length=$limit")
-
-    api_call "get_history" "${params[@]}"
-}
-
-cmd_user_stats() {
-    local params=()
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --user) params+=("user=$2"); shift 2 ;;
-            --sort-by) params+=("order_column=$2"); shift 2 ;;
-            --limit) params+=("length=$2"); shift 2 ;;
-            --days)
-                local start_date=$(date -d "$2 days ago" +%s)
-                params+=("start_date=$start_date")
-                shift 2
-                ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    if [[ ${#params[@]} -gt 0 ]]; then
-        api_call "get_user_stats" "${params[@]}"
+# Lee las opciones de un comando y las deja en el array asociativo OPT
+# (clave = nombre sin guiones iniciales y con _ en lugar de -).
+# Uso: parse_opts <uso> <opciones con valor> <flags> <numéricas> <numéricas >= 1> <args...>
+# Las listas van separadas por comas.
+declare -A OPT=()
+OPT_COUNT=0
+parse_opts() {
+  local use="$1" with_value="$2" flags="$3" numeric="$4" positive="$5"
+  shift 5
+  local arg key
+  while [[ $# -gt 0 ]]; do
+    arg="$1"
+    key="${arg#--}"
+    key="${key//-/_}"
+    if [[ ",$with_value," == *",$arg,"* ]]; then
+      [[ -n "${2:-}" ]] || usage_error "falta el valor de $arg" "$use"
+      if [[ ",$numeric," == *",$arg,"* ]]; then
+        [[ "$2" =~ ^[0-9]+$ ]] || usage_error "'$2' no es un número entero positivo" "$use"
+        if [[ ",$positive," == *",$arg,"* && "$2" -lt 1 ]]; then
+          usage_error "'$2' no es un número entero positivo" "$use"
+        fi
+      fi
+      OPT[$key]="$2"
+      OPT_COUNT=$((OPT_COUNT + 1))
+      shift 2
+    elif [[ ",$flags," == *",$arg,"* ]]; then
+      OPT[$key]="1"
+      OPT_COUNT=$((OPT_COUNT + 1))
+      shift
     else
-        api_call "get_users"
+      usage_error "opción desconocida: $arg" "$use"
     fi
+  done
 }
 
-cmd_libraries() {
-    api_call "get_libraries"
+# Entrecomilla un valor para una línea de configuración de curl
+curl_quote() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '"%s"' "$s"
 }
 
-cmd_library_stats() {
-    local section_id=""
+WORK_DIR=""
+cleanup() {
+  [[ -n "$WORK_DIR" ]] && rm -rf "$WORK_DIR"
+  return 0
+}
+trap cleanup EXIT
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --section-id) section_id="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
+# Única función de acceso a la API. Uso: api_get <cmd> [clave=valor ...]
+# Imprime el JSON devuelto; sale con 1 ante cualquier fallo.
+# La configuración de curl (con la clave) viaja por stdin: no aparece en ps.
+api_get() {
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: se necesita curl" >&2; exit 1; }
+  command -v jq >/dev/null 2>&1 || { echo "ERROR: se necesita jq" >&2; exit 1; }
 
-    if [[ -z "$section_id" ]]; then
-        echo "ERROR: --section-id required" >&2
-        exit 1
-    fi
+  local api_cmd="$1"
+  shift
+  local conf code pair result msg body
 
-    api_call "get_library" "section_id=$section_id"
+  conf="get"$'\n'
+  conf+="url = $(curl_quote "$BASE_URL/api/v2")"$'\n'
+  conf+="data-urlencode = $(curl_quote "apikey=$TAUTULLI_API_KEY")"$'\n'
+  conf+="data-urlencode = $(curl_quote "cmd=$api_cmd")"$'\n'
+  conf+='data-urlencode = "out_type=json"'$'\n'
+  for pair in "$@"; do
+    conf+="data-urlencode = $(curl_quote "$pair")"$'\n'
+  done
+
+  WORK_DIR="$(mktemp -d)"
+  body="$WORK_DIR/body"
+
+  if ! code="$(printf '%s' "$conf" | curl -s --connect-timeout 10 --max-time 30 \
+      --config - -o "$body" -w '%{http_code}' 2>/dev/null)"; then
+    echo "ERROR: no se pudo contactar con Tautulli en $BASE_URL" >&2
+    exit 1
+  fi
+
+  if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
+    echo "ERROR: Tautulli respondió HTTP $code: $(head -c 200 "$body" 2>/dev/null | tr '\n' ' ')" >&2
+    exit 1
+  fi
+
+  if ! result="$(jq -r '.response.result // empty' "$body" 2>/dev/null)"; then
+    echo "ERROR: Tautulli devolvió una respuesta que no es JSON" >&2
+    exit 1
+  fi
+  if [[ "$result" != "success" ]]; then
+    msg="$(jq -r '.response.message // "sin mensaje"' "$body" 2>/dev/null)" || msg="sin mensaje"
+    echo "ERROR: Tautulli devolvió error: $msg" >&2
+    exit 1
+  fi
+  jq . "$body"
 }
 
-cmd_popular() {
-    local params=()
-    local days="30"
-    local limit="10"
+cmd="${1:-}"
+shift || true
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --section-id) params+=("section_id=$2"); shift 2 ;;
-            --media-type) params+=("media_type=$2"); shift 2 ;;
-            --days) days="$2"; shift 2 ;;
-            --limit) limit="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
+case "$cmd" in
+  ""|-h|--help|help)
+    usage
+    exit 0
+    ;;
 
-    params+=("time_range=$days")
-    params+=("length=$limit")
+  server-info)
+    parse_opts "server-info" "" "" "" "" "$@"
+    api_get get_server_info
+    ;;
 
-    api_call "get_home_stats" "stat_id=popular_movies" "${params[@]}"
-}
+  activity)
+    parse_opts "activity [--details]" "" "--details" "" "" "$@"
+    api_get get_activity
+    ;;
 
-cmd_recent() {
-    local params=()
-    local limit="25"
+  history)
+    U="history [--user U] [--section-id N] [--media-type T] [--days N] [--limit N] [--search TEXTO]"
+    parse_opts "$U" "--user,--section-id,--media-type,--days,--limit,--search" "" \
+      "--section-id,--days,--limit" "--days,--limit" "$@"
+    args=("length=${OPT[limit]:-25}")
+    [[ -n "${OPT[user]:-}" ]] && args+=("user=${OPT[user]}")
+    [[ -n "${OPT[section_id]:-}" ]] && args+=("section_id=${OPT[section_id]}")
+    [[ -n "${OPT[media_type]:-}" ]] && args+=("media_type=${OPT[media_type]}")
+    [[ -n "${OPT[days]:-}" ]] && args+=("start_date=$(days_ago "${OPT[days]}")")
+    [[ -n "${OPT[search]:-}" ]] && args+=("search=${OPT[search]}")
+    api_get get_history "${args[@]}"
+    ;;
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --section-id) params+=("section_id=$2"); shift 2 ;;
-            --media-type) params+=("media_type=$2"); shift 2 ;;
-            --days)
-                local start=$(date -d "$2 days ago" +%s)
-                params+=("start=$start")
-                shift 2
-                ;;
-            --limit) limit="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    params+=("count=$limit")
-
-    api_call "get_recently_added" "${params[@]}"
-}
-
-cmd_home_stats() {
-    local days="30"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --days) days="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call "get_home_stats" "time_range=$days"
-}
-
-cmd_plays_by_stream() {
-    local days="30"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --days) days="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call "get_plays_by_stream_type" "time_range=$days" "y_axis=plays"
-}
-
-cmd_plays_by_platform() {
-    local days="30"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --days) days="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call "get_plays_by_top_10_platforms" "time_range=$days" "y_axis=plays"
-}
-
-cmd_plays_by_date() {
-    local days="30"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --days) days="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call "get_plays_by_date" "time_range=$days" "y_axis=plays"
-}
-
-cmd_plays_by_hour() {
-    local days="30"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --days) days="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call "get_plays_by_hourofday" "time_range=$days" "y_axis=plays"
-}
-
-cmd_plays_by_day() {
-    local days="30"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --days) days="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    api_call "get_plays_by_dayofweek" "time_range=$days" "y_axis=plays"
-}
-
-cmd_concurrent_streams() {
-    local days="30"
-    local peak=""
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --days) days="$2"; shift 2 ;;
-            --peak) peak="1"; shift ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
-
-    if [[ -n "$peak" ]]; then
-        api_call "get_plays_per_month" "time_range=$days" "y_axis=concurrent"
+  user-stats)
+    U="user-stats [--user U] [--sort-by COL] [--limit N] [--days N]"
+    parse_opts "$U" "--user,--sort-by,--limit,--days" "" "--limit,--days" "--limit,--days" "$@"
+    if [[ $OPT_COUNT -eq 0 ]]; then
+      api_get get_users
     else
-        api_call "get_concurrent_streams_by_stream_type" "time_range=$days"
+      args=()
+      [[ -n "${OPT[user]:-}" ]] && args+=("user=${OPT[user]}")
+      [[ -n "${OPT[sort_by]:-}" ]] && args+=("order_column=${OPT[sort_by]}")
+      [[ -n "${OPT[limit]:-}" ]] && args+=("length=${OPT[limit]}")
+      [[ -n "${OPT[days]:-}" ]] && args+=("start_date=$(days_ago "${OPT[days]}")")
+      api_get get_user_stats "${args[@]}"
     fi
-}
+    ;;
 
-cmd_metadata() {
-    local rating_key=""
-    local guid=""
+  libraries)
+    parse_opts "libraries" "" "" "" "" "$@"
+    api_get get_libraries
+    ;;
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --rating-key) rating_key="$2"; shift 2 ;;
-            --guid) guid="$2"; shift 2 ;;
-            *) echo "Unknown option: $1" >&2; exit 1 ;;
-        esac
-    done
+  library-stats)
+    U="library-stats --section-id N"
+    parse_opts "$U" "--section-id" "" "--section-id" "" "$@"
+    [[ -n "${OPT[section_id]:-}" ]] || usage_error "falta --section-id" "$U"
+    api_get get_library "section_id=${OPT[section_id]}"
+    ;;
 
-    if [[ -n "$rating_key" ]]; then
-        api_call "get_metadata" "rating_key=$rating_key"
-    elif [[ -n "$guid" ]]; then
-        api_call "get_metadata" "guid=$guid"
+  popular)
+    U="popular [--section-id N] [--media-type T] [--days N] [--limit N]"
+    parse_opts "$U" "--section-id,--media-type,--days,--limit" "" \
+      "--section-id,--days,--limit" "--days,--limit" "$@"
+    # Limitación conocida: stat_id es siempre popular_movies, sea cual sea --media-type
+    args=("stat_id=popular_movies" "time_range=${OPT[days]:-30}" "length=${OPT[limit]:-10}")
+    [[ -n "${OPT[section_id]:-}" ]] && args+=("section_id=${OPT[section_id]}")
+    [[ -n "${OPT[media_type]:-}" ]] && args+=("media_type=${OPT[media_type]}")
+    api_get get_home_stats "${args[@]}"
+    ;;
+
+  recent)
+    U="recent [--section-id N] [--media-type T] [--days N] [--limit N]"
+    parse_opts "$U" "--section-id,--media-type,--days,--limit" "" \
+      "--section-id,--days,--limit" "--days,--limit" "$@"
+    args=("count=${OPT[limit]:-25}")
+    [[ -n "${OPT[section_id]:-}" ]] && args+=("section_id=${OPT[section_id]}")
+    [[ -n "${OPT[media_type]:-}" ]] && args+=("media_type=${OPT[media_type]}")
+    [[ -n "${OPT[days]:-}" ]] && args+=("start=$(days_ago "${OPT[days]}")")
+    api_get get_recently_added "${args[@]}"
+    ;;
+
+  home-stats)
+    parse_opts "home-stats [--days N]" "--days" "" "--days" "--days" "$@"
+    api_get get_home_stats "time_range=${OPT[days]:-30}"
+    ;;
+
+  plays-by-stream|plays-by-platform|plays-by-date|plays-by-hour|plays-by-day)
+    parse_opts "$cmd [--days N]" "--days" "" "--days" "--days" "$@"
+    case "$cmd" in
+      plays-by-stream)   target="get_plays_by_stream_type" ;;
+      plays-by-platform) target="get_plays_by_top_10_platforms" ;;
+      plays-by-date)     target="get_plays_by_date" ;;
+      plays-by-hour)     target="get_plays_by_hourofday" ;;
+      *)                 target="get_plays_by_dayofweek" ;;
+    esac
+    api_get "$target" "time_range=${OPT[days]:-30}" "y_axis=plays"
+    ;;
+
+  concurrent-streams)
+    parse_opts "concurrent-streams [--days N] [--peak]" "--days" "--peak" "--days" "--days" "$@"
+    if [[ -n "${OPT[peak]:-}" ]]; then
+      api_get get_plays_per_month "time_range=${OPT[days]:-30}" "y_axis=concurrent"
     else
-        echo "ERROR: --rating-key or --guid required" >&2
-        exit 1
+      api_get get_concurrent_streams_by_stream_type "time_range=${OPT[days]:-30}"
     fi
-}
+    ;;
 
-# Main dispatch
-case "${1:-}" in
-    server-info) shift; cmd_server_info "$@" ;;
-    activity) shift; cmd_activity "$@" ;;
-    history) shift; cmd_history "$@" ;;
-    user-stats) shift; cmd_user_stats "$@" ;;
-    libraries) shift; cmd_libraries "$@" ;;
-    library-stats) shift; cmd_library_stats "$@" ;;
-    popular) shift; cmd_popular "$@" ;;
-    recent) shift; cmd_recent "$@" ;;
-    home-stats) shift; cmd_home_stats "$@" ;;
-    plays-by-stream) shift; cmd_plays_by_stream "$@" ;;
-    plays-by-platform) shift; cmd_plays_by_platform "$@" ;;
-    plays-by-date) shift; cmd_plays_by_date "$@" ;;
-    plays-by-hour) shift; cmd_plays_by_hour "$@" ;;
-    plays-by-day) shift; cmd_plays_by_day "$@" ;;
-    concurrent-streams) shift; cmd_concurrent_streams "$@" ;;
-    metadata) shift; cmd_metadata "$@" ;;
-    -h|--help|help|"") usage ;;
-    *) echo "Unknown command: $1" >&2; usage; exit 1 ;;
+  metadata)
+    U="metadata (--rating-key N | --guid TEXTO)"
+    parse_opts "$U" "--rating-key,--guid" "" "--rating-key" "" "$@"
+    if [[ -n "${OPT[rating_key]:-}" ]]; then
+      api_get get_metadata "rating_key=${OPT[rating_key]}"
+    elif [[ -n "${OPT[guid]:-}" ]]; then
+      api_get get_metadata "guid=${OPT[guid]}"
+    else
+      usage_error "falta --rating-key o --guid" "$U"
+    fi
+    ;;
+
+  *)
+    echo "ERROR: comando desconocido: $cmd" >&2
+    usage >&2
+    exit 1
+    ;;
 esac

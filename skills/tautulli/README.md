@@ -1,434 +1,117 @@
-# Skill de analítica de Tautulli
+# Skill de Tautulli
 
-Supervisa y analiza el uso de tu Plex Media Server con la completa API de analítica de Tautulli.
+Consulta en modo lectura la analítica de uso de Plex a través de la API de Tautulli.
 
 ## Qué hace
 
-- **Actividad actual** — Supervisa los streams activos y la reproducción en tiempo real
-- **Historial de reproducción** — Consulta el historial de visionado detallado con filtros
-- **Estadísticas de usuarios** — Sigue los patrones de visionado y la actividad de los usuarios
-- **Analítica de bibliotecas** — Analiza el uso de las bibliotecas y el contenido popular
-- **Añadido recientemente** — Consulta el contenido nuevo con metadatos detallados
-- **Analítica de streams** — Analiza los tipos de stream, las plataformas y el ancho de banda
-- **Patrones temporales** — Entiende las tendencias de visionado por hora y fecha
-- **Streams simultáneos** — Supervisa los límites de reproducción simultánea
+- **Actividad** — Muestra los streams en curso y la información del servidor
+- **Historial** — Lista reproducciones filtradas por usuario, biblioteca, tipo, fecha o texto
+- **Usuarios** — Lista usuarios y calcula sus estadísticas
+- **Bibliotecas** — Lista bibliotecas y sus estadísticas
+- **Popular y reciente** — Lo más reproducido y lo añadido recientemente
+- **Gráficas** — Reproducciones por tipo de stream, plataforma, fecha, hora y día, y streams simultáneos
+- **Metadatos** — Datos de un elemento por `rating_key` o `guid`
 
-Todas las operaciones son de solo lectura y usan la API de Tautulli para una analítica completa de Plex.
-
-## Qué es Tautulli
-
-Tautulli es una aplicación de monitorización y seguimiento para Plex Media Server. Ofrece:
-- Monitorización de la actividad en tiempo real
-- Estadísticas históricas de reproducción
-- Analítica de usuarios y bibliotecas
-- Sistemas de notificaciones
-- Metadatos y carátulas detallados
-- Gráficos personalizados
-
-Esta skill te da acceso por línea de comandos a la API de analítica de Tautulli.
+Todos los comandos devuelven el JSON completo de Tautulli y ninguno escribe nada.
 
 ## Configuración
 
-### 1. Instala Tautulli
+### 1. Obtén tu clave de API
 
-Si no tienes Tautulli instalado:
+1. Abre la interfaz web de Tautulli
+2. Ve a **Settings → Web Interface → API**
+3. Copia la **API Key**
 
-**Docker:**
-```bash
-docker run -d \
-  --name tautulli \
-  -p 8181:8181 \
-  -v /path/to/config:/config \
-  -e TZ=America/New_York \
-  ghcr.io/tautulli/tautulli
-```
+### 2. Configura las variables de entorno
 
-**Instalación manual:**
-Sigue las instrucciones de https://github.com/Tautulli/Tautulli#installation
-
-### 2. Configura Tautulli
-
-1. Abre la interfaz web de Tautulli (por defecto: http://localhost:8181)
-2. Conéctala a tu Plex Media Server
-3. Deja que recopile algunos datos históricos (al menos unas horas)
-
-### 3. Obtén tu clave de API
-
-1. En Tautulli, ve a **Settings → Web Interface**
-2. Desplázate hasta la sección **API**
-3. Marca la casilla **"API enabled"**
-4. Copia tu **API Key**
-
-### 4. Añádela a las variables de entorno
-
-Añade tus credenciales de Tautulli a `~/.claude/plex-crew/.env`:
+Añade las credenciales a `~/.claude/plex-crew/.env`:
 
 ```bash
-# Tautulli Analytics
-TAUTULLI_URL="http://<host>:8181"
+TAUTULLI_URL="http://localhost:8181"
 TAUTULLI_API_KEY="<your_api_key>"
 ```
 
 **Opciones de configuración:**
-- `TAUTULLI_URL`: URL de tu servidor Tautulli con el puerto (puerto por defecto: 8181)
-- `TAUTULLI_API_KEY`: tu clave de API de Tautulli, que se encuentra en Settings
+- `TAUTULLI_URL`: URL de Tautulli con puerto (la API se llama en `<TAUTULLI_URL>/api/v2`)
+- `TAUTULLI_API_KEY`: tu clave de API
+- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
-### 5. Pruébalo
+### 3. Pruébalo
 
 ```bash
-cd skills/tautulli
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info
 ```
 
-Deberías ver una salida JSON con la versión de tu servidor Tautulli.
-
-### Cómo invocar el script
-
-En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/tautulli/scripts/tautulli-api.sh help` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" help`). Los ejemplos de abajo usan la ruta corta `scripts/tautulli-api.sh` y suponen que estás en `skills/tautulli/`.
+Fuera de una sesión de Claude Code `${CLAUDE_PLUGIN_ROOT}` no existe: usa la ruta real del plugin.
 
 ## Ejemplos de uso
 
-Todos los ejemplos usan el script auxiliar `tautulli-api.sh`.
-
-### Supervisar la actividad actual
-
-Consulta quién está viendo algo ahora mismo:
+### Actividad actual
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" activity
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" activity | jq '.response.data.stream_count'
 ```
 
-**La salida incluye:**
-- Número de streams activos
-- Información del usuario
-- Detalles del contenido (título, año, valoración)
-- Información del reproductor (dispositivo, ubicación)
-- Calidad del stream y ancho de banda
-- Estado de transcodificación
-
-### Ver el historial de visionado
-
-Historial de reproducción reciente:
+### Historial
 
 ```bash
-# Últimas 25 reproducciones (por defecto)
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history
-
-# Últimas 50 reproducciones
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --limit 50
-
-# Historial de la última semana
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --days 7
-
-# Historial de un usuario concreto
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --user "john"
-
-# Solo películas
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --media-type movie
-
-# Buscar un título concreto
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --search "Inception"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --user ana --days 7 --limit 10
 ```
 
-### Estadísticas de usuarios
-
-Sigue los patrones de visionado de los usuarios:
+### Estadísticas de usuarios y bibliotecas
 
 ```bash
-# Todos los usuarios
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats
-
-# Un usuario concreto
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --user "john"
-
-# Los 10 usuarios más activos
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --sort-by plays --limit 10
-
-# Actividad de los últimos 30 días
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --days 30
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --sort-by plays --limit 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" library-stats --section-id 1
 ```
 
-### Estadísticas de bibliotecas
-
-Analiza tus bibliotecas:
+### Popular, reciente y gráficas
 
 ```bash
-# Listar todas las bibliotecas
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries
-
-# Estadísticas de una biblioteca concreta (sustituye 1 por el ID de tu biblioteca)
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" library-stats --section-id 1
-
-# Películas más populares
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" popular --media-type movie --limit 10
-
-# Lo más visto en los últimos 30 días
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" popular --section-id 1 --days 30
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" popular --days 30
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent --days 7
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-hour --days 30
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" concurrent-streams --peak
 ```
 
-### Contenido añadido recientemente
-
-Consulta las novedades:
+### Metadatos
 
 ```bash
-# Últimas 25 incorporaciones (por defecto)
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent
-
-# Últimas 50 incorporaciones
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent --limit 50
-
-# Solo películas recientes
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent --media-type movie
-
-# Incorporaciones de la última semana
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent --days 7
+bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" metadata --rating-key 12345
 ```
-
-### Analítica de streams
-
-Entiende cómo se está transmitiendo el contenido:
-
-```bash
-# Tipos de stream (reproducción directa frente a transcodificación)
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-stream --days 30
-
-# Distribución por plataforma (Roku, Apple TV, etc.)
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-platform --days 30
-
-# Reproducciones por fecha
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-date --days 30
-
-# Reproducciones por hora del día
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-hour --days 7
-
-# Reproducciones por día de la semana
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-day --days 30
-```
-
-### Streams simultáneos
-
-Supervisa la reproducción simultánea:
-
-```bash
-# Historial de streams simultáneos
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" concurrent-streams --days 30
-
-# Pico de streams simultáneos
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" concurrent-streams --days 7 --peak
-```
-
-### Estadísticas del panel
-
-Obtén estadísticas generales como las de la página de inicio de Tautulli:
-
-```bash
-# Estadísticas globales
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" home-stats
-
-# Últimos 30 días
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" home-stats --days 30
-```
-
-### Metadatos de contenido
-
-Obtén información detallada de un contenido concreto:
-
-```bash
-# Por rating key de Plex
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" metadata --rating-key 12345
-
-# Por GUID de Plex
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" metadata --guid "plex://movie/5d776..."
-```
-
-## Flujo de trabajo
-
-### Supervisar los streams activos
-
-Cuando alguien pregunte "¿Quién está viendo algo?" o "¿Qué se está reproduciendo?":
-
-1. Ejecuta `activity` para ver las sesiones actuales
-2. Comprueba si hay problemas de buffering o transcodificación
-3. Si hay problemas, investiga el historial del usuario con `history --user "username"`
-4. Consulta las estadísticas de biblioteca para ver si el contenido es popular
-
-### Analizar la popularidad del contenido
-
-Al planificar actualizaciones de la biblioteca o identificar favoritos:
-
-1. Ejecuta `home-stats` para tener una visión general
-2. Usa `popular` para encontrar el contenido más visto
-3. Filtra por tipo de contenido y periodo
-4. Contrasta con `library-stats` para obtener datos por sección
-
-### Entender el comportamiento de los usuarios
-
-Al analizar patrones de uso:
-
-1. Obtén la lista de usuarios con `user-stats`
-2. Profundiza en usuarios concretos con `user-stats --user "name"`
-3. Consulta las horas de visionado con `plays-by-hour` y `plays-by-day`
-4. Revisa el historial de visionado con `history --user "name"`
-
-### Optimizar el rendimiento del servidor
-
-Al investigar el rendimiento:
-
-1. Consulta `plays-by-stream` para ver las proporciones de transcodificación
-2. Identifica problemas por plataforma con `plays-by-platform`
-3. Supervisa la carga simultánea con `concurrent-streams`
-4. Revisa las sesiones activas con `activity`
-
-## Interpretación de los datos
-
-### Tipos de stream
-
-- **Direct Play**: sin transcodificación, rendimiento óptimo
-- **Direct Stream**: solo conversión del contenedor
-- **Transcode**: conversión completa de vídeo/audio (consume mucha CPU)
-
-### IDs de sección de biblioteca
-
-Los IDs de sección de biblioteca en Tautulli coinciden con las claves de biblioteca de Plex:
-- Normalmente 1 = Películas
-- Normalmente 2 = Series
-- Ejecuta el comando `libraries` para ver tus IDs concretos
-
-### Rangos de tiempo
-
-La mayoría de los comandos admiten el parámetro `--days N`:
-- `--days 1`: últimas 24 horas
-- `--days 7`: última semana
-- `--days 30`: último mes
-- `--days 365`: último año
-
-### Identificación de usuarios
-
-- **Friendly Name**: nombre para mostrar (p. ej., "John Smith")
-- **Username**: nombre de usuario de Plex (p. ej., "jsmith")
-- Usa los nombres amigables para la salida dirigida al usuario
-- Usa los nombres de usuario para la automatización y el filtrado
 
 ## Referencia de la API
 
-Hay documentación detallada de la API en el directorio `references/`:
+- [Endpoints de la API](references/api-endpoints.md)
+- [Referencia rápida](references/quick-reference.md)
+- [Resolución de problemas](references/troubleshooting.md)
+- [Documentación oficial](https://github.com/Tautulli/Tautulli/wiki/Tautulli-API-Reference)
 
-- **[Endpoints de la API](./references/api-endpoints.md)** - Referencia completa de la API de Tautulli
-- **[Referencia rápida](./references/quick-reference.md)** - Operaciones habituales con ejemplos para copiar y pegar
-- **[Resolución de problemas](./references/troubleshooting.md)** - Soluciones a problemas de autenticación, conexión y errores
+## Flujo de trabajo
 
-## Integración con la skill de Plex
-
-Esta skill complementa la skill `plex` existente:
-
-| Funcionalidad | Skill de Plex | Skill de Tautulli |
-|---------|-----------|----------------|
-| **Sesiones actuales** | ✅ Tiempo real | ✅ Tiempo real + ancho de banda |
-| **Buscar contenido** | ✅ Todas las bibliotecas | ❌ (usa Plex) |
-| **Explorar bibliotecas** | ✅ Exploración completa | ✅ Solo estadísticas |
-| **Historial de visionado** | ❌ | ✅ Historial detallado |
-| **Estadísticas de usuarios** | ❌ | ✅ Analítica completa |
-| **Contenido popular** | ❌ | ✅ Análisis de tendencias |
-| **Analítica de streams** | ❌ | ✅ Estadísticas de transcodificación |
-| **Tendencias temporales** | ❌ | ✅ Patrones por tiempo |
-
-**Usa ambas juntas:**
-1. Encuentra contenido con la skill `plex`
-2. Comprueba su popularidad con la skill `tautulli`
-3. Supervisa los streams con cualquiera de las dos skills
-4. Analiza los patrones con la skill `tautulli`
+1. Ejecuta `activity` para ver qué se reproduce ahora
+2. Ejecuta `libraries` para conocer los `section_id`
+3. Ejecuta `history`, `popular` o `plays-by-*` con `--days` para analizar un periodo
+4. Filtra el JSON con `jq '.response.data...'`
 
 ## Resolución de problemas
 
-### "Connection refused" o timeout
+**ERROR: Tautulli devolvió error: Invalid apikey**
+→ Revisa `TAUTULLI_API_KEY` en `~/.claude/plex-crew/.env`.
 
-**Causas:**
-- Tautulli no está en ejecución
-- URL o puerto incorrectos
-- Un firewall bloquea la conexión
+**ERROR: no se pudo contactar con Tautulli en <URL>**
+→ Comprueba la URL, el puerto (8181) y que Tautulli esté en marcha.
 
-**Soluciones:**
-```bash
-# Comprobar si Tautulli está en ejecución
-curl -I http://localhost:8181
-
-# Verificar la URL en .env
-echo $TAUTULLI_URL
-
-# Probar con la URL completa
-curl "http://localhost:8181/api/v2?apikey=<your_api_key>&cmd=get_server_info"
-```
-
-### "Invalid API key" o error de autenticación
-
-**Causas:**
-- La clave de API es incorrecta
-- La API no está activada
-- La clave tiene caracteres especiales sin escapar correctamente
-
-**Soluciones:**
-1. Verifica que la API está activada en Settings → Web Interface → API
-2. Copia la clave de API con cuidado (sin espacios)
-3. Regenera la clave de API si es necesario
-4. Comprueba que el fichero `~/.claude/plex-crew/.env` no tiene comillas alrededor de la clave
-
-### Datos vacíos o ausentes
-
-**Causas:**
-- Historial insuficiente
-- La biblioteca aún no se ha escaneado
-- No hay actividad de reproducción reciente
-
-**Soluciones:**
-1. Espera a que Tautulli recopile datos (se ejecuta cada pocos minutos)
-2. Asegúrate de que Plex está conectado en los ajustes de Tautulli
-3. Revisa los registros de Tautulli en busca de errores
-4. Aumenta el parámetro `--limit` si la paginación oculta datos
-
-### Error "No section_id"
-
-**Causa:** no se especificó el ID de sección de biblioteca cuando era necesario
-
-**Solución:**
-```bash
-# Lista primero las bibliotecas disponibles
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries
-
-# Después usa el section_id correcto
-"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" library-stats --section-id 1
-```
+**ERROR: 'abc' no es un número entero positivo**
+→ Pasa un entero a `--days`, `--limit`, `--section-id` o `--rating-key`.
 
 ## Notas
 
-- Tautulli usa el puerto 8181 por defecto
-- Los datos históricos dependen de los ajustes de retención (por defecto: ilimitado)
-- Las estadísticas son más significativas cuanto más datos se acumulan con el tiempo
-- Las consultas grandes pueden tardar según el tamaño de la base de datos
-- Los IDs de sección de biblioteca coinciden con las claves de sección de Plex
-- Por defecto se muestran los nombres amigables en la mayoría de las salidas
-- Los rating keys son los identificadores únicos de contenido de Plex
-- Todas las operaciones son de solo lectura y seguras para supervisar
-
-## Consideraciones de rendimiento
-
-- **Bases de datos grandes**: las consultas pueden ser lentas en servidores con años de datos
-- **Filtros complejos**: varios filtros aumentan el tiempo de consulta
-- **Rangos de tiempo**: los rangos más cortos (--days 7) son más rápidos que los largos
-- **Límites**: usa `--limit` para reducir el tamaño del resultado y mejorar la velocidad
-
-**Consejos de optimización:**
-- Usa filtros específicos para acotar los resultados
-- Consulta datos recientes (--days) en lugar de todo el histórico
-- Usa límites razonables (--limit 50 en lugar de 1000)
-- Guarda en caché los resultados de las consultas frecuentes
-
-## Seguridad
-
-- No expongas nunca tu clave de API en registros ni commits
-- Usa variables de entorno para las credenciales
-- Mantén tu clave de API segura: concede acceso de lectura a toda la analítica
-- Considera usar la autenticación HTTP Basic de Tautulli para mayor seguridad
-- Rota las claves de API con regularidad si se comparten
+- Limitaciones conocidas: `popular` envía siempre `stat_id=popular_movies` aunque se pase otro `--media-type`, y `activity --details` se acepta sin efecto.
+- Las fechas se interpretan en la hora del servidor.
+- La clave nunca se imprime; el script la pasa a curl por stdin.
+- Requiere `bash`, `curl`, `jq` y `date` (GNU).
 
 ## Licencia
 

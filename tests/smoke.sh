@@ -117,6 +117,21 @@ for sk in radarr prowlarr; do
   if grep -q 'logs' "skills/$sk/SKILL.md"; then ok "skills/$sk/SKILL.md documenta logs"; else fail "skills/$sk/SKILL.md documenta logs"; fi
 done
 
+# 5c. tautulli: validación de argumentos (rc 1, sin red) y help con los comandos principales
+TAU=skills/tautulli/scripts/tautulli-api.sh
+if [ -f "$TAU" ]; then
+  env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$TAU" help >"$TMP/out" 2>&1
+  for c in server-info activity history user-stats libraries library-stats popular recent concurrent-streams metadata; do
+    if grep -q -- "$c" "$TMP/out"; then ok "$TAU help lista $c"; else fail "$TAU help lista $c"; fi
+  done
+  for bad in "library-stats" "library-stats --section-id abc" "history --limit 0" "history --limit abc" "history --bogus" "history --user" "popular --days 0" "metadata" "metadata --rating-key abc" "concurrent-streams --days -1"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$TAU" $bad >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$TAU $bad rc 1"; else fail "$TAU $bad rc 1" "rc=$rc"; fi
+  done
+fi
+
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck tests/smoke.sh" shellcheck "$ROOT/tests/smoke.sh"
