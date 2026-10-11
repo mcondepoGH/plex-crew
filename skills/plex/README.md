@@ -1,207 +1,125 @@
 # Skill de Plex
 
-Controla y supervisa tu Plex Media Server.
+Explora Plex Media Server desde la línea de comandos: bibliotecas, búsquedas, reproducciones en curso y escaneos.
 
 ## Qué hace
 
-- **Explorar** — Ver bibliotecas y secciones
-- **Buscar** — Encontrar películas, series y música en todas las bibliotecas
-- **Estado** — Comprobar las sesiones de reproducción activas y la información del servidor
-- **Añadido recientemente** — Ver el contenido más reciente añadido a las bibliotecas
-- **On Deck** — Ver el contenido pendiente de continuar
-- **Clientes** — Listar los clientes/reproductores de Plex disponibles
+- **Servidor** — Información e identidad del servidor
+- **Bibliotecas** — Lista las bibliotecas y su contenido
+- **Reciente** — Lo añadido recientemente y "continuar viendo"
+- **Búsqueda** — Búsqueda global y metadatos de un elemento y sus hijos
+- **Actividad** — Reproducciones en curso, clientes, listas y cuentas
+- **Escaneo** — Lanza el escaneo de una biblioteca (`refresh`, la única escritura)
 
-Todas las operaciones son de solo lectura y usan la API de Plex Media Server.
+Todos los comandos devuelven el JSON de Plex sin reformatear, salvo `refresh`, que añade una línea fija.
 
 ## Configuración
 
 ### 1. Obtén tu token de Plex
 
-**Opción A: desde plex.tv**
-1. Ve a https://plex.tv/claim
-2. Inicia sesión en tu cuenta de Plex
-3. Copia el token de reclamación (empieza por `claim-`)
+1. Abre la web de Plex e inicia sesión
+2. Abre cualquier elemento y elige **Ver XML**
+3. Copia el valor de `X-Plex-Token` de la URL
 
-**Opción B: desde el XML de la app de Plex**
-1. Abre cualquier elemento multimedia en tu app de Plex
-2. Consulta el código fuente de la página o inspecciona el tráfico de red
-3. Busca `X-Plex-Token` en el XML o en las cabeceras
-4. Copia el valor del token
+### 2. Configura las variables de entorno
 
-### 2. Define las variables de entorno
-
-Crea tu configuración de Plex:
+Añade las credenciales a `~/.claude/plex-crew/.env`:
 
 ```bash
-export PLEX_URL="http://<host>:32400"
-export PLEX_TOKEN="<your_plex_token>"
-```
-
-O añádelas al perfil de tu shell (`~/.bashrc`, `~/.zshrc`):
-
-```bash
-echo 'export PLEX_URL="http://<host>:32400"' >> ~/.bashrc
-echo 'export PLEX_TOKEN="<your_plex_token>"' >> ~/.bashrc
-source ~/.bashrc
+PLEX_URL="http://localhost:32400"
+PLEX_TOKEN="<your_plex_token>"
 ```
 
 **Opciones de configuración:**
-- `PLEX_URL`: URL de tu servidor Plex (formato: `http://<host>:PUERTO`, puerto por defecto: 32400)
-- `PLEX_TOKEN`: tu token de autenticación de Plex
+- `PLEX_URL`: URL del servidor con puerto (una barra final se ignora)
+- `PLEX_TOKEN`: token de Plex (administrador para `accounts` y `prefs`)
+- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 
 ```bash
-curl -s "$PLEX_URL/?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" identity
 ```
 
-### Cómo invocar el script
-
-En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/plex/scripts/plex-api.sh libraries` (o, desde la raíz del repositorio, `bash skills/plex/scripts/plex-api.sh libraries`). Los ejemplos de abajo usan la ruta corta `scripts/plex-api.sh` y suponen que estás en `skills/plex/`.
+Fuera de una sesión de Claude Code `${CLAUDE_PLUGIN_ROOT}` no existe: usa la ruta real del plugin.
 
 ## Ejemplos de uso
 
-Todos los ejemplos usan `curl` con tus variables de entorno.
-
-### Obtener la información del servidor
+### Bibliotecas y contenido
 
 ```bash
-curl -s "$PLEX_URL/?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" libraries | jq '.MediaContainer.Directory[] | {key, title, type}'
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" library 1 | jq '.MediaContainer.Metadata[].title'
 ```
 
-### Explorar bibliotecas
-
-Lista todas las secciones de biblioteca (Películas, Series, Música, etc.):
+### Reciente y continuar viendo
 
 ```bash
-curl -s "$PLEX_URL/library/sections?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" recent --limit 30
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" ondeck -l 5
 ```
 
-### Listar el contenido de una biblioteca
+### Búsqueda y metadatos
 
 ```bash
-# Sustituye 1 por la clave de tu sección de biblioteca obtenida arriba
-curl -s "$PLEX_URL/library/sections/1/all?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" search "dune" --limit 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" metadata 12345
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" children 12345
 ```
 
-### Buscar
-
-Busca en todas las bibliotecas:
+### Actividad
 
 ```bash
-curl -s "$PLEX_URL/search?query=Inception&X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" sessions
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" clients
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" playlists
 ```
 
-### Obtener lo añadido recientemente
-
-Consulta el contenido más reciente añadido a tus bibliotecas:
+### Administración
 
 ```bash
-curl -s "$PLEX_URL/library/recentlyAdded?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" accounts
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" prefs
 ```
 
-### Obtener On Deck (continuar viendo)
+### Escaneo de una biblioteca
+
+**Confirma con el usuario antes de lanzarlo.**
 
 ```bash
-curl -s "$PLEX_URL/library/onDeck?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" refresh 1
 ```
-
-### Obtener las sesiones activas
-
-Consulta qué se está reproduciendo:
-
-```bash
-curl -s "$PLEX_URL/status/sessions?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
-```
-
-### Listar los clientes disponibles
-
-Consulta todos los clientes/reproductores de Plex conectados:
-
-```bash
-curl -s "$PLEX_URL/clients?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json" | jq
-```
-
-## Flujo de trabajo
-
-Cuando un usuario pregunte por Plex:
-
-1. **"¿Qué hay en Plex?"** → Obtén lo añadido recientemente
-2. **"Busca una película"** → Busca el título
-3. **"¿Qué se está reproduciendo?"** → Obtén las sesiones activas
-4. **"Muestra mis bibliotecas"** → Explora las bibliotecas
-5. **"Continuar viendo"** → Obtén los elementos de On Deck
-
-## Tipos de sección de biblioteca
-
-Tipos de biblioteca habituales (las claves de sección varían según la configuración):
-- **Películas** (normalmente la sección 1)
-- **Series** (normalmente la sección 2)
-- **Música** (normalmente la sección 3)
-- **Fotos** (normalmente la sección 4)
-
-Ejecuta el comando de exploración para ver las claves de sección de tu servidor.
 
 ## Referencia de la API
 
-Hay documentación detallada de la API en el directorio `references/`:
+- [Endpoints de la API](references/api-endpoints.md)
+- [Referencia rápida](references/quick-reference.md)
+- [Resolución de problemas](references/troubleshooting.md)
+- [Documentación de Plex](https://developer.plex.tv/pms/)
 
-- **[Endpoints de la API](./references/api-endpoints.md)** - Referencia completa de endpoints
-- **[Referencia rápida](./references/quick-reference.md)** - Operaciones habituales con ejemplos listos para copiar y pegar
-- **[Resolución de problemas](./references/troubleshooting.md)** - Soluciones a problemas de autenticación, conexión y errores comunes
+## Flujo de trabajo
 
-## Formato de respuesta de la API
-
-### Salida JSON
-
-Añade `-H "Accept: application/json"` para obtener respuestas JSON (por defecto es XML):
-
-```bash
-curl -s "$PLEX_URL/endpoint?X-Plex-Token=$PLEX_TOKEN" \
-  -H "Accept: application/json"
-```
-
-### Claves de contenido
-
-Los elementos multimedia se referencian con claves como `/library/metadata/12345`. Usa estas claves para operar sobre elementos concretos.
+1. Ejecuta `libraries` para conocer los `section-id`
+2. Ejecuta `recent`, `search` o `library` para encontrar el `ratingKey`
+3. Ejecuta `metadata` o `children` con ese `ratingKey`
+4. Filtra el JSON con `jq '.MediaContainer...'`
 
 ## Resolución de problemas
 
-**"Unauthorized" o error 401**
-→ Tu token de Plex no es válido o ha caducado: genera uno nuevo
+**El comando imprime texto o HTML y termina con 0**
+→ Plex rechazó la petición (401, 404): el script no comprueba el código HTTP. Revisa `PLEX_TOKEN`.
 
-**"Connection refused"**
-→ Comprueba la URL del servidor y asegúrate de que Plex Media Server está en ejecución
+**ERROR: no se pudo contactar con Plex en <URL>**
+→ Comprueba la URL, el puerto (32400) y que Plex esté en marcha.
 
-**"Empty response"**
-→ Puede que la clave de la sección de biblioteca sea incorrecta: ejecuta el comando de exploración para ver las secciones disponibles
-
-**El token no funciona**
-→ Asegúrate de que no hay comillas ni espacios extra en el token
+**ERROR: 'abc' no es un número entero positivo**
+→ Pasa un entero como id, `--limit` u `--offset`.
 
 ## Notas
 
-- Plex Media Server usa el puerto 32400 por defecto
-- Las claves de sección de biblioteca (1, 2, 3...) varían según la configuración del servidor
-- Todas las operaciones son de solo lectura y seguras para supervisar
-- Para controlar la reproducción, debes apuntar a un cliente concreto
-- Las respuestas JSON son más claras que el XML por defecto
-- Requiere `curl` y, opcionalmente, `jq` para procesar JSON
-
-## Seguridad
-
-- No expongas nunca tu token de Plex en registros ni commits
-- Usa variables de entorno para las credenciales
-- Mantén tu token seguro: concede acceso completo a tu servidor
-- Considera usar el token de una cuenta restringida si está disponible
+- Limitaciones conocidas: no se comprueba el código HTTP; `refresh` imprime siempre la línea de "iniciado"; `library --limit` y `--offset` no paginan (ruta mal formada); `help` exige credenciales; `search` y `library` toman el primer argumento como posicional aunque empiece por `-`; los argumentos sobrantes se ignoran.
+- El token nunca se imprime; el script lo pasa a curl por stdin, aunque viaja a Plex en cabecera y en la URL.
+- Requiere `bash` y `curl`; `search` requiere además `jq`.
 
 ## Licencia
 

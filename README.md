@@ -102,7 +102,7 @@ Las URL del `.env` van sin barra final (`http://host:puerto`).
 
 ## Skills
 
-Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de las skills de jmagar (`radarr`, `sonarr`, `prowlarr`, `plex`), que siguen en inglés (`tautulli` es propia y está toda en español). La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
+Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de las skills de jmagar (`radarr`, `sonarr`, `prowlarr`), que siguen en inglés (`plex` y `tautulli` son propias y están todas en español). La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
 
 ### Skills de servicio adaptadas de jmagar
 
@@ -113,12 +113,12 @@ Adaptadas de las skills del repositorio [jmagar/claude-homelab](https://github.c
 | [`prowlarr`](skills/prowlarr/README.md) | Prowlarr | Buscar en indexadores y gestionarlos |
 | [`radarr`](skills/radarr/README.md) | Radarr | Gestión de películas |
 | [`sonarr`](skills/sonarr/README.md) | Sonarr | Gestión de series |
-| [`plex`](skills/plex/README.md) | Plex | Explorar bibliotecas, buscar y ver sesiones |
 
 ### Skills propias
 
 | Skill | Tipo | Propósito |
 |---|---|---|
+| [`plex`](skills/plex/README.md) | Servicio | Explorar bibliotecas, buscar y ver sesiones (reescrita en sala limpia) |
 | [`tautulli`](skills/tautulli/README.md) | Servicio | Estadísticas y actividad de Plex (reescrita en sala limpia) |
 | [`seerr`](skills/seerr/README.md) | Servicio | Buscar y gestionar solicitudes en Seerr / Overseerr |
 | [`cli_debrid`](skills/cli_debrid/README.md) | Servicio | Estado, cola, descargas y logs de cli_debrid |
@@ -235,4 +235,4 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 
 | Proyecto | Relación |
 |---|---|
-| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de las skills de servicio `prowlarr`, `radarr`, `sonarr` y `plex` |
+| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de las skills de servicio `prowlarr`, `radarr` y `sonarr` |

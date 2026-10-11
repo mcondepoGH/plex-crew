@@ -2,7 +2,7 @@
 
 ## jmagar/claude-homelab
 
-Las skills `plex`, `prowlarr`, `radarr` y `sonarr` (carpetas `skills/<skill>/`) son copias adaptadas de las del repositorio https://github.com/jmagar/claude-homelab, distribuido bajo la licencia MIT. Las adaptaciones son propias de este proyecto y no cuentan con el respaldo del autor original.
+Las skills `prowlarr`, `radarr` y `sonarr` (carpetas `skills/<skill>/`) son copias adaptadas de las del repositorio https://github.com/jmagar/claude-homelab, distribuido bajo la licencia MIT. Las adaptaciones son propias de este proyecto y no cuentan con el respaldo del autor original.
 
 ```
 MIT License

@@ -132,6 +132,21 @@ if [ -f "$TAU" ]; then
   done
 fi
 
+# 5d. plex: validación de argumentos (rc 1, sin red) y help con los comandos principales
+PLX=skills/plex/scripts/plex-api.sh
+if [ -f "$PLX" ]; then
+  env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$PLX" help >"$TMP/out" 2>&1
+  for c in info identity libraries library recent ondeck search metadata children sessions clients playlists refresh; do
+    if grep -q -- "$c" "$TMP/out"; then ok "$PLX help lista $c"; else fail "$PLX help lista $c"; fi
+  done
+  for bad in "library" "library abc" "recent --limit abc" "recent --bogus" "search" "metadata" "metadata abc" "children x" "refresh" "refresh abc" "comando-desconocido-zzz"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$PLX" $bad >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$PLX $bad rc 1"; else fail "$PLX $bad rc 1" "rc=$rc"; fi
+  done
+fi
+
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck tests/smoke.sh" shellcheck "$ROOT/tests/smoke.sh"
