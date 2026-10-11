@@ -68,16 +68,16 @@ if command -v jq >/dev/null 2>&1; then
   fi
   if grep -q 'ZURG_MCP_URL' .env.example; then ok "ZURG_MCP_URL en .env.example"; else fail "ZURG_MCP_URL en .env.example"; fi
 fi
-for sk in agregarr; do
-  if [ -d "skills/$sk" ]; then
-    check "skill $sk tiene SKILL.md" test -f "skills/$sk/SKILL.md"
-    check "skill $sk tiene README.md" test -f "skills/$sk/README.md"
-  else
-    echo "skip - skills/$sk aun no existe"
-  fi
-done
+sk=agregarr
+if [ -d "skills/$sk" ]; then
+  check "skill $sk tiene SKILL.md" test -f "skills/$sk/SKILL.md"
+  check "skill $sk tiene README.md" test -f "skills/$sk/README.md"
+else
+  echo "skip - skills/$sk aun no existe"
+fi
 
 # 4. Frontmatter name/description
+# shellcheck disable=SC2317  # falso positivo: se invoca de forma indirecta vía check "$@"
 frontmatter_ok() { # frontmatter_ok <fichero>
   awk '
     { sub(/\r$/, "") }
