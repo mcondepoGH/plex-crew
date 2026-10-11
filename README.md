@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 0.3.1.
+Versión 0.4.0.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
@@ -203,7 +203,6 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 ├── CLAUDE.md                  Guía de desarrollo del repositorio (no se carga instalado)
 ├── README.md                  Este índice
 ├── LICENSE                    Licencia MIT
-├── THIRD_PARTY_NOTICES.md     Aviso histórico de terceros (sin código vigente)
 ├── .env.example              Plantilla de credenciales
 ├── .claude-plugin/            plugin.json y marketplace.json
 ├── settings.json              Agente de sesión por defecto (orchestrator)
@@ -226,6 +225,4 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 
 ## Proyectos relacionados
 
-| Proyecto | Relación |
-|---|---|
-| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Antiguo origen de la skill `prowlarr`, ya reescrita en sala limpia (ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)) |
+Algunas skills nacieron de un trabajo previo de jmagar/claude-homelab (MIT) y fueron reescritas desde cero.
