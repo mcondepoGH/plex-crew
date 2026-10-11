@@ -39,7 +39,7 @@ PROWLARR_API_KEY="your-api-key"
 
 - `PROWLARR_URL`: URL de Prowlarr con el puerto (9696 por defecto); se quita una barra final
 - `PROWLARR_API_KEY`: clave de API, en Prowlarr → Settings → General → Security → API Key
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno; las variables ya exportadas tienen prioridad
+- Las variables ya exportadas en el entorno tienen prioridad sobre `~/.claude/plex-crew/.env`
 - `PROWLARR_MAX_TIME`: opcional, segundos máximos de cada petición (30 por defecto)
 - `PROWLARR_TESTALL_MAX_TIME`: opcional, segundos máximos solo de `test-all` (120 por defecto, o `PROWLARR_MAX_TIME` si está definida)
 

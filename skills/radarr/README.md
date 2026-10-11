@@ -36,7 +36,6 @@ RADARR_API_KEY="<your_api_key>"
 - `RADARR_URL`: URL de Radarr con puerto, sin barra final (la API se llama en `<RADARR_URL>/api/v3`)
 - `RADARR_API_KEY`: tu clave de API
 - `RADARR_DEFAULT_QUALITY_PROFILE`: perfil de calidad por defecto de `add` (opcional; 1 si falta)
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 

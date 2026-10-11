@@ -33,7 +33,6 @@ PLEX_TOKEN="<your_plex_token>"
 **Opciones de configuración:**
 - `PLEX_URL`: URL del servidor con puerto (una barra final se ignora)
 - `PLEX_TOKEN`: token de Plex (administrador para `accounts` y `prefs`)
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 

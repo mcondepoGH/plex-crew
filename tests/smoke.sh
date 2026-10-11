@@ -21,7 +21,7 @@ check() { # check <nombre> <comando...>
 
 # Variables dummy para que los scripts de skills pasen la carga de entorno.
 DUMMY_ENV=(
-  HOME="$TMP" HOMELAB_ENV="$TMP/none.env"
+  HOME="$TMP"
   PROWLARR_URL=http://dummy PROWLARR_API_KEY=k
   RADARR_URL=http://dummy RADARR_API_KEY=k
   SONARR_URL=http://dummy SONARR_API_KEY=k

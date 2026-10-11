@@ -17,7 +17,6 @@
 **Solución:**
 1. Comprueba que el fichero existe: `ls -la ~/.claude/plex-crew/.env`
 2. Comprueba las variables: `grep CLI_DEBRID ~/.claude/plex-crew/.env`
-3. Para usar otro fichero, exporta `HOMELAB_ENV=/path/to/.env`
 
 ### La sesión caduca entre llamadas
 **Causa:** la cookie de `/tmp` está obsoleta

@@ -94,7 +94,6 @@ Una fila por variable. Se rellenan solo los servicios que uses.
 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
-| `HOMELAB_ENV` | No | Ruta alternativa a `~/.claude/plex-crew/.env`; la leen las skills |
 | `PLEX_CREW_CONFIG` | No | Ruta alternativa a `~/.claude/plex-crew/scope.conf`; la leen ambos hooks (`confirm-destructive` y `enforce-agent-scope`); se define en el entorno, no en el `.env` |
 | `RADARR_DEFAULT_QUALITY_PROFILE` / `SONARR_DEFAULT_QUALITY_PROFILE` | No | ID del perfil de calidad al añadir películas / series (por defecto 1) |
 
@@ -223,6 +222,3 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 - [`skills/README.md`](skills/README.md): estándar para crear skills.
 - [`hooks/README.md`](hooks/README.md): hooks de seguridad.
 
-## Proyectos relacionados
-
-Algunas skills nacieron de un trabajo previo de jmagar/claude-homelab (MIT) y fueron reescritas desde cero.

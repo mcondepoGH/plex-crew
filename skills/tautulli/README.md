@@ -34,7 +34,6 @@ TAUTULLI_API_KEY="<your_api_key>"
 **Opciones de configuración:**
 - `TAUTULLI_URL`: URL de Tautulli con puerto (la API se llama en `<TAUTULLI_URL>/api/v2`)
 - `TAUTULLI_API_KEY`: tu clave de API
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 

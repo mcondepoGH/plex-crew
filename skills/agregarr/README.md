@@ -33,7 +33,6 @@ AGREGARR_API_KEY="<your_api_key>"
 - `AGREGARR_URL`: URL del servidor (la API se llama en `<AGREGARR_URL>/api/v1`)
 - `AGREGARR_API_KEY`: tu clave de API (se envía como `X-Api-Key`)
 - `AGREGARR_MAX_TIME`: tiempo máximo por petición en segundos (25 por defecto)
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 

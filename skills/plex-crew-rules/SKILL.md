@@ -1,6 +1,6 @@
 ---
 name: plex-crew-rules
-description: Esta skill debe usarse en cualquier tarea de plex-crew. Contiene las reglas globales que aplican a todos los agentes. Úsala cuando se opere sobre el homelab Plex, y cuando el usuario pida "reglas globales", "doble confirmación", "idioma", "zona horaria", o mencione el marcador PLEX_CREW_CONFIRMED, secretos, tareas programadas o carpetas .@*.
+description: Esta skill debe usarse en cualquier tarea de plex-crew. Contiene las reglas globales que aplican a todos los agentes. Úsala cuando se opere sobre el stack Plex, y cuando el usuario pida "reglas globales", "doble confirmación", "idioma", "zona horaria", o mencione el marcador PLEX_CREW_CONFIRMED, secretos, tareas programadas o carpetas .@*.
 ---
 
 # Skill de reglas globales de plex-crew
@@ -24,7 +24,7 @@ Esta skill fija las reglas transversales del proyecto:
 
 ## Configuración
 
-Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/plex-crew/.env` (o en la ruta de `HOMELAB_ENV`).
+Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/plex-crew/.env`.
 
 ## Reglas
 
@@ -43,7 +43,7 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 - Opera los servicios con las skills (`radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli`, `seerr`, `cli_debrid`), no con `curl` y claves en línea.
 
 ### Tareas programadas
-No uses `schedule` ni `RemoteTrigger` para tareas que necesiten la red local: se ejecutan en la nube y no alcanzan el homelab. Las tareas programadas del orquestador usan `CronCreate`.
+No uses `schedule` ni `RemoteTrigger` para tareas que necesiten la red local: se ejecutan en la nube y no alcanzan el stack Plex. Las tareas programadas del orquestador usan `CronCreate`.
 
 ### Carpetas ignoradas
 Ignora cualquier carpeta `.@*` (por ejemplo `.@__thumb`): son caché del NAS. No las listes, no las renombres ni las incluyas en los resultados.

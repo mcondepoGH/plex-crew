@@ -6,7 +6,7 @@ Este documento fija el estándar para crear y revisar skills en `skills/`. Todas
 
 | Tipo | Qué es | Contiene | Ejemplos |
 |------|--------|----------|----------|
-| Servicio | Envuelve un servicio del homelab con un script de shell. | `SKILL.md`, `README.md`, `scripts/<skill>.sh` y `references/` | `prowlarr`, `plex`, `tautulli`, `sonarr` y `radarr` (propias, reescritas en sala limpia), `seerr`, `cli_debrid` |
+| Servicio | Envuelve un servicio del stack Plex con un script de shell. | `SKILL.md`, `README.md`, `scripts/<skill>.sh` y `references/` | `prowlarr`, `plex`, `tautulli`, `sonarr` y `radarr` (propias, reescritas en sala limpia), `seerr`, `cli_debrid` |
 | Reglas | Documenta reglas curadas que el agente debe aplicar; no ejecuta nada. | `SKILL.md`, `README.md` y `references/` | `plex-crew-rules`, `plex-naming-rules`, `arr-language-filters` |
 
 ## Estructura de directorios
@@ -84,7 +84,7 @@ Frase de una línea con lo que hace.
 ## Configuración
 ### 1. Obtén tu clave de API
 ### 2. Configura las variables de entorno
-(bloque con las variables de `~/.claude/plex-crew/.env` y una lista "Opciones de configuración", `HOMELAB_ENV` incluida)
+(bloque con las variables de `~/.claude/plex-crew/.env` y una lista "Opciones de configuración")
 ### 3. Pruébalo
 
 ## Ejemplos de uso
@@ -223,8 +223,8 @@ Solo se devuelve JSON donde lo indiquen el nombre del comando (`*-json`), la ayu
 
 - Cada servicio usa `<SVC>_URL` y `<SVC>_API_KEY` (o `TOKEN`, `USER` y `PASSWORD` si el servicio lo necesita).
 - Se declaran vacías en `.env.example` con un comentario `(skill <name>)`, por ejemplo `# Radarr: gestión de películas (skill radarr).`
-- `HOMELAB_ENV` es opcional y apunta a otro fichero de entorno. Las variables ya exportadas tienen prioridad sobre el fichero.
-- Se documentan en la sección Configuración del README de la skill, `HOMELAB_ENV` incluida.
+- La configuración vive solo en `~/.claude/plex-crew/.env`. Las variables ya exportadas tienen prioridad sobre el fichero.
+- Se documentan en la sección Configuración del README de la skill.
 
 ## Checklist de revisión
 
@@ -257,7 +257,7 @@ Script (skills de servicio)
 - [ ] 16. Los nombres de comando van en kebab-case y siguen la tabla de convenciones.
 - [ ] 17. Solo se devuelve JSON donde lo indiquen el nombre, la ayuda o la documentación.
 - [ ] 18. Todo comando destructivo está en `DESTRUCTIVE` de `hooks/confirm-destructive.js`, documentado en `hooks/README.md` y citado en SKILL y README.
-- [ ] 19. `<SVC>_URL` y `<SVC>_API_KEY` (o TOKEN/USER/PASSWORD) están en `.env.example` con el comentario "(skill X)"; `HOMELAB_ENV` es opcional.
+- [ ] 19. `<SVC>_URL` y `<SVC>_API_KEY` (o TOKEN/USER/PASSWORD) están en `.env.example` con el comentario "(skill X)".
 - [ ] 20. Las escrituras comprueban el código HTTP: si no es 2xx, mensaje en stderr y rc 1, sin un `ok` falso.
 - [ ] 21. Los mensajes de error van a stderr, sin emojis y con el prefijo `ERROR:`.
 

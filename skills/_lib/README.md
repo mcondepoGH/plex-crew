@@ -4,12 +4,11 @@ Librerías de shell compartidas por los scripts de las skills de servicios. Se c
 
 ## load-env.sh
 
-Carga de credenciales desde el fichero de entorno. Por defecto lee `~/.claude/plex-crew/.env` (fuera del plugin, para que sobreviva a las actualizaciones); si `HOMELAB_ENV` está definida, usa esa ruta.
+Carga de credenciales desde el fichero de entorno. Lee `~/.claude/plex-crew/.env` (fuera del plugin, para que sobreviva a las actualizaciones).
 
 | Elemento | Qué hace |
 |----------|----------|
-| `HOMELAB_ENV` | Variable opcional con la ruta a otro fichero de entorno. |
-| `load_env_file [ruta]` | Exporta (`set -a`) el contenido del fichero indicado, o `HOMELAB_ENV`, o `~/.claude/plex-crew/.env`. Devuelve 1 y avisa si no existe. |
+| `load_env_file` | Exporta (`set -a`) el contenido de `~/.claude/plex-crew/.env`. Sin argumentos. Devuelve 1 y avisa si no existe. |
 | `validate_env_vars VAR...` | Comprueba que cada variable nombrada esté definida y no vacía; si falta alguna, lista los nombres y devuelve 1. |
 | `load_service_credentials <servicio> <VAR_URL> <VAR_CLAVE>` | Si falta alguna de las dos variables, carga el fichero de entorno; después las valida. El primer argumento (nombre del servicio) no se usa. |
 

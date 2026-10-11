@@ -40,7 +40,7 @@ PLEX_TOKEN="your-plex-token"
 
 - `PLEX_URL`: URL del servidor con el puerto (32400 por defecto); una barra final se ignora
 - `PLEX_TOKEN`: token de Plex. En la web de Plex abre cualquier elemento, elige Ver XML y copia `X-Plex-Token` de la URL
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno; las variables ya exportadas tienen prioridad
+- Las variables ya exportadas en el entorno tienen prioridad sobre `~/.claude/plex-crew/.env`
 
 ## Ejecución del script
 

@@ -1,4 +1,4 @@
-# Rutas de medios del homelab. Las leen AMBOS hooks:
+# Rutas de medios del servidor Plex. Las leen AMBOS hooks:
 #
 #  - hooks/enforce-agent-scope.js: el agente plex-naming solo puede escribir bajo estas rutas.
 #    Sin fichero o sin rutas, deniega toda escritura a plex-naming.

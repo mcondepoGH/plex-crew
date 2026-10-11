@@ -33,7 +33,6 @@ SONARR_API_KEY="<your_api_key>"
 - `SONARR_URL`: URL de Sonarr con puerto, sin barra final (la API se llama en `<SONARR_URL>/api/v3`)
 - `SONARR_API_KEY`: tu clave de API
 - `SONARR_DEFAULT_QUALITY_PROFILE`: perfil de calidad por defecto de `add` (opcional; 1 si falta)
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 

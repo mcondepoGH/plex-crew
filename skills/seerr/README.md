@@ -32,7 +32,6 @@ SEERR_API_KEY="<your_api_key>"
 **Opciones de configuración:**
 - `SEERR_URL`: URL del servidor Seerr (la API se llama en `<SEERR_URL>/api/v1`)
 - `SEERR_API_KEY`: tu clave de API de Seerr (se envía como `X-Api-Key`)
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 

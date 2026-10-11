@@ -16,7 +16,7 @@ Ejemplos de peticiones:
 Límites:
 
 - No escribe ficheros ni ejecuta comandos: no tiene ninguna tool de escritura ni de shell (ni `Bash` ni las de edición).
-- No opera directamente sobre los servicios homelab: siempre pasa por un subagente.
+- No opera directamente sobre los servicios del stack: siempre pasa por un subagente.
 - Si la petición queda fuera de los dos dominios (nombrado, adquisición), lo dice y pregunta cómo seguir.
 
 ## Funciones

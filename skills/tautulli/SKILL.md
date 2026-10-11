@@ -39,7 +39,7 @@ TAUTULLI_API_KEY="your-api-key"
 
 - `TAUTULLI_URL`: URL de Tautulli, con el puerto (8181 por defecto)
 - `TAUTULLI_API_KEY`: clave de API, en Tautulli → Settings → Web Interface → API
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno; las variables ya exportadas tienen prioridad
+- Las variables ya exportadas en el entorno tienen prioridad sobre `~/.claude/plex-crew/.env`
 
 ## Ejecución del script
 

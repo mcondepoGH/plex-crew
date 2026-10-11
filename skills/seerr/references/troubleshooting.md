@@ -18,7 +18,6 @@
 **Solución:**
 1. Comprueba que el fichero existe: `ls -la ~/.claude/plex-crew/.env`
 2. Comprueba que ambas variables están definidas: `grep SEERR ~/.claude/plex-crew/.env`
-3. Para usar otro fichero, exporta `HOMELAB_ENV=/path/to/.env`
 
 ## Problemas de conexión
 

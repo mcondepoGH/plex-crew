@@ -6,7 +6,6 @@
 # ~/.claude/plex-crew/.env
 PROWLARR_URL="http://localhost:9696"
 PROWLARR_API_KEY="<your_api_key>"
-# Opcional: HOMELAB_ENV=/ruta/a/otro/.env
 # Opcional: PROWLARR_MAX_TIME=30
 # Opcional: PROWLARR_TESTALL_MAX_TIME=120
 ```

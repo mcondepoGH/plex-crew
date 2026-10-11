@@ -42,7 +42,7 @@ SONARR_API_KEY="your-api-key"
 - `SONARR_URL`: URL de Sonarr con el puerto (8989 por defecto), sin barra final
 - `SONARR_API_KEY`: clave de API, en Sonarr → Settings → General → Security → API Key
 - `SONARR_DEFAULT_QUALITY_PROFILE`: id del perfil que usa `add` si no se indica otro
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno; las variables ya exportadas tienen prioridad (si `SONARR_URL` y `SONARR_API_KEY` ya están exportadas, el fichero no se lee y `SONARR_DEFAULT_QUALITY_PROFILE` solo se toma del entorno)
+- Las variables ya exportadas en el entorno tienen prioridad sobre `~/.claude/plex-crew/.env` (si `SONARR_URL` y `SONARR_API_KEY` ya están exportadas, el fichero no se lee y `SONARR_DEFAULT_QUALITY_PROFILE` solo se toma del entorno)
 
 ## Ejecución del script
 

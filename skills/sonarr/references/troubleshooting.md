@@ -19,7 +19,6 @@ Con una clave incorrecta, `exists` y `config` no muestran el 401: `exists` impri
 **Solución:**
 1. Comprueba que el fichero existe: `ls -la ~/.claude/plex-crew/.env`
 2. Comprueba las variables: `grep -c SONARR ~/.claude/plex-crew/.env`
-3. Para usar otro fichero, exporta `HOMELAB_ENV=/ruta/.env`
 
 ## Problemas de conexión
 

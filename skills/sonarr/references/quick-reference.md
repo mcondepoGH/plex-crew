@@ -7,7 +7,6 @@
 SONARR_URL="http://localhost:8989"
 SONARR_API_KEY="<your_api_key>"
 # Opcional: SONARR_DEFAULT_QUALITY_PROFILE=1
-# Opcional: HOMELAB_ENV=/ruta/a/otro/.env
 ```
 
 ```bash

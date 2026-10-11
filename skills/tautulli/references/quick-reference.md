@@ -6,7 +6,6 @@
 # ~/.claude/plex-crew/.env
 TAUTULLI_URL="http://localhost:8181"
 TAUTULLI_API_KEY="<your_api_key>"
-# Opcional: HOMELAB_ENV=/ruta/a/otro/.env
 ```
 
 ```bash

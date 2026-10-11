@@ -17,7 +17,6 @@
 **Solución:**
 1. Comprueba que el fichero existe: `ls -la ~/.claude/plex-crew/.env`
 2. Comprueba las variables: `grep -c TAUTULLI ~/.claude/plex-crew/.env`
-3. Para usar otro fichero, exporta `HOMELAB_ENV=/ruta/.env`
 
 ## Problemas de conexión
 

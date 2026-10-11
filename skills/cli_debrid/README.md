@@ -34,7 +34,6 @@ CLI_DEBRID_PASSWORD="<your_panel_password>"
 - `CLI_DEBRID_URL`: URL del panel de cli_debrid (se elimina la barra final)
 - `CLI_DEBRID_USER`: usuario del panel
 - `CLI_DEBRID_PASSWORD`: contraseña del panel
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
 

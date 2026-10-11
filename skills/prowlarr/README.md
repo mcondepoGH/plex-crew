@@ -30,7 +30,6 @@ PROWLARR_API_KEY="<your_api_key>"
 **Opciones de configuración:**
 - `PROWLARR_URL`: URL de Prowlarr con puerto (la API se llama en `<PROWLARR_URL>/api/v1`); se quita una barra final
 - `PROWLARR_API_KEY`: tu clave de API
-- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 - `PROWLARR_MAX_TIME`: opcional, segundos máximos por petición (30 por defecto)
 - `PROWLARR_TESTALL_MAX_TIME`: opcional, segundos máximos de `test-all` (120 por defecto)
 

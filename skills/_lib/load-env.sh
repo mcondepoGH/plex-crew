@@ -1,6 +1,6 @@
 #!/bin/bash
 # Loader de credenciales compartido por todas las skills. Debe hacerse source, no ejecutarse.
-# Fichero de entorno: $HOMELAB_ENV si existe; si no, ~/.claude/plex-crew/.env (fuera del plugin, sobrevive a actualizaciones)
+# Único fichero de entorno: ~/.claude/plex-crew/.env (fuera del plugin, sobrevive a actualizaciones)
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo "ERROR: esta librería se carga con source, no se ejecuta" >&2
@@ -8,7 +8,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 fi
 
 load_env_file() {
-    local env_file="${1:-${HOMELAB_ENV:-$HOME/.claude/plex-crew/.env}}"
+    local env_file="$HOME/.claude/plex-crew/.env"
 
     if [[ ! -f "$env_file" ]]; then
         echo "ERROR: $env_file no existe" >&2

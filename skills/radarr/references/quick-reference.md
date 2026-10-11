@@ -7,7 +7,6 @@
 RADARR_URL="http://localhost:7878"
 RADARR_API_KEY="<your_api_key>"
 # Opcional: RADARR_DEFAULT_QUALITY_PROFILE=1
-# Opcional: HOMELAB_ENV=/ruta/a/otro/.env
 ```
 
 ```bash

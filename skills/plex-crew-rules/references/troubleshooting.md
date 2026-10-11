@@ -34,7 +34,7 @@
 
 **Solución:** Usa Europe/Madrid y no preguntes.
 
-### Una tarea programada no alcanza el homelab
+### Una tarea programada no alcanza el stack Plex
 **Causa:** Se creó con `schedule` o `RemoteTrigger`, que se ejecutan en la nube
 
 **Solución:** Usa `CronCreate` desde el orquestador.
