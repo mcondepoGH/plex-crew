@@ -441,7 +441,8 @@ process.stdin.on('end', () => {
     cmd = (payload.tool_input && payload.tool_input.command) || '';
     cwd = payload.cwd || '';
   } catch {
-    process.exit(0);
+    process.stderr.write('plex-crew hook: entrada JSON no válida; bloqueado por seguridad\n');
+    process.exit(2);
   }
   const roots = mediaRoots();
   const hits = analyze(cmd, cwd, roots, false, 0);

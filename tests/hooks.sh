@@ -162,6 +162,23 @@ c pasa "grep de rm -rf" "$T" "grep -r 'rm -rf' $O"
 c pasa "git commit con rm -rf en el mensaje" "$T" "git commit -m 'docs: no uses rm -rf'"
 c pasa "comentario con rm" "$T" "ls # rm -rf $R/x"
 
+# --- entrada no válida: fallo cerrado (exit 2 + mensaje en stderr)
+rc2() {
+  local hook="$1" name="$2" input="$3" out
+  N=$((N + 1))
+  out="$(printf '%s' "$input" | PLEX_CREW_CONFIG="$CONF" HOME="$T/home" node "$hook" 2>&1 >/dev/null; echo "rc=$?")"
+  if printf '%s' "$out" | grep -q 'rc=2$' && printf '%s' "$out" | grep -q 'JSON no válida'; then
+    [ "$VERBOSE" = 1 ] && printf 'ok    [exit 2] %s\n' "$name"
+  else
+    FAIL=$((FAIL + 1))
+    printf 'FALLA [esperado exit 2 con mensaje] %s\n      salida: %s\n' "$name" "$out"
+  fi
+}
+rc2 "$CONFIRM" "confirm: entrada vacía" ""
+rc2 "$CONFIRM" "confirm: entrada basura" "no es json"
+rc2 "$SCOPE" "scope: entrada vacía" ""
+rc2 "$SCOPE" "scope: entrada basura" "no es json"
+
 # --- sin scope.conf: fallo cerrado
 check "$CONFIRM" "$MISSING" deny "confirm: sin scope.conf, rm fuera de todo" "$(json Bash "$T" "" "rm -rf $O/z")" "scope.conf"
 check "$CONFIRM" "$EMPTY" deny "confirm: scope.conf vacío, rm" "$(json Bash "$T" "" "rm -rf $O/z")" "scope.conf"
@@ -393,7 +410,6 @@ check "$SCOPE" "$CONF" pasa "scope: sin agent_type pasa" "$(json Bash "$R" "" "t
 check "$SCOPE" "$CONF" deny "scope: agent_type con prefijo de plugin" "$(json Bash "$R" plex-crew:plex-naming "touch $O/f")"
 check "$SCOPE" "$CONF" pasa "scope: otro agent_type con prefijo pasa" "$(json Bash "$R" plex-crew:arr-acquisition "touch $O/f")"
 check "$SCOPE" "$CONF" pasa "scope: herramienta Read ajena" "$(TN=Read CW="$T" AG=plex-naming VAL="$O/f" node -e 'const e=process.env;process.stdout.write(JSON.stringify({tool_name:e.TN,cwd:e.CW,agent_type:e.AG,tool_input:{file_path:e.VAL}}))')"
-check "$SCOPE" "$CONF" pasa "scope: JSON inválido pasa" "no es json"
 
 # --- sin scope.conf: fallo cerrado
 check "$SCOPE" "$MISSING" deny "scope: sin scope.conf, Bash" "$(json Bash "$R" plex-naming "touch $R/a/f")" "scope.conf"

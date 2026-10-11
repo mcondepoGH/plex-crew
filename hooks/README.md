@@ -54,7 +54,7 @@ Patrones principales:
 
 Marcador `PLEX_CREW_CONFIRMED=1`: si el comando lo lleva como asignación de entorno al inicio (por ejemplo `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`, también tras `;`, `&` o `|`), el hook lo deja pasar. Solo se pone tras la doble confirmación del usuario (dos mensajes distintos, incluso en modo automático). Sin marcador, el subagente no ejecuta el comando y devuelve la propuesta al orquestador, que pide las confirmaciones.
 
-Si el JSON de entrada no se puede leer, no bloquea.
+Si el JSON de entrada no es válido (vacío o basura), falla cerrado: escribe `plex-crew hook: entrada JSON no válida; bloqueado por seguridad` en stderr y sale con código 2, que Claude Code interpreta como bloqueo. Lo mismo hace `enforce-agent-scope`.
 
 ## enforce-agent-scope.js
 
@@ -135,3 +135,13 @@ Comportamiento a tener presente:
 - Solo ve las cuatro tools de la lista de `enforce-agent-scope` (arriba); no controla ninguna otra.
 - `confirm-destructive` trabaja sobre el texto del comando; una operación destructiva que no case con los patrones pasa.
 - `enforce-agent-scope` solo cubre a `plex-naming`.
+
+## Límites conocidos
+
+`confirm-destructive` es una red de seguridad contra errores, no un sandbox: analiza el texto del comando y no ejecuta ni resuelve nada. No detecta, entre otros:
+
+- Verbo tomado de una variable: `f=rm; $f -rf ruta`.
+- Borrado desde otro lenguaje: `python -c "import shutil; shutil.rmtree('ruta')"`.
+- Verbo oculto tras un `alias`.
+
+Para esas vías, el control real son los permisos de Claude Code y el alcance de las rutas montadas.

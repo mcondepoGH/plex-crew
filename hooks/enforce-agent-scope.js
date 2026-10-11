@@ -609,7 +609,8 @@ process.stdin.on('end', () => {
   try {
     payload = JSON.parse(raw);
   } catch {
-    process.exit(0);
+    process.stderr.write('plex-crew hook: entrada JSON no válida; bloqueado por seguridad\n');
+    process.exit(2);
   }
   // Registrado a nivel de plugin: salta para todas las llamadas. Solo restringe al
   // agente plex-naming (agent_type `plex-naming` o `<plugin>:plex-naming`).
