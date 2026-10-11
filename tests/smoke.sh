@@ -162,6 +162,21 @@ if [ -f "$SNR" ]; then
   done
 fi
 
+# 5f. radarr: validación de argumentos (rc 1, sin red) y help con los comandos principales
+RDR=skills/radarr/scripts/radarr.sh
+if [ -f "$RDR" ]; then
+  env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$RDR" help >"$TMP/out" 2>&1
+  for c in search search-json exists config status add add-collection remove collection-info logs; do
+    if grep -q -- "$c" "$TMP/out"; then ok "$RDR help lista $c"; else fail "$RDR help lista $c"; fi
+  done
+  for bad in "search" "exists" "exists abc" "add" "add abc" "add 1 abc" "add-collection" "add-collection abc" "remove" "remove abc" "collection-info" "collection-info abc" "comando-desconocido-zzz"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$RDR" $bad >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$RDR $bad rc 1"; else fail "$RDR $bad rc 1" "rc=$rc"; fi
+  done
+fi
+
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck tests/smoke.sh" shellcheck "$ROOT/tests/smoke.sh"

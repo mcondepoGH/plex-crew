@@ -102,16 +102,15 @@ Las URL del `.env` van sin barra final (`http://host:puerto`).
 
 ## Skills
 
-Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de las skills de jmagar (`radarr`, `prowlarr`), que siguen en inglés (`plex`, `tautulli` y `sonarr` son propias y están todas en español). La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
+Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de la skill de jmagar (`prowlarr`), que sigue en inglés (`plex`, `tautulli`, `sonarr` y `radarr` son propias y están todas en español). La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
 
-### Skills de servicio adaptadas de jmagar
+### Skill de servicio adaptada de jmagar
 
-Adaptadas de las skills del repositorio [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (licencia MIT, ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)). Se han cambiado la carga de credenciales (ahora `skills/_lib/load-env.sh`) y las rutas de ejecución.
+Adaptada de la skill del repositorio [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (licencia MIT, ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)). Se han cambiado la carga de credenciales (ahora `skills/_lib/load-env.sh`) y las rutas de ejecución.
 
 | Skill | Servicio | Propósito |
 |---|---|---|
 | [`prowlarr`](skills/prowlarr/README.md) | Prowlarr | Buscar en indexadores y gestionarlos |
-| [`radarr`](skills/radarr/README.md) | Radarr | Gestión de películas |
 
 ### Skills propias
 
@@ -120,6 +119,7 @@ Adaptadas de las skills del repositorio [jmagar/claude-homelab](https://github.c
 | [`plex`](skills/plex/README.md) | Servicio | Explorar bibliotecas, buscar y ver sesiones (reescrita en sala limpia) |
 | [`tautulli`](skills/tautulli/README.md) | Servicio | Estadísticas y actividad de Plex (reescrita en sala limpia) |
 | [`sonarr`](skills/sonarr/README.md) | Servicio | Gestión de series (reescrita en sala limpia) |
+| [`radarr`](skills/radarr/README.md) | Servicio | Gestión de películas (reescrita en sala limpia) |
 | [`seerr`](skills/seerr/README.md) | Servicio | Buscar y gestionar solicitudes en Seerr / Overseerr |
 | [`cli_debrid`](skills/cli_debrid/README.md) | Servicio | Estado, cola, descargas y logs de cli_debrid |
 | [`agregarr`](skills/agregarr/README.md) | Servicio | Listas y colecciones de Agregarr (nueva en 0.3.0) |
@@ -235,4 +235,4 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 
 | Proyecto | Relación |
 |---|---|
-| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de las skills de servicio `prowlarr` y `radarr` |
+| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de la skill de servicio `prowlarr` |

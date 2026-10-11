@@ -1,581 +1,75 @@
-# Referencia de la API de Radarr
-
-**Versión de la API:** v3
-**URL base:** `http://localhost:7878/api/v3`
-**Autenticación:** cabecera X-Api-Key
-**Última actualización:** 2026-02-01
-
-## Autenticación
-
-Radarr usa autenticación mediante clave de API. Encuentra tu clave de API en Settings → General → Security.
-
-```bash
--H "X-Api-Key: <your_api_key>"
-```
-
-## Inicio rápido
-
-```bash
-# Set environment variables
-export RADARR_URL="http://localhost:7878"
-export RADARR_API_KEY="your-api-key"
-
-# Test connection - get system status
-curl -s "$RADARR_URL/api/v3/system/status" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
-```
-
-## Endpoints por categoría
-
-### Sistema
-
-#### GET /system/status
-
-Obtiene el estado del sistema y la información de versión.
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/system/status" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Ejemplo de respuesta:**
-```json
-{
-  "version": "5.2.6.8376",
-  "buildTime": "2024-01-15T10:30:00Z",
-  "isDebug": false,
-  "isProduction": true,
-  "isAdmin": true,
-  "isUserInteractive": false,
-  "startupPath": "/app/radarr/bin",
-  "appData": "/config",
-  "osName": "ubuntu",
-  "osVersion": "22.04",
-  "isMonoRuntime": false,
-  "isMono": false,
-  "isLinux": true,
-  "runtimeVersion": "6.0.25"
-}
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-- `401`: No autorizado
-
----
-
-#### GET /log
-
-Lee las entradas del log (solo lectura). Parámetros: `page`, `pageSize`, `sortKey` (`time`), `sortDirection` (`ascending`/`descending`) y `level` (`trace`, `debug`, `info`, `warn`, `error`). Devuelve `{page, pageSize, totalRecords, records: [{time, level, logger, message, exception}]}`. Lo usa `radarr.sh logs`.
-
-```bash
-curl -s "$RADARR_URL/api/v3/log?page=1&pageSize=20&sortKey=time&sortDirection=descending&level=error" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-#### GET /log/file
-
-Lista los ficheros de log (`filename`, `lastWriteTime`, `contentsUrl`). Lo usa `radarr.sh logs --files`.
-
----
-
-### Películas
-
-#### GET /movie
-
-Obtiene todas las películas de la biblioteca.
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/movie" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
-```
-
-**Ejemplo de respuesta:**
-```json
-[
-  {
-    "id": 1,
-    "title": "Inception",
-    "originalTitle": "Inception",
-    "sortTitle": "inception",
-    "sizeOnDisk": 15000000000,
-    "status": "released",
-    "overview": "A thief who steals corporate secrets...",
-    "inCinemas": "2010-07-16T00:00:00Z",
-    "physicalRelease": "2010-12-07T00:00:00Z",
-    "digitalRelease": "2010-11-30T00:00:00Z",
-    "images": [],
-    "website": "http://www.inceptionmovie.com/",
-    "year": 2010,
-    "hasFile": true,
-    "youTubeTrailerId": "8hP9D6kZseM",
-    "studio": "Warner Bros.",
-    "path": "/movies/Inception (2010)",
-    "qualityProfileId": 1,
-    "monitored": true,
-    "minimumAvailability": "released",
-    "isAvailable": true,
-    "folderName": "Inception (2010)",
-    "runtime": 148,
-    "cleanTitle": "inception",
-    "imdbId": "tt1375666",
-    "tmdbId": 27205,
-    "titleSlug": "inception-2010",
-    "certification": "PG-13",
-    "genres": ["Action", "Science Fiction", "Thriller"],
-    "tags": [],
-    "added": "2024-01-01T00:00:00Z",
-    "ratings": {
-      "imdb": {
-        "votes": 2300000,
-        "value": 8.8
-      },
-      "tmdb": {
-        "votes": 35000,
-        "value": 8.4
-      }
-    }
-  }
-]
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-
----
-
-#### GET /movie/{id}
-
-Obtiene una película concreta por su ID.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| id (path) | integer | Sí | ID de la película |
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/movie/1" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-- `404`: Película no encontrada
-
----
-
-#### POST /movie
-
-Añade una película nueva a la biblioteca.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| tmdbId (body) | integer | Sí | ID de TMDB |
-| title (body) | string | Sí | Título de la película |
-| qualityProfileId (body) | integer | Sí | ID del perfil de calidad |
-| path (body) | string | Sí | Ruta de la carpeta raíz |
-| monitored (body) | boolean | No | Monitorizar la película (por defecto: true) |
-| minimumAvailability (body) | string | No | announced, inCinemas, released (por defecto) |
-| addOptions (body) | object | No | Opciones de importación |
-
-**Ejemplo de petición:**
-```bash
-curl -X POST "$RADARR_URL/api/v3/movie" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tmdbId": 27205,
-    "title": "Inception",
-    "year": 2010,
-    "qualityProfileId": 1,
-    "path": "/movies/Inception (2010)",
-    "monitored": true,
-    "minimumAvailability": "released",
-    "addOptions": {
-      "searchForMovie": true
-    }
-  }'
-```
-
-**Códigos de respuesta:**
-- `201`: Película añadida
-- `400`: Petición incorrecta
-- `409`: La película ya existe
-
----
-
-#### PUT /movie/{id}
-
-Actualiza la información de una película.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| id (path) | integer | Sí | ID de la película |
-
-**Ejemplo de petición:**
-```bash
-curl -X PUT "$RADARR_URL/api/v3/movie/1" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1,
-    "monitored": false,
-    "qualityProfileId": 2,
-    "minimumAvailability": "inCinemas"
-  }'
-```
-
-**Códigos de respuesta:**
-- `202`: Actualizada
-- `404`: No encontrada
-
----
-
-#### DELETE /movie/{id}
-
-Elimina una película de la biblioteca.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| id (path) | integer | Sí | ID de la película |
-| deleteFiles (query) | boolean | No | Eliminar los archivos (por defecto: false) |
-| addImportExclusion (query) | boolean | No | Añadir a las exclusiones de importación (por defecto: false) |
-
-**Ejemplo de petición:**
-```bash
-# Delete movie but keep files
-curl -X DELETE "$RADARR_URL/api/v3/movie/1" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-
-# Delete movie and files
-curl -X DELETE "$RADARR_URL/api/v3/movie/1?deleteFiles=true" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Códigos de respuesta:**
-- `200`: Eliminada
-- `404`: No encontrada
-
----
-
-### Cola
-
-#### GET /queue
-
-Obtiene la cola de descargas actual.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| page (query) | integer | No | Número de página |
-| pageSize (query) | integer | No | Elementos por página |
-| includeUnknownMovieItems (query) | boolean | No | Incluir elementos sin película asociada |
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/queue" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
-```
-
-**Ejemplo de respuesta:**
-```json
-{
-  "page": 1,
-  "pageSize": 10,
-  "sortKey": "timeleft",
-  "sortDirection": "ascending",
-  "totalRecords": 3,
-  "records": [
-    {
-      "id": 1,
-      "movieId": 1,
-      "movie": {
-        "title": "Inception"
-      },
-      "quality": {
-        "quality": {
-          "name": "Bluray-1080p"
-        }
-      },
-      "size": 15000000000,
-      "title": "Inception.2010.1080p.BluRay.x264",
-      "sizeleft": 7500000000,
-      "timeleft": "00:25:30",
-      "estimatedCompletionTime": "2026-02-01T12:00:00Z",
-      "status": "downloading",
-      "trackedDownloadStatus": "ok",
-      "downloadId": "abc123",
-      "protocol": "torrent",
-      "downloadClient": "qBittorrent"
-    }
-  ]
-}
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-
----
-
-#### DELETE /queue/{id}
-
-Elimina un elemento de la cola.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| id (path) | integer | Sí | ID del elemento de la cola |
-| removeFromClient (query) | boolean | No | Eliminar del cliente de descargas |
-| blocklist (query) | boolean | No | Añadir a la lista de bloqueo |
-
-**Ejemplo de petición:**
-```bash
-curl -X DELETE "$RADARR_URL/api/v3/queue/1?removeFromClient=true&blocklist=false" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Códigos de respuesta:**
-- `200`: Eliminado
-
----
-
-### Comandos
-
-#### POST /command
-
-Ejecuta un comando.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| name (body) | string | Sí | Nombre del comando |
-
-**Comandos comunes:**
-- `RefreshMovie`: Actualiza la información de la película
-- `RescanMovie`: Vuelve a escanear la carpeta de la película
-- `MoviesSearch`: Busca todas las películas que faltan
-- `RssSync`: Sincroniza los feeds RSS
-- `DownloadedMoviesScan`: Escanea la carpeta de descargas
-
-**Ejemplo de petición (buscar película):**
-```bash
-curl -X POST "$RADARR_URL/api/v3/command" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "MoviesSearch",
-    "movieIds": [1, 2, 3]
-  }'
-```
-
-**Ejemplo de petición (actualizar película):**
-```bash
-curl -X POST "$RADARR_URL/api/v3/command" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "RefreshMovie",
-    "movieId": 1
-  }'
-```
-
-**Códigos de respuesta:**
-- `201`: Comando en cola
-
----
-
-### Perfiles de calidad
-
-#### GET /qualityprofile
-
-Obtiene todos los perfiles de calidad.
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/qualityprofile" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Ejemplo de respuesta:**
-```json
-[
-  {
-    "id": 1,
-    "name": "HD-1080p",
-    "upgradeAllowed": true,
-    "cutoff": 7,
-    "items": [
-      {
-        "quality": {
-          "id": 7,
-          "name": "Bluray-1080p"
-        },
-        "allowed": true
-      }
-    ]
-  }
-]
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-
----
-
-### Carpetas raíz
-
-#### GET /rootfolder
-
-Obtiene todas las carpetas raíz.
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/rootfolder" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Ejemplo de respuesta:**
-```json
-[
-  {
-    "id": 1,
-    "path": "/movies",
-    "accessible": true,
-    "freeSpace": 500000000000,
-    "totalSpace": 1000000000000,
-    "unmappedFolders": []
-  }
-]
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-
----
-
-### Calendario
-
-#### GET /calendar
-
-Obtiene los próximos estrenos de películas.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| start (query) | string | No | Fecha de inicio (ISO 8601) |
-| end (query) | string | No | Fecha de fin (ISO 8601) |
-| unmonitored (query) | boolean | No | Incluir no monitorizadas (por defecto: false) |
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/calendar?start=2026-02-01&end=2026-02-28" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-
----
-
-### Búsqueda
-
-#### GET /movie/lookup
-
-Busca películas.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| term (query) | string | Sí | Término de búsqueda o tmdb:ID o imdb:ID |
-
-**Ejemplo de petición:**
-```bash
-# Search by name
-curl -s "$RADARR_URL/api/v3/movie/lookup?term=inception" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
-
-# Search by TMDB ID
-curl -s "$RADARR_URL/api/v3/movie/lookup?term=tmdb:27205" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-
-# Search by IMDB ID
-curl -s "$RADARR_URL/api/v3/movie/lookup?term=imdb:tt1375666" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto (devuelve un array, vacío si no hay coincidencias)
-
----
-
-### Historial
-
-#### GET /history/movie
-
-Obtiene el historial de una película concreta.
-
-**Parámetros:**
-| Nombre | Tipo | Obligatorio | Descripción |
-|------|------|----------|-------------|
-| movieId (query) | integer | Sí | ID de la película |
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/history/movie?movieId=1" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-
----
-
-### Listas de importación
-
-#### GET /importlist
-
-Obtiene todas las listas de importación.
-
-**Ejemplo de petición:**
-```bash
-curl -s "$RADARR_URL/api/v3/importlist" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-**Códigos de respuesta:**
-- `200`: Correcto
-
----
-
-## Opciones de disponibilidad mínima
-
-- `announced` - Cuando se anuncia por primera vez
-- `inCinemas` - Cuando está en cines
-- `released` - Cuando se estrena en formato físico/digital (recomendado)
-- `preDB` - Cuando está disponible en preDB
-
-## Paginación
-
-Los endpoints de listado admiten paginación:
-- `page`: Número de página (empieza en 1)
-- `pageSize`: Elementos por página
-- `sortKey`: Campo por el que ordenar
-- `sortDirection`: `ascending` o `descending`
-
-## Historial de versiones
-
-| Versión de la API | Versión del documento | Fecha | Cambios |
-|-------------|-------------|------|---------|
-| v3 | 1.0.0 | 2026-02-01 | Documentación inicial |
-
-## Recursos adicionales
-
-- [Official API Documentation](https://radarr.video/docs/api/)
-- [GitHub Repository](https://github.com/Radarr/Radarr)
-- [Wiki](https://wiki.servarr.com/radarr)
+# Endpoints de la API de Radarr
+
+Solo se documenta lo que usa el script. Documentación oficial: https://radarr.video/docs/api/
+
+## Base y autenticación
+
+- URL base: `${RADARR_URL}/api/v3`
+- Autenticación: cabecera `X-Api-Key: ${RADARR_API_KEY}` en cada petición
+- Las peticiones con cuerpo (`POST`, `PUT`) envían `Content-Type: application/json`
+- Los ids de película y de colección son de TMDB (`tmdbId`)
+- Las llamadas directas pasan URL y cabeceras a curl por stdin (`--config -`), con `--connect-timeout 10 --max-time 30`; `search`, `status` y `logs` usan la librería compartida (25 s)
+
+## Comandos y peticiones
+
+| Comando | Método y ruta | Notas |
+|---------|---------------|-------|
+| `search <query>` | `GET /movie/lookup?term=<texto codificado>` | Timeout de 25 s; se muestran todos los resultados |
+| `search-json <query>` | `GET /movie/lookup?term=<texto codificado>` | Imprime el cuerpo sin tocarlo |
+| `exists <tmdbId>` | `GET /movie?tmdbId=<N>` | `[]` si no está en la biblioteca |
+| `config` | `GET /rootfolder` y `GET /qualityprofile` | |
+| `status` | `GET /system/status` | Timeout de 25 s |
+| `add <tmdbId> [profileId] [--no-search]` | `GET /movie/lookup/tmdb?tmdbId=<N>`, `GET /rootfolder`, `POST /movie` | Sin consultar `/qualityprofile` |
+| `add-collection <id> [término] [--no-search]` | `GET /collection`, `GET /movie/lookup?term=<término>`, `GET /rootfolder`, `GET /qualityprofile`, por película `GET /movie?tmdbId=<N>` y `POST /movie`, después `GET /collection`, `GET /collection/<idInterno>` y `PUT /collection/<idInterno>` | Ver más abajo |
+| `remove <tmdbId> [--delete-files]` | `GET /movie?tmdbId=<N>` y `DELETE /movie/<id>?deleteFiles=<true\|false>` | `id` es el de Radarr, no el de TMDB |
+| `collection-info <id>` | `GET /collection` | Se filtra en el cliente por `tmdbId` |
+| `logs [N] [opciones]` | `GET /log?page=1&pageSize=<P>&sortKey=time&sortDirection=descending[&level=<nivel>]` o `GET /log/file` | Timeout de 25 s |
+
+## Campos de respuesta usados
+
+| Ruta | Campos |
+|------|--------|
+| `/movie/lookup` | `title`, `year`, `tmdbId`, `collection.tmdbId`, `collection.title` (y el objeto completo, que `add-collection` reenvía) |
+| `/movie/lookup/tmdb` | El objeto película completo, que `add` reenvía |
+| `/movie` | `id`, `title`, `year`, `hasFile` |
+| `/collection` | `id` (interno), `tmdbId`, `title`, `monitored` |
+| `/rootfolder` | `id`, `path` |
+| `/qualityprofile` | `id`, `name` |
+| `/system/status` | `version`, `instanceName`, `osName`, `branch` |
+| `/log` | `records[]` con `time`, `level`, `logger`, `message` |
+| `/log/file` | `lastWriteTime`, `filename` |
+
+## Cuerpo de `POST /movie`
+
+El objeto del lookup con estos campos añadidos o sobrescritos:
+
+| Campo | Valor |
+|-------|-------|
+| `rootFolderPath` | `path` de la primera carpeta de `/rootfolder` |
+| `qualityProfileId` | En `add`, `profileId` indicado, o `RADARR_DEFAULT_QUALITY_PROFILE`, o `1`. En `add-collection`, el `id` del primer perfil de `/qualityprofile` |
+| `monitored` | `true` |
+| `addOptions.searchForMovie` | `true`, salvo con `--no-search` |
+
+Si la respuesta trae `id`, la alta tuvo éxito. Si no, el script imprime el campo `message` (en `add`, o la respuesta completa si no hay) o la palabra `failed` (en `add-collection`).
+
+## `add-collection`
+
+1. El término de búsqueda es el `title` de la colección en `/collection` sin el sufijo ` Collection`; si la colección no está, el segundo argumento.
+2. Del lookup se conservan las películas con `collection.tmdbId` igual al id dado.
+3. Cada película se omite si `GET /movie?tmdbId=<N>` no devuelve `[]`; si no, se da de alta con `POST /movie`.
+4. Al final, `GET /collection/<idInterno>` se fusiona con `monitored: true` y `searchOnAdd: true` y se envía con `PUT /collection/<idInterno>`. La línea `👁️` sale si la respuesta trae `monitored` verdadero.
+
+## Paginación de `/log`
+
+`page=1`, `pageSize=<P>`, orden por `time` descendente. `P` es `N`; con `--grep`, `min(N*20, 1000)`, porque el filtro se aplica en el cliente. `level=<nivel>` se añade si se indicó `--level`.
+
+## Códigos HTTP relevantes
+
+| Código | Significado |
+|--------|-------------|
+| 200 / 201 / 202 | Correcto |
+| 400 | Alta rechazada (película ya existente, perfil o carpeta inválidos) |
+| 401 | Clave de API incorrecta |
+| 404 | Ruta inexistente (revisa la URL base) |
+
+Solo `search`, `status` y `logs` comprueban el código HTTP. El resto lo ignora y trabaja con el cuerpo.

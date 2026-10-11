@@ -2,7 +2,7 @@
 
 ## jmagar/claude-homelab
 
-Las skills `prowlarr` y `radarr` (carpetas `skills/<skill>/`) son copias adaptadas de las del repositorio https://github.com/jmagar/claude-homelab, distribuido bajo la licencia MIT. Las adaptaciones son propias de este proyecto y no cuentan con el respaldo del autor original.
+La skill `prowlarr` (carpeta `skills/prowlarr/`) es una copia adaptada de la del repositorio https://github.com/jmagar/claude-homelab, distribuido bajo la licencia MIT. Las adaptaciones son propias de este proyecto y no cuentan con el respaldo del autor original.
 
 ```
 MIT License

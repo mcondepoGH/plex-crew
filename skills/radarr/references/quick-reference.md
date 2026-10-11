@@ -1,351 +1,69 @@
 # Referencia rápida de Radarr
 
-Operaciones comunes para copiar y pegar rápidamente.
-
 ## Configuración
 
 ```bash
-export RADARR_URL="http://localhost:7878"
-export RADARR_API_KEY="your-api-key"
+# ~/.claude/plex-crew/.env
+RADARR_URL="http://localhost:7878"
+RADARR_API_KEY="<your_api_key>"
+# Opcional: RADARR_DEFAULT_QUALITY_PROFILE=1
+# Opcional: HOMELAB_ENV=/ruta/a/otro/.env
 ```
-
-## Información del sistema
-
-### Obtener el estado del sistema
 
 ```bash
-curl -s "$RADARR_URL/api/v3/system/status" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
+RA="${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh"
 ```
 
-### Obtener el espacio en disco
+## Comandos del script
 
 ```bash
-curl -s "$RADARR_URL/api/v3/diskspace" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
+bash "$RA" help
+bash "$RA" search "the matrix"
+bash "$RA" search-json "the matrix"
+bash "$RA" exists 603
+bash "$RA" config
+bash "$RA" status
+bash "$RA" collection-info 2344
+bash "$RA" logs
+bash "$RA" logs 20 --level error --grep "rootfolder"
+bash "$RA" logs --files
+# Modifican estado: confirma con el usuario antes de añadir
+bash "$RA" add 603
+bash "$RA" add 603 5
+bash "$RA" add 603 5 --no-search
+bash "$RA" add-collection 2344
+bash "$RA" add-collection 2344 "The Matrix" --no-search
+# Destructivo: doble confirmación y PLEX_CREW_CONFIRMED=1 (plex-crew-rules)
+PLEX_CREW_CONFIRMED=1 bash "$RA" remove 603
+PLEX_CREW_CONFIRMED=1 bash "$RA" remove 603 --delete-files
 ```
 
-## Gestión de películas
-
-### Obtener todas las películas
+## Filtros con jq
 
 ```bash
-curl -s "$RADARR_URL/api/v3/movie" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {id, title, year, hasFile, monitored}'
+bash "$RA" search-json "the matrix" | jq -r '.[] | "\(.tmdbId) \(.title) (\(.year))"'
+bash "$RA" search-json "the matrix" | jq -r '.[0].overview'
+bash "$RA" search-json "the matrix" | jq -r '.[] | select(.collection) | "\(.collection.tmdbId) \(.collection.title)"'
 ```
 
-### Obtener una película por ID
+## curl directo (sin clave literal)
+
+Prefiere siempre el script. Si necesitas curl, usa las variables y no imprimas la clave:
 
 ```bash
-curl -s "$RADARR_URL/api/v3/movie/1" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq
+curl -s -H "X-Api-Key: $RADARR_API_KEY" "$RADARR_URL/api/v3/system/status" | jq '.version'
 ```
 
-### Buscar una película
+## Salidas habituales
 
-```bash
-curl -s "$RADARR_URL/api/v3/movie/lookup?term=inception" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {title, tmdbId, year}'
-```
+| Comando | Salida |
+|---------|--------|
+| `search` | `1. The Matrix (1999) - https://themoviedb.org/movie/603 [Collection: The Matrix Collection]` |
+| `exists` | `not_found`, o `exists` y `ID: 12, Title: The Matrix, Has File: true` |
+| `status` | `Radarr 5.14.0.9383 - Radarr (debian, branch master)` |
+| `add` | `✅ Added: The Matrix (1999)` y `🔍 Search started` |
+| `add-collection` | `📦 Found 3 movies in collection`, una línea por película y `📊 Added: 2 \| Skipped: 1` |
+| `remove` | `🗑️ Removed: The Matrix (1999) (files kept)` |
+| `logs` | `2026-01-03T10:00:03Z  ERROR  Api  mensaje` |
 
-### Añadir una película
-
-```bash
-curl -X POST "$RADARR_URL/api/v3/movie" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Inception",
-    "qualityProfileId": 1,
-    "titleSlug": "inception-2010",
-    "tmdbId": 27205,
-    "path": "/movies/Inception (2010)",
-    "monitored": true,
-    "addOptions": {
-      "searchForMovie": true
-    }
-  }'
-```
-
-### Actualizar una película (activar/desactivar monitorización)
-
-```bash
-curl -X PUT "$RADARR_URL/api/v3/movie/1" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1,
-    "monitored": false
-  }'
-```
-
-### Eliminar una película
-
-```bash
-curl -X DELETE "$RADARR_URL/api/v3/movie/1?deleteFiles=false&addImportExclusion=false" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-## Cola y descargas
-
-### Obtener la cola (descargas activas)
-
-```bash
-curl -s "$RADARR_URL/api/v3/queue" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.records[] | {title, status, sizeleft, timeleft}'
-```
-
-### Eliminar un elemento de la cola
-
-```bash
-curl -X DELETE "$RADARR_URL/api/v3/queue/1?removeFromClient=true&blocklist=false" \
-  -H "X-Api-Key: $RADARR_API_KEY"
-```
-
-## Búsqueda y descarga
-
-### Buscar una película
-
-```bash
-curl -X POST "$RADARR_URL/api/v3/command" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "MoviesSearch",
-    "movieIds": [1]
-  }'
-```
-
-### Búsqueda manual (obtener la lista de releases)
-
-```bash
-curl -s "$RADARR_URL/api/v3/release?movieId=1" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {title, size, quality, indexer}'
-```
-
-### Descargar un release
-
-```bash
-curl -X POST "$RADARR_URL/api/v3/release" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "guid": "release-guid-from-manual-search",
-    "indexerId": 1
-  }'
-```
-
-## Calendario
-
-### Obtener los próximos estrenos (en cines)
-
-```bash
-START=$(date -u +%Y-%m-%d)
-END=$(date -u -d '+30 days' +%Y-%m-%d)
-curl -s "$RADARR_URL/api/v3/calendar?start=$START&end=$END" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {title, inCinemas, physicalRelease}'
-```
-
-## Historial
-
-### Obtener el historial reciente
-
-```bash
-curl -s "$RADARR_URL/api/v3/history?page=1&pageSize=20" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.records[] | {date, eventType, movie: .movie.title}'
-```
-
-## Perfiles de calidad
-
-### Obtener todos los perfiles de calidad
-
-```bash
-curl -s "$RADARR_URL/api/v3/qualityprofile" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {id, name}'
-```
-
-## Carpetas raíz
-
-### Obtener las carpetas raíz
-
-```bash
-curl -s "$RADARR_URL/api/v3/rootfolder" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {id, path, freeSpace}'
-```
-
-## Listas de importación
-
-### Obtener todas las listas de importación
-
-```bash
-curl -s "$RADARR_URL/api/v3/importlist" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {id, name, enabled}'
-```
-
-### Lanzar la sincronización de listas de importación
-
-```bash
-curl -X POST "$RADARR_URL/api/v3/command" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "ImportListSync"
-  }'
-```
-
-## Colecciones
-
-### Obtener todas las colecciones
-
-```bash
-curl -s "$RADARR_URL/api/v3/collection" \
-  -H "X-Api-Key: $RADARR_API_KEY" | jq '.[] | {id, title, monitored}'
-```
-
-### Actualizar una colección
-
-```bash
-curl -X PUT "$RADARR_URL/api/v3/collection/1" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1,
-    "monitored": true,
-    "searchOnAdd": true
-  }'
-```
-
-## Flujos de trabajo
-
-### Flujo de trabajo: añadir una película y buscarla
-
-1. **Buscar la película:**
-   ```bash
-   curl -s "$RADARR_URL/api/v3/movie/lookup?term=inception" \
-     -H "X-Api-Key: $RADARR_API_KEY" | jq '.[0] | {title, tmdbId, year}'
-   ```
-
-2. **Añadir la película con búsqueda:**
-   ```bash
-   curl -X POST "$RADARR_URL/api/v3/movie" \
-     -H "X-Api-Key: $RADARR_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "title": "Inception",
-       "qualityProfileId": 1,
-       "titleSlug": "inception-2010",
-       "tmdbId": 27205,
-       "path": "/movies/Inception (2010)",
-       "monitored": true,
-       "addOptions": {
-         "searchForMovie": true
-       }
-     }' | jq '.id'
-   ```
-
-3. **Comprobar la cola para ver la descarga:**
-   ```bash
-   curl -s "$RADARR_URL/api/v3/queue" \
-     -H "X-Api-Key: $RADARR_API_KEY" | jq '.records[] | {title, status}'
-   ```
-
-### Flujo de trabajo: actualizar todas las películas
-
-```bash
-curl -X POST "$RADARR_URL/api/v3/command" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "RefreshMovie"}'
-```
-
-### Flujo de trabajo: añadir películas en lote desde una lista
-
-```bash
-# Example: Add all movies from a TMDB list
-curl -s "https://api.themoviedb.org/3/list/<your_list_id>?api_key=<your_tmdb_key>" | \
-  jq -r '.items[] | @json' | \
-  while read movie; do
-    tmdb_id=$(echo "$movie" | jq -r '.id')
-    title=$(echo "$movie" | jq -r '.title')
-    year=$(echo "$movie" | jq -r '.release_date' | cut -d'-' -f1)
-
-    echo "Adding: $title ($year)"
-
-    curl -X POST "$RADARR_URL/api/v3/movie" \
-      -H "X-Api-Key: $RADARR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d "{
-        \"title\": \"$title\",
-        \"qualityProfileId\": 1,
-        \"titleSlug\": \"$(echo $title | tr '[:upper:]' '[:lower:]' | tr ' ' '-')-$year\",
-        \"tmdbId\": $tmdb_id,
-        \"path\": \"/movies/$title ($year)\",
-        \"monitored\": true,
-        \"addOptions\": {
-          \"searchForMovie\": false
-        }
-      }"
-    sleep 1
-  done
-```
-
-### Flujo de trabajo: monitorizar una colección completa
-
-```bash
-# Get collection ID
-collection_id=$(curl -s "$RADARR_URL/api/v3/collection" \
-  -H "X-Api-Key: $RADARR_API_KEY" | \
-  jq -r '.[] | select(.title == "The Matrix Collection") | .id')
-
-# Monitor collection
-curl -X PUT "$RADARR_URL/api/v3/collection/$collection_id" \
-  -H "X-Api-Key: $RADARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"id\": $collection_id,
-    \"monitored\": true,
-    \"searchOnAdd\": true
-  }"
-```
-
-### Flujo de trabajo: limpiar descargas fallidas
-
-```bash
-# Get failed items from queue
-curl -s "$RADARR_URL/api/v3/queue" \
-  -H "X-Api-Key: $RADARR_API_KEY" | \
-  jq -r '.records[] | select(.status == "failed") | .id' | \
-  while read queue_id; do
-    echo "Removing failed item $queue_id"
-    curl -X DELETE "$RADARR_URL/api/v3/queue/$queue_id?removeFromClient=true&blocklist=true" \
-      -H "X-Api-Key: $RADARR_API_KEY"
-  done
-```
-
-### Flujo de trabajo: mejorar películas por debajo del corte de calidad
-
-```bash
-# Get movies that can be upgraded
-curl -s "$RADARR_URL/api/v3/wanted/cutoff?pageSize=100" \
-  -H "X-Api-Key: $RADARR_API_KEY" | \
-  jq -r '.records[].id' | \
-  while read movie_id; do
-    echo "Searching for upgrades for movie ID $movie_id"
-    curl -X POST "$RADARR_URL/api/v3/command" \
-      -H "X-Api-Key: $RADARR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d "{
-        \"name\": \"MoviesSearch\",
-        \"movieIds\": [$movie_id]
-      }"
-    sleep 2
-  done
-```
-
-## Logs (solo lectura)
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 20 --level error
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --grep "import" 100
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --files
-```
+Códigos de salida: 0 correcto; 1 error de uso, película o colección no encontrada, o fallo de conexión.

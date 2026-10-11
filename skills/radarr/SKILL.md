@@ -1,33 +1,34 @@
 ---
 name: radarr
-description: Esta skill debe usarse cuando se gestionan películas en Radarr. Úsala cuando el usuario pida "añadir una película", "buscar en Radarr", "encontrar una película", "añadir a Radarr", "eliminar una película", "añadir una colección de películas", "comprobar si una película existe", "biblioteca de Radarr", o mencione la gestión de películas, la integración con TMDB u operaciones de Radarr.
+description: Esta skill debe usarse cuando se gestionan películas en Radarr. Úsala cuando el usuario pida "añadir una película", "buscar en Radarr", "encontrar una película", "añadir a Radarr", "eliminar una película", "añadir una colección de películas", "comprobar si una película existe", "biblioteca de Radarr", "logs de Radarr", o mencione la gestión de películas, la integración con TMDB u operaciones de Radarr.
 ---
 
-# Skill de gestión de películas en Radarr
+# Skill de gestión de películas de Radarr
 
 **⚠️ INVOCACIÓN OBLIGATORIA DE LA SKILL ⚠️**
 
 **DEBES invocar esta skill (no es opcional) cuando el usuario mencione CUALQUIERA de estos disparadores:**
-- "añadir una película", "buscar en Radarr", "encontrar una película", "añadir a Radarr"
-- "eliminar una película", "borrar película", "comprobar si una película existe"
-- "añadir una colección de películas", "biblioteca de Radarr", "gestión de películas"
-- Cualquier mención de Radarr o de la gestión de películas
+- "añadir una película", "añadir a Radarr", "eliminar una película"
+- "añadir una colección de películas"
+- "buscar en Radarr", "encontrar una película"
+- "comprobar si una película existe", "biblioteca de Radarr"
+- Cualquier mención de la gestión de películas, de la integración con TMDB o de operaciones de Radarr
 
 **Si no invocas esta skill cuando se dan estos disparadores, incumples tus requisitos operativos.**
 
-Busca y añade películas a tu biblioteca de Radarr, con soporte de colecciones, perfiles de calidad y búsqueda al añadir.
+Busca películas en TMDB, comprueba si están en la biblioteca de Radarr, las añade (sueltas o por colección) o las quita, y consulta el log de Radarr.
 
 ## Propósito
 
-Esta skill permite gestionar tu biblioteca de películas de Radarr:
-- Buscar películas por nombre
-- Añadir películas sueltas o colecciones completas
-- Comprobar si las películas ya existen
-- Eliminar películas (con borrado opcional de archivos)
-- Consultar perfiles de calidad y carpetas raíz
-- Leer los logs del servicio (`logs`, solo lectura)
+Esta skill usa la API v3 de Radarr para:
+- Buscar películas por texto (resultados con enlace a TMDB y, si la hay, su colección)
+- Comprobar si una película ya está en la biblioteca
+- Mostrar las carpetas raíz, los perfiles de calidad y el estado de Radarr
+- Añadir una película o una colección completa (modifica estado; por defecto lanza la búsqueda y puede iniciar descargas)
+- Quitar una película, con o sin borrado de ficheros (destructivo)
+- Consultar los detalles de una colección y las últimas entradas del log (solo lectura)
 
-Las operaciones incluyen acciones de lectura y de escritura. **Confirma siempre antes de eliminar películas con borrado de archivos.**
+Los identificadores son de TMDB (`tmdbId`), no de TVDB: `seerr` también usa TMDB; `sonarr` usa TVDB.
 
 ## Configuración
 
@@ -36,167 +37,176 @@ Añade las credenciales a `~/.claude/plex-crew/.env`:
 ```bash
 RADARR_URL="http://localhost:7878"
 RADARR_API_KEY="your-api-key"
-RADARR_DEFAULT_QUALITY_PROFILE="1"  # Optional (defaults to 1)
+# Opcional: perfil de calidad por defecto de `add` (1 si falta o está vacía)
+# RADARR_DEFAULT_QUALITY_PROFILE=1
 ```
 
-- `RADARR_URL`: URL de tu servidor Radarr (sin barra final)
-- `RADARR_API_KEY`: clave de API de Radarr (Settings → General → API Key)
-- `RADARR_DEFAULT_QUALITY_PROFILE`: ID del perfil de calidad (opcional, ejecuta el comando `config` para ver las opciones)
+- `RADARR_URL`: URL de Radarr con el puerto (7878 por defecto), sin barra final
+- `RADARR_API_KEY`: clave de API, en Radarr → Settings → General → Security → API Key
+- `RADARR_DEFAULT_QUALITY_PROFILE`: id del perfil que usa `add` si no se indica otro
+- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno; las variables ya exportadas tienen prioridad (si `RADARR_URL` y `RADARR_API_KEY` ya están exportadas, el fichero no se lee y `RADARR_DEFAULT_QUALITY_PROFILE` solo se toma del entorno)
 
 ## Ejecución del script
 
-El script está en `${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/`. Los ejemplos usan la ruta absoluta, así que no alteran el directorio de trabajo de la sesión:
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Inception"
-```
+El script está en `${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh`. Llámalo siempre con esa ruta y con `bash`, sin cambiar el directorio de trabajo de la sesión. Necesita `curl` y `jq`. Hasta `help` exige credenciales cargadas.
 
 ## Comandos
 
-Salvo `logs` (texto), todos los comandos devuelven salida JSON o texto según el caso. Sin comando se muestra la ayuda (rc 0); un comando desconocido da rc 1; un argumento ausente o inválido imprime el uso y da rc 1.
+`search-json` y `collection-info` devuelven JSON; el resto de comandos imprime texto. Sin comando, o con `help`, `-h` o `--help`, se muestra la ayuda por stdout (código de salida 0). Un comando desconocido imprime `ERROR: comando desconocido: <x>` y `Usa: radarr.sh help` por stderr y termina con 1. `search` sin texto, y los comandos con id (`exists`, `add`, `add-collection`, `remove`, `collection-info`) con un id ausente o no numérico (o `add` con un perfil no numérico) imprimen `ERROR:` y `Uso:` por stderr y terminan con 1, sin llamar a Radarr. Si no se puede contactar con Radarr, los comandos de llamada directa imprimen `ERROR: no se pudo contactar con Radarr en <URL>` y terminan con 1; `search`, `status` y `logs` muestran los mensajes de la librería compartida.
 
 ### Buscar películas
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Inception"
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "The Matrix"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "the matrix"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search-json "the matrix"
 ```
 
-**Salida:** lista numerada con IDs de TMDB, títulos, años y sinopsis.
+**Salida:** `search` imprime una línea por resultado, todos los que devuelve Radarr: `1. The Matrix (1999) - https://themoviedb.org/movie/603 [Collection: The Matrix Collection]`. El sufijo ` [Collection: ...]` solo aparece si la película pertenece a una colección. Sin resultados no imprime nada. Si falta el año o el id, aparece `null`. Solo se usa el primer argumento: entrecomilla el texto. `search-json` devuelve el JSON crudo (con sinopsis, `titleSlug` y demás campos); úsalo cuando necesites más datos.
+
+Presenta los resultados al usuario en una lista numerada con el enlace a TMDB y la colección, si la hay.
 
 ### Comprobar si una película existe
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" exists <tmdbId>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" exists 603
 ```
 
-**Salida:** booleano que indica si la película está en la biblioteca.
+**Salida:** `not_found` si no está en la biblioteca. Si está, dos líneas: `exists` y `ID: 12, Title: The Matrix, Has File: true`.
 
-### Añadir una película
+Ejecútalo siempre antes de `add`.
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add <tmdbId>              # Busca de inmediato (por defecto)
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add <tmdbId> --no-search  # Añade sin buscar
-```
-
-### Añadir una colección completa
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection <collectionTmdbId>
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection <collectionTmdbId> --no-search
-```
-
-Añade todas las películas de una colección (p. ej., todas las de El Señor de los Anillos).
-
-### Eliminar una película
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove <tmdbId>                # Conserva los archivos
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove <tmdbId> --delete-files # Borra también los archivos
-```
-
-**Importante:** pregunta siempre al usuario si quiere borrar los archivos al eliminar.
-
-### Obtener la configuración
+### Carpetas raíz y perfiles de calidad
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config
 ```
 
-**Salida:** carpetas raíz y perfiles de calidad disponibles con sus IDs.
+**Salida:** `=== Root Folders ===`, una línea `<id>: <ruta>` por carpeta, una línea en blanco, `=== Quality Profiles ===` y una línea `<id>: <nombre>` por perfil.
 
-### Comprobar el estado del servicio
+Úsalo para elegir el `profileId` de `add`.
+
+### Estado de Radarr
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" status
 ```
 
-**Salida:** versión e instancia de Radarr (`/system/status`).
+**Salida:** una línea: `Radarr 5.14.0.9383 - Radarr (debian, branch master)`. Sin nombre de instancia sale `Radarr`; sin sistema operativo o rama, `?`.
 
-### Ver los logs (solo lectura)
+### Añadir una película
+
+**Modifica estado: confirma con el usuario antes de añadir** (la película elegida y el perfil de calidad). Avisa de que, salvo con `--no-search`, Radarr busca la película y puede iniciar descargas. Comprueba antes con `exists`.
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs                         # últimas 50 entradas
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 20 --level error        # últimas 20 con nivel error o superior
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 100 --grep "import"     # filtra por texto en mensaje o logger
-bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --files                 # lista los ficheros de log (sin contenido)
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add 603
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add 603 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add 603 5 --no-search
 ```
 
-Comando de **solo lectura** (`GET /api/v3/log` y `/api/v3/log/file`): no modifica nada y el hook `confirm-destructive` no lo bloquea. `N` va de 1 a 1000 (50 por defecto); `--level` acepta `trace|debug|info|warn|error|fatal`. Con `--grep` se examinan hasta `N*20` entradas (máx. 1000) y se muestran las `N` últimas que coinciden.
+**Salida:** en éxito, `✅ Added: The Matrix (1999)` y, si la búsqueda estaba activa, `🔍 Search started` (código 0). Si Radarr no devuelve `id`: `❌ Failed to add movie` y, en otra línea, su mensaje o la respuesta completa (código 0, ver limitaciones).
 
-**Salida:** texto, una línea por entrada en orden cronológico: `tiempo  NIVEL  logger  mensaje` (primera línea del mensaje, máx. 200 caracteres; los valores `apikey=`/`token=` se enmascaran). Nunca imprime claves ni cabeceras. Si el servicio no expone el endpoint, imprime `ERROR: ...` y devuelve rc 1.
+`add` toma la primera carpeta raíz y deja la película monitorizada. `--no-search` desactiva la búsqueda y se reconoce en cualquier posición, pero el id va siempre primero y el perfil, de haberlo, segundo: en `add 603 --no-search 5` el `5` se ignora y se usa el perfil por defecto.
+
+### Añadir una colección
+
+**Modifica estado de forma masiva: confirma con el usuario antes de añadir.** Indica cuántas películas tiene la colección (sale en `search` y en `collection-info`), que el perfil será el primero de `config` (ignora `RADARR_DEFAULT_QUALITY_PROFILE`) y que, salvo con `--no-search`, Radarr busca cada película y puede iniciar descargas. Comprueba antes con `exists` las películas que te importen.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection 2344
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection 2344 "The Matrix" --no-search
+```
+
+**Salida**, en este orden: `🔍 Finding movies in collection...`; `📦 Found 3 movies in collection`; una línea por película (`✅ The Matrix (1999)`, `⏭️  The Matrix Reloaded (2003) - already in library` con dos espacios tras el emoji, o `❌ <título> (<año>) - <mensaje>` si Radarr la rechaza); una línea en blanco; `📊 Added: 2 | Skipped: 1`; `🔍 Search started for new movies` (solo con búsqueda activa y alguna añadida); y `👁️ Collection monitored (new releases auto-added)` si la colección queda monitorizada. Termina con código 0 aunque fallen películas sueltas.
+
+El `idColeccionTmdb` es el de `collection.tmdbId` (no el de la película); `collection-info` lo muestra. El término de búsqueda solo se usa si la colección no figura aún en Radarr: si figura, se usa su título sin el sufijo ` Collection`. Sin colección conocida ni término, imprime `❌ Could not determine collection name. Please provide search term.` y el uso (código 1). Si no encuentra películas de esa colección: `❌ No movies found for collection <id>` (código 1).
+
+### Quitar una película
+
+**Destructivo.** Según la skill `plex-crew-rules`, exige doble confirmación del usuario en dos mensajes distintos y anteponer `PLEX_CREW_CONFIRMED=1` al comando; el hook `confirm-destructive` bloquea cualquier `radarr.sh remove` sin ese marcador, con o sin `--delete-files`. Pregunta siempre si se borran también los ficheros (el borrado es irreversible). Esta skill nunca borra carpetas ni ficheros del mount de zurg: las operaciones de zurg van solo con las tools `zurg_*`.
+
+```bash
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 603
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 603 --delete-files
+```
+
+**Salida:** `🗑️ Removed: The Matrix (1999) (files kept)` o, con la opción, `🗑️ Removed: The Matrix (1999) + deleted files` (código 0). Si la película no está en la biblioteca: `❌ Movie not found in library` (código 1). La opción solo se reconoce como segundo argumento.
+
+### Detalles de una colección
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" collection-info 2344
+```
+
+**Salida:** el JSON indentado (`jq`) de la colección de `/collection` cuyo `tmdbId` coincide. Si Radarr no la conoce, no imprime nada (código 0).
+
+### Consultar el log
+
+Solo lectura.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 20 --level error
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 100 --grep "rootfolder"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --files
+```
+
+Opciones, en cualquier orden:
+- `N`: número de entradas, entero de 1 a 1000 (50 por defecto)
+- `--level <nivel>`: `trace`, `debug`, `info`, `warn`, `error` o `fatal` (admite mayúsculas)
+- `--grep <texto>`: solo entradas cuyo mensaje o logger contiene el texto, sin distinguir mayúsculas
+- `--files`: lista los ficheros de log; ignora `--level` y `--grep`
+
+**Salida:** una línea por entrada, la más antigua primero: `<time>  <LEVEL>  <logger>  <mensaje>` (separadores de dos espacios; `?` si falta time, level o logger; nivel en mayúsculas y de 5 letras como máximo). Del mensaje solo se muestra la primera línea, con los valores de `api_key`, `apikey`, `token`, `passkey`, `password` y `secret` en pares `clave=valor` sustituidos por `***`, y se trunca a 200 caracteres más `...`. Con `--files`: `<lastWriteTime>  <filename>` por fichero. Argumentos no válidos imprimen `ERROR:` (y el uso, salvo en un nivel no válido) por stderr y terminan con 1 antes de llamar a Radarr; si el servicio no expone `/log`, `ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)`.
 
 ## Flujo de trabajo
 
-Cuando el usuario pregunte por películas:
-
-1. **"Añade Inception a Radarr"** → Ejecuta `search "Inception"`, presenta los resultados con enlaces de TMDB y después `add <tmdbId>`
-2. **"¿Está Dune en mi biblioteca?"** → Ejecuta `exists <tmdbId>`
-3. **"Añade todas las películas de Star Wars"** → Busca la colección y después `add-collection <collectionId>`
-4. **"Elimina The Matrix"** → Pregunta por el borrado de archivos y ejecuta `remove <tmdbId>` con el flag adecuado
-5. **"¿Qué perfiles de calidad tengo?"** → Ejecuta `config`
-6. **"¿Qué errores hay en Radarr?"** → Ejecuta `logs 50 --level error` (solo lectura)
-
-### Presentar los resultados de búsqueda
-
-Incluye siempre enlaces de TMDB al presentar resultados de búsqueda:
-- Formato: `[Title (Year)](https://themoviedb.org/movie/ID)`
-- Muestra una lista numerada para que el usuario elija
-- Incluye el año y una breve sinopsis
-
-### Añadir películas
-
-1. Busca la película
-2. Presenta los resultados con enlaces de TMDB
-3. El usuario elige un número
-4. **Comprobación de colección:** si la película pertenece a una colección, pregunta si quiere la colección completa
-5. Añade la película o la colección (busca de inmediato por defecto)
+1. **"Añade X a Radarr"** → `search "X"`, muestra la lista numerada y deja elegir
+2. Toma el `tmdbId` del enlace elegido y ejecuta `exists <tmdbId>`; si ya existe, avisa y no añadas
+3. Ejecuta `config` para ver los perfiles y confirma con el usuario perfil y búsqueda
+4. Tras la confirmación, ejecuta `add <tmdbId> [profileId] [--no-search]`
+5. **"Añade la saga X"** → `search`, toma el id de la colección, confirma cuántas películas se añaden y ejecuta `add-collection`
+6. **"Quita X"** → `exists`, doble confirmación, pregunta por los ficheros y `PLEX_CREW_CONFIRMED=1 ... remove`
 
 ## Parámetros
 
-### Comando add
-- `<tmdbId>`: ID de TMDB de la película (obligatorio)
-- `--no-search`: no buscar la película tras añadirla
-
-### Comando add-collection
-- `<collectionTmdbId>`: ID de TMDB de la colección (obligatorio)
-- `--no-search`: no buscar las películas tras añadirlas
-
-### Comando remove
-- `<tmdbId>`: ID de TMDB de la película (obligatorio)
-- `--delete-files`: borra también los archivos multimedia (por defecto se conservan)
+| Argumento | Comandos | Notas |
+|-----------|----------|-------|
+| `<texto>` | search, search-json | Solo el primer argumento; entrecomíllalo |
+| `<tmdbId>` | exists, add, remove | Entero de TMDB |
+| `<idColeccionTmdb>` | add-collection, collection-info | Entero de TMDB de la colección |
+| `[perfilId]` | add | Entero; segundo argumento; por defecto `RADARR_DEFAULT_QUALITY_PROFILE` o 1 |
+| `[término]` | add-collection | Segundo argumento; solo si la colección no está en Radarr |
+| `--no-search` | add, add-collection | En cualquier posición; no lanza la búsqueda |
+| `--delete-files` | remove | Solo como segundo argumento; borra los ficheros del disco |
+| `[N]`, `--level`, `--grep`, `--files` | logs | Ver el apartado del log |
 
 ## Notas
 
-- Requiere acceso de red a tu servidor Radarr
-- Usa la API v3 de Radarr
-- Todas las operaciones de datos devuelven JSON
-- Los IDs de perfil de calidad varían según la instalación: usa `config` para descubrir los tuyos
-- Al añadir películas se usa el `defaultQualityProfile` de la configuración
-- Las colecciones son propias de TMDB e incluyen películas relacionadas (secuelas, sagas)
+- Nunca imprimas `RADARR_API_KEY` ni uses `curl` con la clave en línea: usa siempre el script.
+- Timeouts: `search`, `status` y `logs` 25 s (librería compartida); el resto, 10 s de conexión y 30 s en total, sin reintentos.
+- El usuario trabaja en Europe/Madrid (regla global en `plex-crew-rules`).
+
+### Limitaciones conocidas
+
+- `add` y `add-collection` no comprueban el código HTTP de la alta: si Radarr la rechaza (película ya existente, perfil inexistente), imprimen `❌ ...` pero terminan con código 0. `add` no avisa de que la película ya existía; comprueba antes con `exists`.
+- `add` no comprueba que el lookup devolvió una película válida: con un `tmdbId` inexistente envía igualmente el alta y sale `❌ Failed to add movie`.
+- `add` y `add-collection` usan siempre la primera carpeta raíz de `/rootfolder` y `monitored: true`; no se pueden elegir carpeta, disponibilidad mínima ni etiquetas. `add` no valida el perfil contra `/qualityprofile`; `add-collection` ignora `RADARR_DEFAULT_QUALITY_PROFILE` y usa el primer perfil de la lista.
+- `add-collection`: si la colección ya figura en Radarr, se ignora el término dado. En `add-collection 2344 --no-search` el `--no-search` se toma también como término (solo importa si la colección no figura en Radarr: la búsqueda fallará con `❌ No movies found ...`). Las películas salen del lookup de Radarr con ese término, así que una colección grande se limita a lo que devuelva. Siempre activa `searchOnAdd` al monitorizar la colección, aun con `--no-search`, y si ese paso falla no hay mensaje.
+- `remove` no comprueba el código HTTP del borrado: imprime `🗑️ Removed` aunque Radarr lo rechace. Verifica con `exists`. No marca la exclusión de importación.
+- `exists` compara el cuerpo con `[]` exacto, de modo que una respuesta de error (por ejemplo HTTP 401) cuenta como `exists` y la línea de datos falla o sale vacía; `config` con una respuesta de error falla con un error de jq.
+- `search` imprime todos los resultados del lookup, sin sinopsis; `search-json` devuelve el JSON completo.
+- `logs`: el enmascarado solo cubre pares `clave=valor` con las seis claves indicadas (no JSON, cabeceras ni `Bearer`); `--grep` compara con el texto sin enmascarar, solo ve las `min(N*20, 1000)` entradas más recientes y la comparación sin mayúsculas es solo ASCII; solo se muestra la primera línea de cada mensaje.
+- Las llamadas directas no distinguen la causa del fallo de curl (el mensaje es único); solo `search`, `status` y `logs` informan del código HTTP.
+- `search`, `status` y `logs` usan la librería compartida: la clave queda en la línea de comandos de curl (visible en `ps`). El resto la pasa por stdin.
+- La barra final de `RADARR_URL` no se quita y da `//api/v3`.
+- No hay comandos de calendario, cola, historial, importación, refresh ni búsqueda de releases.
 
 ## Referencia
 
-- [Documentación de la API de Radarr](https://radarr.video/docs/api/)
-- [TMDB](https://themoviedb.org/) — The Movie Database
+- [API de Radarr](https://radarr.video/docs/api/)
+- [TMDB](https://www.themoviedb.org/)
 
-Para una referencia local detallada, consulta:
-- **[Endpoints de la API](./references/api-endpoints.md)** - Referencia completa de endpoints con parámetros
-- **[Referencia rápida](./references/quick-reference.md)** - Operaciones habituales con ejemplos para copiar y pegar
-- **[Resolución de problemas](./references/troubleshooting.md)** - Soluciones para errores de autenticación, conexión y otros
-
----
-
-## 🔧 Requisitos de uso de herramientas del agente
-
-**CRÍTICO:** al invocar scripts de esta skill mediante la zsh-tool, **USA SIEMPRE `pty: true`**.
-
-Sin el modo PTY, la salida de los comandos no será visible aunque se ejecuten correctamente.
-
-**Patrón de invocación correcto:**
-```typescript
-<invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">"${CLAUDE_PLUGIN_ROOT}/skills/SKILL_NAME/scripts/SCRIPT.sh" [args]</parameter>
-<parameter name="pty">true</parameter>
-</invoke>
-```
+Para la referencia local detallada, consulta:
+- **[Endpoints de la API](./references/api-endpoints.md)** - Comando del script, método, ruta y cuerpos de las altas
+- **[Referencia rápida](./references/quick-reference.md)** - Configuración y ejemplos para copiar y pegar
+- **[Resolución de problemas](./references/troubleshooting.md)** - Autenticación, conexión y uso
