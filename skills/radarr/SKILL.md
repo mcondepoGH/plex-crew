@@ -122,7 +122,7 @@ El `idColeccionTmdb` es el de `collection.tmdbId` (no el de la película); `coll
 
 ### Quitar una película
 
-**Destructivo.** Según la skill `plex-crew-rules`, exige doble confirmación del usuario en dos mensajes distintos y anteponer `PLEX_CREW_CONFIRMED=1` al comando; el hook `confirm-destructive` bloquea cualquier `radarr.sh remove` sin ese marcador, con o sin `--delete-files`. Pregunta siempre si se borran también los ficheros (el borrado es irreversible). Esta skill nunca borra carpetas ni ficheros del mount de zurg: las operaciones de zurg van solo con las tools `zurg_*`.
+**Destructivo.** Según la skill `plex-crew-rules`, exige doble confirmación del usuario en dos mensajes distintos y anteponer `PLEX_CREW_CONFIRMED=1` al comando; el hook `confirm-destructive` bloquea cualquier `radarr.sh remove` sin ese marcador, con o sin `--delete-files`. Pregunta siempre si se borran también los ficheros (el borrado es irreversible).
 
 ```bash
 PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 603

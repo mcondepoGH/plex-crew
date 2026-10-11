@@ -30,8 +30,6 @@ Plex (en Docker) ve las carpetas con rutas de contenedor, que no existen en el h
 
 | Ruta de contenedor (Plex) | Ruta del host (ejemplo) |
 |---|---|
-| `/library/zurg/movies` | punto de montaje de zurg, carpeta `movies` |
-| `/library/zurg/shows` | punto de montaje de zurg, carpeta `shows` |
 | `/movies-local` | `/workspace/mnt/plex-stack/plex/multimedia/movies` |
 | `/shows-local` | `/workspace/mnt/plex-stack/plex/multimedia/shows` |
 

@@ -55,19 +55,7 @@ else
   fail "jq disponible" "instala jq"
 fi
 
-# 3b. MCP (plugin.json o .mcp.json) y skills nuevas (solo si existen)
-if command -v jq >/dev/null 2>&1; then
-  if [ -f .mcp.json ]; then
-    check "jq .mcp.json" jq -e . .mcp.json
-  fi
-  if jq -e '.mcpServers.zurg.url' .claude-plugin/plugin.json >/dev/null 2>&1 \
-     || { [ -f .mcp.json ] && jq -e '.mcpServers.zurg.url // .zurg.url' .mcp.json >/dev/null 2>&1; }; then
-    ok "servidor MCP zurg declarado con url"
-  else
-    fail "servidor MCP zurg declarado con url" "falta mcpServers.zurg.url"
-  fi
-  if grep -q 'ZURG_MCP_URL' .env.example; then ok "ZURG_MCP_URL en .env.example"; else fail "ZURG_MCP_URL en .env.example"; fi
-fi
+# 3b. Skills nuevas (solo si existen)
 sk=agregarr
 if [ -d "skills/$sk" ]; then
   check "skill $sk tiene SKILL.md" test -f "skills/$sk/SKILL.md"

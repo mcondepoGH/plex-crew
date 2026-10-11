@@ -44,7 +44,7 @@ Sin variables de entorno. Se combina con las skills de servicio (`radarr`, `prow
 
 ### Radarr y Sonarr
 - Un único perfil de calidad "Español" (id 7) y un perfil VOSE (id 8).
-- Custom Format `Audio-ES` (+100): palabra en español en el título, tamaño máximo 25 GB (una cifra elegida por el usuario, independiente de los límites de Prowlarr/zurg) y que no sea solo subtitulado. `VOSE` (0) detecta subtítulos en español sin audio en español.
+- Custom Format `Audio-ES` (+100): palabra en español en el título, tamaño máximo 25 GB (una cifra elegida por el usuario, independiente de los límites de Prowlarr) y que no sea solo subtitulado. `VOSE` (0) detecta subtítulos en español sin audio en español.
 - `MinFormatScore: 100` es un **bloqueo duro intencionado**: obliga a que se cumpla `Audio-ES`. Los grabs con score 0 en el historial vienen de una configuración anterior.
 - `RD-Bloqueado` (-10000) es un apaño para un bloqueo **real** de Real-Debrid (error de API 35, `infringing_file`) en nombres que contienen `WEB-DL`, `WEBRip`, `BDRip`, `HDRip`, `DVDRip`, `BluRay.x264`, `HDTV.x264`, `HDTV.XviD`, `WEB.x264`, `WEB.h264`. REMUX y x265 no están en esa lista, así que no es un agujero. cli_debrid no lo necesita porque reintenta por su cuenta con otro candidato; Radarr y Sonarr no.
 - Cambiar el perfil de una serie existente se hace con un PUT sobre la serie (`qualityProfileId`), no con `add`.

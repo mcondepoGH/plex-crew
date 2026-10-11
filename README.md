@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 0.4.1.
+Versión 0.4.2.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
@@ -22,7 +22,6 @@ Servicios cubiertos:
 - Seerr
 - cli_debrid
 - Agregarr (nueva en 0.3.0)
-- Zurg, vía servidor MCP (nuevo en 0.3.0)
 
 Este README es un índice: dice qué existe y dónde está documentado. Los comandos y herramientas de cada pieza viven en su propio README.
 
@@ -84,12 +83,6 @@ Una fila por variable. Se rellenan solo los servicios que uses.
 | `AGREGARR_URL` | Si usas la skill `agregarr` | URL base de Agregarr (nueva en 0.3.0) |
 | `AGREGARR_API_KEY` | Si usas la skill `agregarr` | Clave de API de Agregarr |
 
-#### Zurg MCP
-
-| Variable | Obligatoria | Descripción |
-|---|---|---|
-| `ZURG_MCP_URL` | Si usas Zurg MCP | URL del endpoint MCP de zurg (http). Claude Code la expande desde el entorno de la shell: expórtala antes de lanzar `claude` |
-
 #### Ajustes opcionales
 
 | Variable | Obligatoria | Descripción |
@@ -118,12 +111,6 @@ Cada skill tiene su `README.md` con el detalle. Todas son propias, siguen la mis
 | [`plex-crew-rules`](skills/plex-crew-rules/README.md) | Reglas | Reglas globales: idioma, hora, doble confirmación, secretos, tareas programadas |
 | [`plex-naming-rules`](skills/plex-naming-rules/README.md) | Reglas | Nombrado de Plex para series, películas, especiales e identificadores |
 | [`arr-language-filters`](skills/arr-language-filters/README.md) | Reglas | Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr, y sus límites |
-
-### Servidor MCP
-
-| Servidor | Transporte | Declaración | Para qué sirve |
-|---|---|---|---|
-| `zurg` (nuevo en 0.3.0) | http | `mcpServers` en `.claude-plugin/plugin.json`, URL `${ZURG_MCP_URL}` | Operar zurg (releases, renombrado, Season Fix, rescan de Plex). Con el plugin instalado las tools se llaman `mcp__plugin_plex-crew_zurg__zurg_*`; solo las usa `plex-naming` |
 
 La carpeta [`_lib`](skills/_lib/README.md) no es una skill: contiene el código de shell compartido por los scripts.
 
@@ -154,7 +141,7 @@ Son una red de seguridad, no un sandbox.
 | Fichero | Para qué sirve |
 |---|---|
 | `.env` (en `~/.claude/plex-crew/`) | Credenciales de los servicios (ver [Modelo de credenciales](#modelo-de-credenciales)) |
-| `.claude-plugin/plugin.json` | Manifiesto del plugin (metadatos y servidor MCP `zurg`) |
+| `.claude-plugin/plugin.json` | Manifiesto del plugin (metadatos) |
 | `.claude-plugin/marketplace.json` | Catálogo del marketplace |
 | `settings.json` | Agente de sesión por defecto (`orchestrator`), aportado por el plugin |
 | `hooks/hooks.json` | Registro de los hooks `confirm-destructive` y `enforce-agent-scope` (plugin) |
