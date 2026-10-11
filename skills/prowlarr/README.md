@@ -1,14 +1,14 @@
 # Skill de Prowlarr
 
-Busca en todos tus indexadores y gestiona Prowlarr.
+Busca releases en los indexadores torrent y usenet de Prowlarr, comprueba su estado, los prueba, activa, desactiva o elimina, los sincroniza con Radarr y Sonarr, y consulta el log, desde la API v1.
 
 ## Qué hace
 
-- **Búsqueda de releases** en todos los indexadores (torrents + usenet)
-- **Filtrado por tipo** (solo torrents, solo usenet) o por categoría (Películas, TV, etc.)
-- **Búsqueda de series y películas** por ID de TVDB, IMDB o TMDB
-- **Gestión de indexadores** — activar, desactivar, probar y ver estadísticas
-- **Sincronización con apps** — envía los cambios de indexadores a Sonarr/Radarr
+- **Buscar** — Por texto libre (`search`), por episodio con id de TVDB (`tv-search`) o por película con id de IMDb o TMDB (`movie-search`)
+- **Indexadores** — Lista, estadísticas, prueba de uno o de todos
+- **Gestionar** — Activar, desactivar o eliminar un indexador
+- **Sincronizar** — Lista las aplicaciones conectadas y lanza la sincronización de indexadores hacia ellas
+- **Sistema** — Estado, avisos de salud y últimas entradas del log (`logs`, solo lectura)
 
 ## Configuración
 
@@ -16,124 +16,115 @@ Busca en todos tus indexadores y gestiona Prowlarr.
 
 1. Abre la interfaz web de Prowlarr
 2. Ve a **Settings → General → Security**
-3. Copia tu **API Key**
+3. Copia la **API Key**
 
-### 2. Añade las credenciales al .env
+### 2. Configura las variables de entorno
 
-Añade lo siguiente a `~/.claude/plex-crew/.env`:
+Añade las credenciales a `~/.claude/plex-crew/.env`:
 
 ```bash
 PROWLARR_URL="http://localhost:9696"
 PROWLARR_API_KEY="<your_api_key>"
 ```
 
-Sustituye:
-- `http://localhost:9696` por la URL de tu Prowlarr
-- `<your_api_key>` por tu clave de API real
+**Opciones de configuración:**
+- `PROWLARR_URL`: URL de Prowlarr con puerto (la API se llama en `<PROWLARR_URL>/api/v1`); se quita una barra final
+- `PROWLARR_API_KEY`: tu clave de API
+- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
+- `PROWLARR_MAX_TIME`: opcional, segundos máximos por petición (30 por defecto)
+- `PROWLARR_TESTALL_MAX_TIME`: opcional, segundos máximos de `test-all` (120 por defecto)
 
 ### 3. Pruébalo
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
 ```
 
-### Cómo invocar el script
-
-En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/prowlarr/scripts/prowlarr-api.sh status` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status`). Los ejemplos de abajo usan la ruta corta `scripts/prowlarr-api.sh` y suponen que estás en `skills/prowlarr/`.
+Fuera de una sesión de Claude Code `${CLAUDE_PLUGIN_ROOT}` no existe: usa la ruta real del plugin.
 
 ## Ejemplos de uso
 
-### Buscar releases
+### Buscar
 
 ```bash
-# Búsqueda básica
-prowlarr-api.sh search "ubuntu 24.04"
-
-# Solo torrents
-prowlarr-api.sh search "inception" --torrents
-
-# Solo usenet  
-prowlarr-api.sh search "inception" --usenet
-
-# Categoría de películas (2000)
-prowlarr-api.sh search "inception" --category 2000
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 22.04"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "inception" --category 2000 --torrents
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" tv-search --tvdb 71663 --season 1 --episode 1
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0111161
 ```
 
-### Búsqueda de series y películas por ID
+Para Torrentio, el texto libre devuelve un título fijo: usa `movie-search` o `tv-search` con ids (ver la skill `arr-language-filters`).
+
+### Revisar indexadores
 
 ```bash
-# Buscar por TVDB ID
-prowlarr-api.sh tv-search --tvdb 71663 --season 1 --episode 1
-
-# Buscar por IMDB ID
-prowlarr-api.sh movie-search --imdb tt0111161
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" indexers
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" stats
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" health
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test-all
 ```
 
-### Gestión de indexadores
+`test-all` puede tardar hasta 120 s.
+
+### **Activar, desactivar y sincronizar**
+
+Confirma con el usuario antes de activar, desactivar o sincronizar: `sync` empuja la configuración a Sonarr, Radarr y demás aplicaciones, y puede añadir o quitar indexadores allí.
 
 ```bash
-# Listar todos los indexadores
-prowlarr-api.sh indexers
-
-# Consultar estadísticas de los indexadores
-prowlarr-api.sh stats
-
-# Probar todos los indexadores
-prowlarr-api.sh test-all
-
-# Sincronizar con Sonarr/Radarr
-prowlarr-api.sh sync
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" disable 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" enable 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" apps
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" sync
 ```
 
-## Categorías
+### **Eliminar un indexador**
 
-| ID | Categoría |
-|----|----------|
-| 2000 | Películas |
-| 5000 | TV |
-| 3000 | Audio |
-| 7000 | Libros |
-| 1000 | Consolas |
-| 4000 | PC |
-
-### Logs (solo lectura)
+Destructivo y permanente. El hook `confirm-destructive` bloquea `prowlarr-api.sh delete` sin `PLEX_CREW_CONFIRMED=1`, que solo se antepone tras la doble confirmación de la regla global (`plex-crew-rules`). Si solo hay que dejar de usarlo, prefiere `disable`.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 20 --level warn
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 100 --grep flaresolverr
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs --files
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" delete 5
 ```
 
-Formato: `tiempo  NIVEL  logger  mensaje`. Opciones: `[N]` (1-1000, 50 por defecto), `--level`, `--grep`, `--files`.
-
-## Variables de entorno
-
-La skill carga las credenciales desde `~/.claude/plex-crew/.env`. También puedes sustituirlas temporalmente:
+### Consultar el log
 
 ```bash
-PROWLARR_URL="https://prowlarr.example.com" \
-PROWLARR_API_KEY="your-api-key" \
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 20 --level warn
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs --grep "indexer"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs --files
 ```
 
 ## Referencia de la API
 
-La documentación detallada de la API está en el directorio `references/`:
+- [Endpoints de la API](references/api-endpoints.md)
+- [Referencia rápida](references/quick-reference.md)
+- [Resolución de problemas](references/troubleshooting.md)
+- [Wiki de Prowlarr](https://wiki.servarr.com/prowlarr)
+- [Documentación de la API](https://prowlarr.com/docs/api/)
 
-- **[Endpoints de la API](./references/api-endpoints.md)** - Referencia completa de endpoints
-- **[Referencia rápida](./references/quick-reference.md)** - Operaciones habituales con ejemplos listos para copiar y pegar
-- **[Resolución de problemas](./references/troubleshooting.md)** - Soluciones para errores de autenticación, conexión y otros errores comunes
+## Flujo de trabajo
+
+1. `health` y `stats` para ver qué indexadores dan problemas
+2. `test <id>` o `test-all` para confirmarlo
+3. `disable <id>` tras confirmarlo con el usuario, y `sync` para que Radarr y Sonarr se enteren
+4. `search`, `tv-search` o `movie-search` para localizar un release concreto
 
 ## Resolución de problemas
 
-**"Missing URL or API key"**
-→ Comprueba que tu fichero `.env` exista en `~/.claude/plex-crew/.env` y contenga `PROWLARR_URL` y `PROWLARR_API_KEY`
+**ERROR: GET /system/status respondió HTTP 401**
+→ Revisa `PROWLARR_API_KEY` en `~/.claude/plex-crew/.env`.
 
-**Connection refused**
-→ Verifica que la URL de tu Prowlarr sea correcta y accesible
+**ERROR: no se pudo contactar con Prowlarr en <URL>**
+→ Comprueba la URL, el puerto (9696) y que Prowlarr esté en marcha. Con `test-all`, también puede ser que superara los 120 s.
 
-**401 Unauthorized**
-→ Tu clave de API no es válida: regénerala en los ajustes de Prowlarr
+**ERROR: id debe ser un número entero: abc**
+→ Pasa el id numérico del indexador (el `id` de `indexers`).
+
+## Notas
+
+- Limitaciones conocidas: no hay comandos para añadir o editar indexadores, aplicaciones ni ver el historial; `enable` y `disable` reenvían la definición completa del indexador y Prowlarr puede rechazarla (HTTP 400); `sync` no espera a que termine; `delete` solo lo protege el hook. Detalle en `SKILL.md`.
+- La clave de API y los cuerpos de indexador no salen en `ps` ni en ninguna salida.
+- Requiere `bash`, `curl` y `jq`.
 
 ## Licencia
 

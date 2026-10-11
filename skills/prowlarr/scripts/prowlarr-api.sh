@@ -1,415 +1,485 @@
 #!/bin/bash
-# Prowlarr API helper script
-# Usage: prowlarr-api.sh <command> [args...]
-
+# Envoltorio de la API v1 de Prowlarr: buscar en indexadores, gestionarlos, sincronizar y consultar el log.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
-source "$_LOAD_ENV" || { echo "ERROR: no se encuentra load-env.sh" >&2; exit 1; }
-
-# Load credentials from .env
+source "$SCRIPT_DIR/../../_lib/load-env.sh" || { echo "ERROR: no se encuentra load-env.sh" >&2; exit 1; }
 load_service_credentials "prowlarr" "PROWLARR_URL" "PROWLARR_API_KEY"
 
-# Remove trailing slash
+# Solo se quita UNA barra final
 PROWLARR_URL="${PROWLARR_URL%/}"
+API_BASE="$PROWLARR_URL/api/v1"
+ME="$(basename "$0")"
 
-# API call helper: imprime el cuerpo por stdout; si el HTTP no es 2xx o hay
-# timeout, imprime "ERROR: ..." por stderr y devuelve 1.
-# Timeout: PROWLARR_MAX_TIME (30 s por defecto; usa API_MAX_TIME_OVERRIDE interno)
-api() {
-    local method="$1"
-    local endpoint="$2"
-    shift 2
-
-    local max_time="${API_MAX_TIME_OVERRIDE:-${PROWLARR_MAX_TIME:-30}}"
-    local out rc=0 code body
-    out=$(curl -sS --max-time "$max_time" -w $'\n%{http_code}' -X "$method" \
-        -H "X-Api-Key: ${PROWLARR_API_KEY}" \
-        -H "Content-Type: application/json" \
-        "$@" \
-        "${PROWLARR_URL}/api/v1${endpoint}") || rc=$?
-    if [[ $rc -ne 0 ]]; then
-        if [[ $rc -eq 28 ]]; then
-            echo "ERROR: timeout tras ${max_time}s llamando a $endpoint" >&2
-        else
-            echo "ERROR: no se pudo conectar con Prowlarr ($method $endpoint, curl rc $rc)" >&2
-        fi
-        return 1
-    fi
-    code="${out##*$'\n'}"
-    body="${out%$'\n'*}"
-    API_CODE="$code"
-    if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
-        local msg
-        msg=$(jq -r 'if type == "array" then (map(.errorMessage // .message // empty) | join("; "))
-                     else (.message // .errorMessage // empty) end' <<<"$body" 2>/dev/null || true)
-        echo "ERROR: $method $endpoint respondió HTTP $code${msg:+: $msg}" >&2
-        return 1
-    fi
-    printf '%s\n' "$body"
-}
+LOGS_USE="logs [N] [--level warn|error|info] [--grep texto] [--files]"
 
 usage() {
-    cat <<EOF
-Prowlarr API CLI
+  cat <<USAGE
+Prowlarr - búsqueda en indexadores y gestión de Prowlarr
 
-Usage: $(basename "$0") <command> [options]
+Uso: $ME <comando> [args]
 
-Search Commands:
-  search <query> [options]      Search across indexers
-    --torrents                  Torrents only (indexerIds=-2)
-    --usenet                    Usenet only (indexerIds=-1)
-    --category <id>             Filter by category (2000=Movies, 5000=TV)
-    --limit <n>                 Max results
-  
-  tv-search [options]           Search TV releases
-    --tvdb <id>                 TVDB ID
-    --season <n>                Season number
-    --episode <n>               Episode number
-  
-  movie-search [options]        Search movie releases
-    --imdb <id>                 IMDB ID (e.g., tt0111161)
-    --tmdb <id>                 TMDB ID
+Búsqueda:
+  search <query> [--torrents] [--usenet] [--category <id>] [--limit <n>]
+                              Buscar en los indexadores (texto libre)
+  tv-search --tvdb <id> [--season <n>] [--episode <n>]
+                              Buscar un episodio por id de TVDB
+  movie-search --imdb <id> [--tmdb <id>]
+                              Buscar una película por id de IMDb o TMDB
 
-Indexer Commands:
-  indexers [--verbose]          List all indexers
-  stats                         Indexer usage statistics
-  test <id>                     Test specific indexer
-  test-all                      Test all indexers
-  enable <id>                   Enable an indexer
-  disable <id>                  Disable an indexer
-  delete <id>                   Delete an indexer
+Indexadores:
+  indexers [--verbose]        Listar indexadores (--verbose: JSON completo)
+  stats                       Estadísticas por indexador
+  test <id>                   Probar un indexador
+  test-all                    Probar todos los indexadores (hasta 120 s)
+  enable <id>                 Activar un indexador
+  disable <id>                Desactivar un indexador
+  delete <id>                 Eliminar un indexador (destructivo)
 
-App Sync:
-  apps                          List connected applications
-  sync                          Sync indexers to apps (Sonarr/Radarr)
+Sincronización:
+  apps                        Listar las aplicaciones conectadas
+  sync                        Sincronizar los indexadores con las aplicaciones
 
-System:
-  status                        System status
-  health                        Health check
-  logs [N] [options]            Últimas N entradas del log (solo lectura, 50 por defecto)
-    --level <nivel>             trace|debug|info|warn|error|fatal
-    --grep <texto>              Filtra por texto en mensaje o logger
-    --files                     Lista los ficheros de log (sin contenido)
+Sistema:
+  status                      Estado y versión de Prowlarr
+  health                      Avisos de salud
+  logs [N] [--level <nivel>] [--grep <texto>] [--files]
+                              Últimas N entradas del log (solo lectura, 50 por defecto)
+                              Niveles: trace, debug, info, warn, error, fatal
+                              --files lista los ficheros de log
 
-Examples:
-  $(basename "$0") search "ubuntu 22.04"
-  $(basename "$0") search "inception" --category 2000 --torrents
-  $(basename "$0") tv-search --tvdb 71663 --season 1 --episode 1
-  $(basename "$0") movie-search --imdb tt0111161
-  $(basename "$0") stats
-  $(basename "$0") logs 20 --level warn
-EOF
+Ejemplos:
+  $ME search "ubuntu 22.04"
+  $ME search "inception" --category 2000 --torrents
+  $ME tv-search --tvdb 71663 --season 1 --episode 1
+  $ME movie-search --imdb tt0111161
+  $ME stats
+  $ME logs 20 --level warn
+USAGE
+}
+
+# Error de uso: mensaje + línea de uso por stderr, salida con código 1
+usage_error() {
+  echo "ERROR: $1" >&2
+  echo "Uso: $ME $2" >&2
+  exit 1
+}
+
+# Exige un valor tras una opción. Uso: need_value <opción> <valor> <uso>
+need_value() {
+  [[ -n "$2" ]] || usage_error "$1 requiere un valor" "$3"
+}
+
+# Exige un entero no negativo. Uso: need_int <opción> <valor> <uso>
+need_int() {
+  [[ "$2" =~ ^[0-9]+$ ]] || usage_error "$1 debe ser un número entero: $2" "$3"
+}
+
+# Valida el id de test, enable, disable y delete. Uso: need_id <comando> <id>
+need_id() {
+  local use="$1 <id>"
+  [[ -n "$2" ]] || usage_error "falta id" "$use"
+  [[ "$2" =~ ^[0-9]+$ ]] || usage_error "id debe ser un número entero: $2" "$use"
+}
+
+# Entrecomilla un valor para una línea de configuración de curl
+curl_quote() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '"%s"' "$s"
+}
+
+# Única vía de petición. Uso: api <MÉTODO> <ruta> [cuerpo-json]
+# Imprime el cuerpo y devuelve 0 solo con HTTP 2xx. URL, clave y cuerpo viajan por stdin de curl.
+api() {
+  local method="$1" path="$2" body="${3:-}"
+  local conf out code resp msg xtrace=0
+  if [[ $- == *x* ]]; then
+    xtrace=1
+    set +x
+  fi
+  conf="globoff"$'\n'
+  conf+="url = $(curl_quote "$API_BASE$path")"$'\n'
+  conf+="request = $(curl_quote "$method")"$'\n'
+  conf+="header = $(curl_quote "X-Api-Key: $PROWLARR_API_KEY")"$'\n'
+  conf+='header = "Content-Type: application/json"'$'\n'
+  if [[ -n "$body" ]]; then
+    conf+="data-raw = $(curl_quote "$body")"$'\n'
+  fi
+  if ! out="$(printf '%s' "$conf" | curl -s --connect-timeout 10 \
+        --max-time "${API_MAX_TIME_OVERRIDE:-${PROWLARR_MAX_TIME:-30}}" \
+        -w $'\n%{http_code}' --config - 2>/dev/null)"; then
+    if [[ $xtrace -eq 1 ]]; then set -x; fi
+    echo "ERROR: no se pudo contactar con Prowlarr en $PROWLARR_URL" >&2
+    return 1
+  fi
+  if [[ $xtrace -eq 1 ]]; then set -x; fi
+  code="${out##*$'\n'}"
+  resp="${out%$'\n'*}"
+  if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
+    msg="$(jq -r 'if type == "array" then [.[] | objects | (.errorMessage // .message // empty)] | join("; ")
+                  elif type == "object" then (.message // .errorMessage // empty)
+                  else empty end' <<<"$resp" 2>/dev/null || true)"
+    if [[ -n "$msg" ]]; then
+      echo "ERROR: $method $path respondió HTTP $code: $msg" >&2
+    else
+      echo "ERROR: $method $path respondió HTTP $code" >&2
+    fi
+    return 1
+  fi
+  printf '%s\n' "$resp"
+}
+
+# Codifica un texto para usarlo en una URL
+urlencode() {
+  printf '%s' "$1" | jq -sRr @uri
 }
 
 cmd_search() {
-    local query=""
-    local type="search"
-    local indexer_ids=""
-    local categories=""
-    local limit=""
-    
-    # First positional arg is the query
-    if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
-        query="$1"
+  local query="" type="search" indexer_ids="" categories="" limit="" path body
+  local use="search <query> [--torrents|--usenet] [--category <id>] [--limit <n>]"
+
+  if [[ "${1:-}" != --* ]]; then
+    query="${1:-}"
+    shift || true
+  fi
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --torrents) indexer_ids="-2"; shift ;;
+      --usenet) indexer_ids="-1"; shift ;;
+      --category|-c)
+        need_value "$1" "${2:-}" "$use"
+        categories="$2"
+        shift 2
+        ;;
+      --limit|-l)
+        need_value "$1" "${2:-}" "$use"
+        need_int "$1" "$2" "$use"
+        limit="$2"
+        shift 2
+        ;;
+      --type|-t)
+        need_value "$1" "${2:-}" "$use"
+        type="$2"
+        shift 2
+        ;;
+      *)
+        [[ -n "$query" ]] || query="$1"
         shift
-    fi
-    
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --torrents) indexer_ids="-2"; shift ;;
-            --usenet) indexer_ids="-1"; shift ;;
-            --category|-c) categories="$2"; shift 2 ;;
-            --limit|-l) limit="$2"; shift 2 ;;
-            --type|-t) type="$2"; shift 2 ;;
-            *) 
-                if [[ -z "$query" ]]; then
-                    query="$1"
-                fi
-                shift 
-                ;;
-        esac
-    done
-    
-    if [[ -z "$query" ]]; then
-        echo '{"error": "Query required"}' >&2
-        exit 1
-    fi
-    
-    local params="query=$(jq -rn --arg q "$query" '$q | @uri')"
-    params+="&type=$type"
-    [[ -n "$indexer_ids" ]] && params+="&indexerIds=$indexer_ids"
-    [[ -n "$categories" ]] && params+="&categories=$categories"
-    [[ -n "$limit" ]] && params+="&limit=$limit"
-    
-    api GET "/search?$params" | jq '[.[] | {
+        ;;
+    esac
+  done
+  [[ -n "$query" ]] || usage_error "falta el texto de búsqueda" "$use"
+
+  path="/search?query=$(urlencode "$query")&type=$(urlencode "$type")"
+  [[ -z "$indexer_ids" ]] || path+="&indexerIds=$indexer_ids"
+  [[ -z "$categories" ]] || path+="&categories=$categories"
+  [[ -z "$limit" ]] || path+="&limit=$limit"
+
+  body="$(api GET "$path")" || exit 1
+  jq '[.[] | {
         title: .title,
         indexer: .indexer,
-        size: (.size | . / 1048576 | floor | tostring + " MB"),
+        size: "\((.size / 1048576) | floor) MB",
         seeders: .seeders,
         leechers: .leechers,
         age: .age,
         downloadUrl: .downloadUrl,
         infoUrl: .infoUrl
-    }]'
+      }]' <<<"$body"
+}
+
+# Formato común de tv-search y movie-search
+print_media_results() {
+  jq '[.[] | {
+        title: .title,
+        indexer: .indexer,
+        size: "\((.size / 1048576) | floor) MB",
+        seeders: .seeders,
+        age: .age,
+        downloadUrl: .downloadUrl
+      }]' <<<"$1"
 }
 
 cmd_tv_search() {
-    local tvdb="" season="" episode=""
-    
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --tvdb) tvdb="$2"; shift 2 ;;
-            --season|-s) season="$2"; shift 2 ;;
-            --episode|-e) episode="$2"; shift 2 ;;
-            *) shift ;;
-        esac
-    done
-    
-    local query=""
-    [[ -n "$tvdb" ]] && query+="{TvdbId:$tvdb} "
-    [[ -n "$season" ]] && query+="{Season:$season} "
-    [[ -n "$episode" ]] && query+="{Episode:$episode}"
-    
-    if [[ -z "$query" ]]; then
-        echo '{"error": "At least --tvdb required"}' >&2
-        exit 1
-    fi
-    
-    local encoded_query
-    encoded_query=$(jq -rn --arg q "$query" '$q | @uri')
-    
-    api GET "/search?query=$encoded_query&type=tvsearch" | jq '[.[] | {
-        title: .title,
-        indexer: .indexer,
-        size: (.size | . / 1048576 | floor | tostring + " MB"),
-        seeders: .seeders,
-        age: .age,
-        downloadUrl: .downloadUrl
-    }]'
+  local tvdb="" season="" episode="" query="" body
+  local use="tv-search --tvdb <id> [--season <n>] [--episode <n>]"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --tvdb)
+        need_value "$1" "${2:-}" "$use"
+        need_int "$1" "$2" "$use"
+        tvdb="$2"
+        shift 2
+        ;;
+      --season|-s)
+        need_value "$1" "${2:-}" "$use"
+        need_int "$1" "$2" "$use"
+        season="$2"
+        shift 2
+        ;;
+      --episode|-e)
+        need_value "$1" "${2:-}" "$use"
+        need_int "$1" "$2" "$use"
+        episode="$2"
+        shift 2
+        ;;
+      *) shift ;;
+    esac
+  done
+
+  [[ -n "$tvdb" ]] && query+="{TvdbId:$tvdb} "
+  [[ -n "$season" ]] && query+="{Season:$season} "
+  [[ -n "$episode" ]] && query+="{Episode:$episode}"
+  [[ -n "$query" ]] || usage_error "falta al menos --tvdb" "$use"
+
+  body="$(api GET "/search?query=$(urlencode "$query")&type=tvsearch")" || exit 1
+  print_media_results "$body"
 }
 
 cmd_movie_search() {
-    local imdb="" tmdb=""
-    
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --imdb) imdb="$2"; shift 2 ;;
-            --tmdb) tmdb="$2"; shift 2 ;;
-            *) shift ;;
-        esac
-    done
-    
-    local query=""
-    [[ -n "$imdb" ]] && query+="{ImdbId:$imdb}"
-    [[ -n "$tmdb" ]] && query+="{TmdbId:$tmdb}"
-    
-    if [[ -z "$query" ]]; then
-        echo '{"error": "At least --imdb or --tmdb required"}' >&2
-        exit 1
-    fi
-    
-    local encoded_query
-    encoded_query=$(jq -rn --arg q "$query" '$q | @uri')
-    
-    api GET "/search?query=$encoded_query&type=moviesearch" | jq '[.[] | {
-        title: .title,
-        indexer: .indexer,
-        size: (.size | . / 1048576 | floor | tostring + " MB"),
-        seeders: .seeders,
-        age: .age,
-        downloadUrl: .downloadUrl
-    }]'
+  local imdb="" tmdb="" query="" body
+  local use="movie-search --imdb <id> | --tmdb <id>"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --imdb)
+        need_value "$1" "${2:-}" "$use"
+        imdb="$2"
+        shift 2
+        ;;
+      --tmdb)
+        need_value "$1" "${2:-}" "$use"
+        need_int "$1" "$2" "$use"
+        tmdb="$2"
+        shift 2
+        ;;
+      *) shift ;;
+    esac
+  done
+
+  [[ -n "$imdb" ]] && query+="{ImdbId:$imdb}"
+  [[ -n "$tmdb" ]] && query+="{TmdbId:$tmdb}"
+  [[ -n "$query" ]] || usage_error "falta --imdb o --tmdb" "$use"
+
+  body="$(api GET "/search?query=$(urlencode "$query")&type=moviesearch")" || exit 1
+  print_media_results "$body"
 }
 
 cmd_indexers() {
-    local verbose=false
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --verbose|-v) verbose=true; shift ;;
-            *) shift ;;
-        esac
-    done
-    
-    if [[ "$verbose" == "true" ]]; then
-        api GET "/indexer"
-    else
-        api GET "/indexer" | jq '[.[] | {
-            id: .id,
-            name: .name,
-            protocol: .protocol,
-            enabled: .enable,
-            priority: .priority
-        }]'
-    fi
+  local verbose=false arg body
+  for arg in "$@"; do
+    case "$arg" in
+      --verbose|-v) verbose=true ;;
+    esac
+  done
+  body="$(api GET /indexer)" || exit 1
+  if [[ "$verbose" == true ]]; then
+    printf '%s\n' "$body"
+    return 0
+  fi
+  jq '[.[] | {id: .id, name: .name, protocol: .protocol, enabled: .enable, priority: .priority}]' <<<"$body"
 }
 
 cmd_stats() {
-    api GET "/indexerstats" | jq '.indexers | [.[] | {
+  local body
+  body="$(api GET /indexerstats)" || exit 1
+  jq '[.indexers[] | {
         name: .indexerName,
         queries: .numberOfQueries,
         grabs: .numberOfGrabs,
         failures: .numberOfFailedQueries,
         avgResponseTime: .averageResponseTime
-    }]'
+      }]' <<<"$body"
 }
 
 cmd_test() {
-    local id="${1:-}"
-    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
-    local indexer
-    indexer=$(api GET "/indexer/$id") || exit 1
-    api POST "/indexer/test" -d "$indexer" > /dev/null || {
-        echo "{\"status\": \"error\", \"indexer\": \"$id\", \"tested\": false}" >&2
-        exit 1
-    }
-    echo '{"status": "ok", "indexer": "'"$id"'", "tested": true}'
+  local id="${1:-}" indexer
+  need_id "test" "$id"
+  indexer="$(api GET "/indexer/$id")" || exit 1
+  if ! api POST /indexer/test "$indexer" >/dev/null; then
+    echo "{\"status\": \"error\", \"indexer\": \"$id\", \"tested\": false}" >&2
+    exit 1
+  fi
+  echo "{\"status\": \"ok\", \"indexer\": \"$id\", \"tested\": true}"
 }
 
 cmd_test_all() {
-    local result names failed
-    # El test de todos los indexers es lento: timeout de 120 s por defecto
-    result=$(API_MAX_TIME_OVERRIDE="${PROWLARR_TESTALL_MAX_TIME:-${PROWLARR_MAX_TIME:-120}}" api POST "/indexer/testall") || exit 1
-    if ! jq -e 'type == "array"' >/dev/null 2>&1 <<<"$result"; then
-        echo "ERROR: respuesta inesperada de Prowlarr en testall" >&2
-        exit 1
-    fi
-    names=$(api GET "/indexer" | jq 'map({key: (.id|tostring), value: .name}) | from_entries') || names='{}'
-    failed=$(jq --argjson names "$names" '[.[] | select(.isValid | not) | {id, name: ($names[(.id|tostring)] // "?"), errors: [.validationFailures[]?.errorMessage]}]' <<<"$result")
-    if jq -e 'all(.[]; .isValid)' >/dev/null <<<"$result"; then
-        echo "{\"status\": \"ok\", \"tested\": $(jq length <<<"$result"), \"failed\": 0}"
-    else
-        echo "ERROR: indexers con fallo:" >&2
-        jq . <<<"$failed" >&2
-        echo "{\"status\": \"error\", \"tested\": $(jq length <<<"$result"), \"failed\": $(jq length <<<"$failed")}"
-        exit 1
-    fi
+  local resp names map failed total nfailed
+  resp="$(API_MAX_TIME_OVERRIDE="${PROWLARR_TESTALL_MAX_TIME:-${PROWLARR_MAX_TIME:-120}}" api POST /indexer/testall)" || exit 1
+  if ! jq -e 'type == "array"' >/dev/null 2>&1 <<<"$resp"; then
+    echo "ERROR: respuesta inesperada de Prowlarr en testall" >&2
+    exit 1
+  fi
+
+  names="$(api GET /indexer 2>/dev/null)" || names="[]"
+  map="$(jq -c 'if type == "array" then map({key: (.id | tostring), value: .name}) | from_entries else {} end' \
+    <<<"$names" 2>/dev/null)" || map="{}"
+  [[ -n "$map" ]] || map="{}"
+
+  total="$(jq 'length' <<<"$resp")"
+  failed="$(jq --argjson m "$map" '[.[] | select(.isValid == false) | {
+      id: .id,
+      name: ($m[(.id | tostring)] // "?"),
+      errors: [(.validationFailures // [])[] | .errorMessage]
+    }]' <<<"$resp")"
+  nfailed="$(jq 'length' <<<"$failed")"
+
+  if [[ "$nfailed" -eq 0 ]]; then
+    echo "{\"status\": \"ok\", \"tested\": $total, \"failed\": 0}"
+    return 0
+  fi
+  echo "ERROR: indexers con fallo:" >&2
+  printf '%s\n' "$failed" >&2
+  echo "{\"status\": \"error\", \"tested\": $total, \"failed\": $nfailed}"
+  exit 1
 }
 
-cmd_enable() {
-    local id="${1:-}"
-    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
-    local indexer
-    indexer=$(api GET "/indexer/$id" | jq '.enable = true') || exit 1
-    api PUT "/indexer/$id" -d "$indexer" > /dev/null || exit 1
-    echo '{"status": "ok", "indexer": "'"$id"'", "enabled": true}'
-}
-
-cmd_disable() {
-    local id="${1:-}"
-    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
-    local indexer
-    indexer=$(api GET "/indexer/$id" | jq '.enable = false') || exit 1
-    api PUT "/indexer/$id" -d "$indexer" > /dev/null || exit 1
-    echo '{"status": "ok", "indexer": "'"$id"'", "enabled": false}'
+# Activa o desactiva un indexador. Uso: set_enabled <comando> <id> <true|false>
+set_enabled() {
+  local cmd="$1" id="${2:-}" flag="$3" indexer body
+  need_id "$cmd" "$id"
+  indexer="$(api GET "/indexer/$id")" || exit 1
+  body="$(jq -c --argjson e "$flag" '.enable = $e' <<<"$indexer")"
+  api PUT "/indexer/$id" "$body" >/dev/null || exit 1
+  echo "{\"status\": \"ok\", \"indexer\": \"$id\", \"enabled\": $flag}"
 }
 
 cmd_delete() {
-    local id="${1:-}"
-    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
-    api DELETE "/indexer/$id" > /dev/null || exit 1
-    echo '{"status": "ok", "indexer": "'"$id"'", "deleted": true}'
+  local id="${1:-}"
+  need_id "delete" "$id"
+  api DELETE "/indexer/$id" >/dev/null || exit 1
+  echo "{\"status\": \"ok\", \"indexer\": \"$id\", \"deleted\": true}"
 }
 
 cmd_apps() {
-    api GET "/applications" | jq '[.[] | {
-        id: .id,
-        name: .name,
-        syncLevel: .syncLevel,
-        implementation: .implementation
-    }]'
+  local body
+  body="$(api GET /applications)" || exit 1
+  jq '[.[] | {id: .id, name: .name, syncLevel: .syncLevel, implementation: .implementation}]' <<<"$body"
 }
 
 cmd_sync() {
-    api POST "/command" -d '{"name": "ApplicationIndexerSync"}'
-    echo '{"status": "ok", "message": "Syncing indexers to applications"}'
+  api POST /command '{"name": "ApplicationIndexerSync"}' || exit 1
+  echo '{"status": "ok", "message": "Syncing indexers to applications"}'
 }
 
 cmd_status() {
-    api GET "/system/status"
+  api GET /system/status || exit 1
 }
 
 cmd_health() {
-    api GET "/health" | jq '[.[] | {
-        source: .source,
-        type: .type,
-        message: .message
-    }]'
+  local body
+  body="$(api GET /health)" || exit 1
+  jq '[.[] | {source: .source, type: .type, message: .message}]' <<<"$body"
 }
 
 cmd_logs() {
-    # Solo lectura: GET /log (o /log/file con --files). Nunca imprime claves ni cabeceras.
-    local n=50 level="" grep_text="" files=false
-    local uso="Uso: $(basename "$0") logs [N] [--level warn|error|info] [--grep texto] [--files]"
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --level)
-                [[ $# -ge 2 ]] || { echo "ERROR: --level requiere un valor" >&2; echo "$uso" >&2; exit 1; }
-                level="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"; shift 2 ;;
-            --grep)
-                [[ $# -ge 2 ]] || { echo "ERROR: --grep requiere un texto" >&2; echo "$uso" >&2; exit 1; }
-                grep_text="$2"; shift 2 ;;
-            --files) files=true; shift ;;
-            -*) echo "ERROR: opción desconocida para logs: $1" >&2; echo "$uso" >&2; exit 1 ;;
-            *)
-                if [[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -ge 1 ]] && [[ "$1" -le 1000 ]]; then
-                    n="$1"; shift
-                else
-                    echo "ERROR: N debe ser un entero entre 1 y 1000: $1" >&2; echo "$uso" >&2; exit 1
-                fi ;;
-        esac
-    done
-    case "$level" in
-        ""|trace|debug|info|warn|error|fatal) ;;
-        *) echo "ERROR: nivel no válido: $level (usa trace, debug, info, warn, error o fatal)" >&2; exit 1 ;;
+  local n=50 level="" grep_text="" files=false
+  local page_size path body
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --level)
+        [[ -n "${2:-}" ]] || usage_error "--level requiere un valor" "$LOGS_USE"
+        level="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+        shift 2
+        ;;
+      --grep)
+        [[ -n "${2:-}" ]] || usage_error "--grep requiere un texto" "$LOGS_USE"
+        grep_text="$2"
+        shift 2
+        ;;
+      --files)
+        files=true
+        shift
+        ;;
+      -*)
+        usage_error "opción desconocida para logs: $1" "$LOGS_USE"
+        ;;
+      *)
+        if [[ "$1" =~ ^[0-9]{1,4}$ ]] && (( 10#$1 >= 1 && 10#$1 <= 1000 )); then
+          n=$((10#$1))
+        else
+          usage_error "N debe ser un entero entre 1 y 1000: $1" "$LOGS_USE"
+        fi
+        shift
+        ;;
     esac
+  done
 
-    local body
-    if [[ "$files" == "true" ]]; then
-        body=$(api GET "/log/file") || exit 1
-        jq -r 'if type == "array" then (.[] | "\(.lastWriteTime // "?")  \(.filename // "?")") else empty end' <<<"$body"
-        return 0
-    fi
+  case "$level" in
+    ""|trace|debug|info|warn|error|fatal) ;;
+    *)
+      echo "ERROR: nivel no válido: $level (usa trace, debug, info, warn, error o fatal)" >&2
+      exit 1
+      ;;
+  esac
 
-    # Con --grep se pide una página mayor y se filtra en cliente.
-    local page="$n"
-    if [[ -n "$grep_text" ]]; then page=$(( n * 20 > 1000 ? 1000 : n * 20 )); fi
-    local query="page=1&pageSize=$page&sortKey=time&sortDirection=descending"
-    if [[ -n "$level" ]]; then query+="&level=$level"; fi
-    body=$(api GET "/log?$query") || exit 1
-    if ! jq -e '.records | type == "array"' >/dev/null 2>&1 <<<"$body"; then
-        echo "ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)" >&2
-        exit 1
+  if [[ "$files" == true ]]; then
+    body="$(api GET /log/file)" || exit 1
+    jq -r 'if type == "array" then .[] | "\(.lastWriteTime // "?")  \(.filename // "?")" else empty end' <<<"$body"
+    return 0
+  fi
+
+  page_size="$n"
+  if [[ -n "$grep_text" ]]; then
+    page_size=$((n * 20))
+    if [[ "$page_size" -gt 1000 ]]; then
+      page_size=1000
     fi
-    jq -r --arg g "$grep_text" --argjson n "$n" '
-      [ .records[]
-        | select($g == "" or ((.message // "") | ascii_downcase | contains($g | ascii_downcase))
-                 or ((.logger // "") | ascii_downcase | contains($g | ascii_downcase)))
-      ] | .[:$n] | reverse | .[]
-      | "\(.time // "?")  \((.level // "?") | ascii_upcase | .[0:5])  \(.logger // "?")  " +
-        (((.message // "") | split("\n")[0] | gsub("(?i)(?<k>api_?key|token|passkey|password|secret)=[^&\\s]+"; "\(.k)=***")) | if length > 200 then .[0:200] + "..." else . end)
-    ' <<<"$body"
+  fi
+  path="/log?page=1&pageSize=$page_size&sortKey=time&sortDirection=descending"
+  if [[ -n "$level" ]]; then
+    path+="&level=$level"
+  fi
+  body="$(api GET "$path")" || exit 1
+
+  if ! jq -e '(.records | type) == "array"' >/dev/null 2>&1 <<<"$body"; then
+    echo "ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)" >&2
+    exit 1
+  fi
+
+  jq -r --arg g "$grep_text" --argjson n "$n" '
+    def mask: gsub("(?<k>api_key|apikey|token|passkey|password|secret)=[^& \t\n\r]*"; "\(.k)=***"; "i");
+    def first_line: (split("\n")[0] // "");
+    def clip: if length > 200 then .[:200] + "..." else . end;
+    def hit: ($g | ascii_downcase) as $q
+      | ((.message // "") | ascii_downcase | contains($q))
+        or ((.logger // "") | ascii_downcase | contains($q));
+    [ .records[] | select($g == "" or hit) ] | .[:$n] | reverse | .[]
+    | "\(.time // "?")  \((.level // "?") | ascii_upcase | .[:5])  \(.logger // "?")  \((.message // "") | first_line | mask | clip)"
+  ' <<<"$body"
 }
 
-# Main dispatch
-case "${1:-}" in
-    search) shift; cmd_search "$@" ;;
-    tv-search) shift; cmd_tv_search "$@" ;;
-    movie-search) shift; cmd_movie_search "$@" ;;
-    indexers) shift; cmd_indexers "$@" ;;
-    stats) shift; cmd_stats "$@" ;;
-    test) shift; cmd_test "$@" ;;
-    test-all) shift; cmd_test_all "$@" ;;
-    enable) shift; cmd_enable "$@" ;;
-    disable) shift; cmd_disable "$@" ;;
-    delete) shift; cmd_delete "$@" ;;
-    apps) shift; cmd_apps "$@" ;;
-    sync) shift; cmd_sync "$@" ;;
-    status) shift; cmd_status "$@" ;;
-    health) shift; cmd_health "$@" ;;
-    logs) shift; cmd_logs "$@" ;;
-    -h|--help|help|"") usage ;;
-    *) echo "Unknown command: $1" >&2; usage; exit 1 ;;
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  ""|help|-h|--help) usage ;;
+  search) cmd_search "$@" ;;
+  tv-search) cmd_tv_search "$@" ;;
+  movie-search) cmd_movie_search "$@" ;;
+  indexers) cmd_indexers "$@" ;;
+  stats) cmd_stats ;;
+  test) cmd_test "${1:-}" ;;
+  test-all) cmd_test_all ;;
+  enable) set_enabled "enable" "${1:-}" true ;;
+  disable) set_enabled "disable" "${1:-}" false ;;
+  delete) cmd_delete "${1:-}" ;;
+  apps) cmd_apps ;;
+  sync) cmd_sync ;;
+  status) cmd_status ;;
+  health) cmd_health ;;
+  logs) cmd_logs "$@" ;;
+  *)
+    echo "ERROR: comando desconocido: $cmd" >&2
+    echo "Usa: prowlarr-api.sh help" >&2
+    exit 1
+    ;;
 esac

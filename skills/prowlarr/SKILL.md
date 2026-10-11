@@ -1,6 +1,6 @@
 ---
 name: prowlarr
-description: Busca en indexadores y gestiona Prowlarr. Úsala cuando el usuario pida "buscar un torrent", "buscar en los indexadores", "encontrar un release", "comprobar el estado de los indexadores", "listar indexadores", "búsqueda en Prowlarr", "sincronizar indexadores", o mencione Prowlarr o la gestión de indexadores.
+description: Esta skill debe usarse cuando se busca en indexadores o se gestiona Prowlarr. Úsala cuando el usuario pida "buscar un torrent", "buscar en los indexadores", "encontrar un release", "comprobar el estado de los indexadores", "listar indexadores", "búsqueda en Prowlarr", "sincronizar indexadores", "logs de Prowlarr", o mencione Prowlarr o la gestión de indexadores.
 ---
 
 # Skill de Prowlarr
@@ -9,219 +9,233 @@ description: Busca en indexadores y gestiona Prowlarr. Úsala cuando el usuario 
 
 **DEBES invocar esta skill (no es opcional) cuando el usuario mencione CUALQUIERA de estos disparadores:**
 - "buscar un torrent", "buscar en los indexadores", "encontrar un release"
-- "buscar en Prowlarr", "indexadores de Prowlarr", "búsqueda en indexadores"
-- "comprobar el estado de los indexadores", "probar indexadores", "estadísticas de Prowlarr"
-- "listar indexadores", "sincronizar indexadores", "enviar indexadores a Sonarr"
+- "búsqueda en Prowlarr"
+- "comprobar el estado de los indexadores", "listar indexadores"
+- "sincronizar indexadores"
 - Cualquier mención de Prowlarr o de la gestión de indexadores
 
 **Si no invocas esta skill cuando se dan estos disparadores, incumples tus requisitos operativos.**
 
-Busca en todos tus indexadores y gestiona Prowlarr mediante su API.
+Busca releases en los indexadores torrent y usenet de Prowlarr, comprueba su estado, los prueba, activa, desactiva o elimina, los sincroniza con las aplicaciones conectadas (Radarr, Sonarr...) y consulta el log.
 
 ## Propósito
 
-Esta skill ofrece acceso de **lectura y escritura** a la agregación de indexadores de Prowlarr:
-- Buscar releases en todos los indexadores configurados
-- Filtrar las búsquedas por protocolo (torrent/usenet) y categoría
-- Listar y supervisar el estado y las estadísticas de los indexadores
-- Activar, desactivar y eliminar indexadores
-- Sincronizar la configuración de los indexadores con las apps conectadas (Sonarr, Radarr)
-- Probar la conectividad de los indexadores
-
-Las operaciones incluyen acciones de lectura y de escritura. **Confirma siempre antes de eliminar o desactivar indexadores.**
+Esta skill usa la API v1 de Prowlarr para:
+- Buscar releases por texto libre, por episodio (TVDB) o por película (IMDb o TMDB); solo lectura, pero consulta indexadores externos
+- Listar los indexadores y sus estadísticas, y revisar el estado y los avisos de salud de Prowlarr
+- Probar un indexador o todos (`test`, `test-all`)
+- Activar, desactivar o eliminar un indexador (modifica estado)
+- Listar las aplicaciones conectadas y lanzar la sincronización de indexadores hacia ellas (modifica estado)
+- Consultar las últimas entradas del log (solo lectura)
 
 ## Configuración
 
-Las credenciales se guardan en `~/.claude/plex-crew/.env`:
+Añade las credenciales a `~/.claude/plex-crew/.env`:
 
 ```bash
 PROWLARR_URL="http://localhost:9696"
 PROWLARR_API_KEY="your-api-key"
 ```
 
-Obtén tu clave de API en: Prowlarr → Settings → General → Security → API Key
+- `PROWLARR_URL`: URL de Prowlarr con el puerto (9696 por defecto); se quita una barra final
+- `PROWLARR_API_KEY`: clave de API, en Prowlarr → Settings → General → Security → API Key
+- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno; las variables ya exportadas tienen prioridad
+- `PROWLARR_MAX_TIME`: opcional, segundos máximos de cada petición (30 por defecto)
+- `PROWLARR_TESTALL_MAX_TIME`: opcional, segundos máximos solo de `test-all` (120 por defecto, o `PROWLARR_MAX_TIME` si está definida)
 
 ## Ejecución del script
 
-El script está en `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/`. Los ejemplos usan la ruta absoluta, así que no alteran el directorio de trabajo de la sesión:
+El script está en `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh`. Llámalo siempre con esa ruta y con `bash`, sin cambiar el directorio de trabajo de la sesión. Necesita `curl` y `jq`. Hasta `help` exige credenciales cargadas.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 22.04"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" help
 ```
 
----
+## Comandos
 
-## Referencia rápida
+`logs` y `help` imprimen texto; el resto, JSON. Sin comando, o con `help`, `-h` o `--help`, se muestra la ayuda por stdout (código 0). Un comando desconocido imprime `ERROR: comando desconocido: <x>` y `Usa: prowlarr-api.sh help` por stderr y termina con 1. Cualquier argumento no válido (id ausente o no numérico, opción sin valor, número mal formado, búsqueda sin texto) imprime `ERROR:` y `Uso:` por stderr y termina con 1, sin llamar a Prowlarr. Si no se puede contactar con Prowlarr: `ERROR: no se pudo contactar con Prowlarr en <URL>` (código 1). Si Prowlarr responde con un HTTP que no es 2xx: `ERROR: <MÉTODO> <ruta> respondió HTTP <código>` y, si hay, `: <mensaje>` (código 1).
 
-### Buscar releases
+| Comando | Modifica estado | Confirmación |
+|---------|-----------------|--------------|
+| `search`, `tv-search`, `movie-search`, `indexers`, `stats`, `apps`, `status`, `health`, `logs` | No | Ninguna |
+| `test`, `test-all` | No persistente | Ninguna; avisa de que `test-all` puede tardar hasta 120 s |
+| `enable` | Sí | Confirma con el usuario |
+| `disable` | Sí | Confirma con el usuario |
+| `sync` | Sí | Confirma con el usuario |
+| `delete` | Sí, permanente | Doble confirmación y `PLEX_CREW_CONFIRMED=1` |
+
+### Buscar por texto
+
+Solo lectura; consulta indexadores externos, así que respeta sus límites de peticiones.
 
 ```bash
-# Búsqueda básica en todos los indexadores
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 22.04"
-
-# Buscar solo torrents
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu" --torrents
-
-# Buscar solo usenet
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu" --usenet
-
-# Buscar en categorías concretas (2000=Películas, 5000=TV, 3000=Audio, 7000=Libros)
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "inception" --category 2000
-
-# Búsqueda de series con TVDB ID
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" tv-search --tvdb 71663 --season 1 --episode 1
-
-# Búsqueda de películas con IMDB ID
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0111161
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 22.04"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "inception" --category 2000 --torrents --limit 10
 ```
+
+Opciones: `--torrents` (solo indexadores torrent), `--usenet` (solo usenet; gana la última de las dos), `--category` o `-c <ids>` (categorías Newznab/Torznab, ver la tabla más abajo), `--limit` o `-l <n>` (entero) y `--type` o `-t <tipo>` (no documentada en la ayuda; por defecto `search`).
+
+**Salida:** un array JSON con objetos de claves `title`, `indexer`, `size` (cadena `"1536 MB"`), `seeders`, `leechers`, `age` (días, como lo da Prowlarr), `downloadUrl` e `infoUrl`. Sin texto de búsqueda: `ERROR: falta el texto de búsqueda` y el uso (código 1). La consulta es la primera palabra, salvo que empiece por `--`; entonces es la primera palabra suelta entre las opciones. Entrecomilla el texto.
+
+Para películas y series usa mejor los dos comandos siguientes: con Torrentio, el texto libre devuelve un título fijo (ver la skill `arr-language-filters`).
+
+### Buscar un episodio
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" tv-search --tvdb 71663 --season 1 --episode 1
+```
+
+**Salida:** array JSON con `title`, `indexer`, `size`, `seeders`, `age` y `downloadUrl` (sin `leechers` ni `infoUrl`). Sin ninguna de las tres opciones: `ERROR: falta al menos --tvdb` y el uso (código 1). Opciones y palabras desconocidas se ignoran.
+
+### Buscar una película
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0111161
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --tmdb 278
+```
+
+**Salida:** igual que `tv-search`. Sin `--imdb` ni `--tmdb`: `ERROR: falta --imdb o --tmdb` y el uso (código 1).
 
 ### Listar indexadores
 
 ```bash
-# Todos los indexadores
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" indexers
-
-# Con detalles de estado
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" indexers --verbose
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" indexers
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" indexers --verbose
 ```
 
-### Estado y estadísticas de los indexadores
+**Salida:** array JSON `[{id, name, protocol, enabled, priority}]`. Con `--verbose` (o `-v`), el JSON completo de Prowlarr sin transformar; incluye los campos de configuración de cada indexador (pueden contener claves o cookies de trackers: no los pegues en el chat).
+
+### Estadísticas
 
 ```bash
-# Estadísticas de uso por indexador
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" stats
-
-# Probar todos los indexadores (timeout 120 s; devuelve rc 1 y lista los que fallan)
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test-all
-
-# Probar un indexador concreto
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test <indexer-id>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" stats
 ```
 
-### Gestión de indexadores
+**Salida:** array JSON `[{name, queries, grabs, failures, avgResponseTime}]`.
+
+### Probar indexadores
+
+`test` y `test-all` no cambian la configuración, pero lanzan consultas reales a los indexadores. Avisa de que `test-all` puede tardar hasta 120 s.
 
 ```bash
-# Activar o desactivar un indexador
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" enable <indexer-id>
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" disable <indexer-id>
-
-# Eliminar un indexador
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" delete <indexer-id>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test-all
 ```
 
-### Sincronización con apps
+**Salida de `test`:** `{"status": "ok", "indexer": "5", "tested": true}` (código 0). Si falla, `ERROR: POST /indexer/test respondió HTTP 400: <mensaje>` y la línea `{"status": "error", "indexer": "5", "tested": false}` por stderr (código 1).
+
+**Salida de `test-all`:** `{"status": "ok", "tested": 3, "failed": 0}` (código 0). Con fallos, por stderr `ERROR: indexers con fallo:` seguido de un array JSON `[{id, name, errors}]`, y por stdout `{"status": "error", "tested": 3, "failed": 1}` (código 1). Si la respuesta no es un array: `ERROR: respuesta inesperada de Prowlarr en testall`.
+
+### Activar o desactivar un indexador
+
+**Modifica estado: confirma con el usuario antes de activar o desactivar.** Al desactivar, el indexador deja de usarse y, tras la siguiente sincronización, desaparece de Radarr y Sonarr.
 
 ```bash
-# Sincronizar indexadores con Sonarr/Radarr/etc
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" sync
-
-# Listar las apps conectadas
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" apps
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" disable 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" enable 5
 ```
 
-### Sistema
+**Salida:** `{"status": "ok", "indexer": "5", "enabled": false}` (o `true`). Id ausente o no numérico: `ERROR: falta id` o `ERROR: id debe ser un número entero: <valor>` y `Uso: prowlarr-api.sh disable <id>` (código 1). El hook `confirm-destructive` no cubre estos dos comandos: la confirmación es solo responsabilidad tuya.
+
+### Eliminar un indexador
+
+**Destructivo y permanente** (borra el indexador y su configuración). Según la skill `plex-crew-rules`, exige doble confirmación del usuario en dos mensajes distintos y anteponer `PLEX_CREW_CONFIRMED=1` al comando; el hook `confirm-destructive` bloquea cualquier `prowlarr-api.sh delete` sin ese marcador. Si solo hace falta que no se use, propón `disable`.
 
 ```bash
-# Estado del sistema
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
-
-# Comprobación de salud
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" health
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" delete 5
 ```
 
+**Salida:** `{"status": "ok", "indexer": "5", "deleted": true}` (código 0).
 
-### Logs (solo lectura)
+### Aplicaciones y sincronización
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs                       # últimas 50 entradas
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 20 --level warn       # últimas 20 con nivel warn o superior
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 100 --grep flaresolverr
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs --files               # lista los ficheros de log
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" apps
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" sync
 ```
 
-Comando de **solo lectura** (`GET /api/v1/log` y `/api/v1/log/file`): no modifica nada y el hook `confirm-destructive` no lo bloquea. `N` va de 1 a 1000 (50 por defecto); `--level` acepta `trace|debug|info|warn|error|fatal`. Con `--grep` se examinan hasta `N*20` entradas (máx. 1000).
+**Salida de `apps`:** array JSON `[{id, name, syncLevel, implementation}]`.
 
-**Salida:** texto, una línea por entrada en orden cronológico: `tiempo  NIVEL  logger  mensaje` (primera línea, máx. 200 caracteres; `apikey=`/`token=` enmascarados). Nunca imprime claves ni cabeceras. Si el servicio no expone el endpoint, imprime `ERROR: ...` y devuelve rc 1.
+**`sync` modifica estado: confirma con el usuario antes de sincronizar.** Empuja la configuración de indexadores a todas las aplicaciones conectadas (Sonarr, Radarr...) y puede añadir o quitar indexadores allí. **Salida:** primero el cuerpo de la respuesta de Prowlarr tal cual (el comando en cola) y después la línea `{"status": "ok", "message": "Syncing indexers to applications"}`. No espera a que termine la sincronización.
 
----
+### Estado y salud
 
-## Categorías de búsqueda
-
-| ID | Categoría |
-|----|----------|
-| 2000 | Películas |
-| 5000 | TV |
-| 3000 | Audio |
-| 7000 | Libros |
-| 1000 | Consolas |
-| 4000 | PC |
-| 6000 | XXX |
-
-Subcategorías: 2010 (Movies/Foreign), 2020 (Movies/Other), 2030 (Movies/SD), 2040 (Movies/HD), 2045 (Movies/UHD), 2050 (Movies/BluRay), 2060 (Movies/3D), 5010 (TV/WEB-DL), 5020 (TV/Foreign), 5030 (TV/SD), 5040 (TV/HD), 5045 (TV/UHD), etc.
-
----
-
-## Casos de uso habituales
-
-**"Busca la última ISO de Ubuntu"**
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 24.04"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" health
 ```
 
-**"Encuentra Game of Thrones S01E01"**
+**Salida de `status`:** el JSON de `/system/status` sin transformar (versión, sistema operativo, rama...). **Salida de `health`:** array JSON `[{source, type, message}]`; `[]` si no hay avisos.
+
+### Consultar el log
+
+Solo lectura.
+
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" tv-search --tvdb 121361 --season 1 --episode 1
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 20 --level warn
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 100 --grep "indexer"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs --files
 ```
 
-**"Busca Inception en 4K"**
-```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "inception 2160p" --category 2045
-```
+Opciones, en cualquier orden:
+- `N`: número de entradas, entero de 1 a 1000 (50 por defecto)
+- `--level <nivel>`: `trace`, `debug`, `info`, `warn`, `error` o `fatal` (admite mayúsculas); se envía a Prowlarr, que lo aplica según el nivel
+- `--grep <texto>`: solo entradas cuyo mensaje o logger contiene el texto, sin distinguir mayúsculas
+- `--files`: lista los ficheros de log; ignora `N`, `--level` y `--grep`
 
-**"Comprueba si mis indexadores funcionan bien"**
-```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" stats
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test-all
-```
+**Salida:** una línea por entrada, la más antigua primero: `<time>  <NIVEL>  <logger>  <mensaje>` (separadores de dos espacios; `?` si falta time o logger; nivel en mayúsculas y de 5 letras como máximo). Del mensaje solo se muestra la primera línea, con los valores de `apikey`, `api_key`, `token`, `passkey`, `password` y `secret` en pares `clave=valor` sustituidos por `***`, truncada a 200 caracteres más `...`. Con `--files`: `<lastWriteTime>  <filename>` por fichero. Argumentos no válidos imprimen `ERROR:` (y el uso, salvo en un nivel no válido) por stderr y terminan con 1 antes de llamar a Prowlarr; si el servicio no expone `/log`: `ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)`.
 
-**"Envía los cambios de indexadores a Sonarr/Radarr"**
-```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" sync
-```
+## Categorías Newznab/Torznab
 
-## Flujo de trabajo
+Para `--category`; admite varias separadas por coma.
 
-Cuando el usuario pregunte por indexadores o búsquedas:
+| Id | Categoría | Subcategorías habituales |
+|----|-----------|--------------------------|
+| 1000 | Consolas | |
+| 2000 | Películas | 2040 HD, 2045 UHD, 2050 BluRay |
+| 3000 | Audio | 3010 MP3, 3040 Lossless |
+| 4000 | PC | 4050 Juegos |
+| 5000 | TV | 5040 HD, 5045 UHD, 5070 Anime |
+| 6000 | XXX | |
+| 7000 | Libros | |
 
-1. **"Busca un torrent"** → Ejecuta `search "<query>"` y presenta los resultados con enlaces de descarga
-2. **"Encuentra Breaking Bad S01E01"** → Ejecuta `tv-search --tvdb <id> --season 1 --episode 1`
-3. **"¿Qué indexadores funcionan?"** → Ejecuta `stats` para mostrar el estado y el uso de los indexadores
-4. **"Prueba todos mis indexadores"** → Ejecuta `test-all` para verificar la conectividad
-5. **"Sincroniza los indexadores con Sonarr"** → Ejecuta `sync` para enviar los cambios de configuración
-6. **"Lista los indexadores disponibles"** → Ejecuta `indexers` o `indexers --verbose`
+## Casos de uso
+
+1. **Buscar una ISO:** `search "ubuntu 22.04" --torrents`
+2. **Un episodio concreto:** `tv-search --tvdb 71663 --season 1 --episode 1`
+3. **Película en 4K:** `movie-search --imdb tt0111161` y filtra el resultado con `jq` por `2160p` en `title`; o `search "título" --category 2045`
+4. **Comprobar los indexadores:** `health`, `stats` (consultas y fallos) y `test-all`; si uno falla, `test <id>`
+5. **Quitar un indexador roto de Radarr y Sonarr:** `disable <id>` (tras confirmar) y `sync` (tras confirmar)
 
 ## Notas
 
-- Requiere acceso de red a tu servidor Prowlarr
-- Usa la API v1 de Prowlarr
-- Todas las operaciones de datos devuelven JSON
-- **Las búsquedas consultan indexadores externos**: respeta los límites de peticiones
-- **Eliminar un indexador es permanente**: confirma siempre antes de borrarlo
-- Las sincronizaciones envían la configuración de los indexadores a todas las apps conectadas (Sonarr, Radarr, Lidarr, etc.)
-- Los IDs de categoría siguen los estándares Newznab/Torznab
+- Nunca imprimas `PROWLARR_API_KEY` ni uses `curl` con la clave en línea: usa siempre el script, que pasa la clave y los cuerpos de indexador por stdin de curl para que no salgan en `ps`.
+- Timeouts: 10 s de conexión y 30 s en total por petición (`PROWLARR_MAX_TIME`); `test-all` 120 s (`PROWLARR_TESTALL_MAX_TIME`). Sin reintentos.
+- El usuario trabaja en Europe/Madrid (regla global en `plex-crew-rules`).
 
----
+### Limitaciones conocidas
 
-## 🔧 Requisitos de uso de herramientas del agente
+- `help` y cualquier comando exigen credenciales cargadas.
+- `enable` y `disable` reenvían la definición completa del indexador leída de Prowlarr, cambiando solo `enable`; Prowlarr puede rechazarla (HTTP 400) si el indexador tiene errores de validación.
+- `test` solo informa de ok o error; el motivo detallado solo aparece si Prowlarr lo devuelve en el mensaje HTTP.
+- `sync` imprime el cuerpo de la respuesta y después el mensaje de éxito; no espera a que acabe la sincronización ni comprueba su resultado.
+- `delete` no pide confirmación por sí mismo (solo el hook); `enable`, `disable` y `sync` ni siquiera pasan por el hook.
+- No hay comandos para añadir o editar indexadores, aplicaciones, clientes de descarga, etiquetas ni notificaciones, ni para ver el historial.
+- `tv-search` acepta cualquier combinación de opciones y solo falla si no se da ninguna: con `--season` o `--episode` sin `--tvdb` hace una consulta sin id.
+- `--imdb` y `--category` no se validan; se envían tal cual (`--category` admite lo que acepte Prowlarr, ids numéricos de Newznab/Torznab).
+- En las búsquedas, si un resultado tiene `size` nulo, `jq` falla. Los resultados no se ordenan y, sin `--limit`, pueden ser muy largos. `age` va en días.
+- `search`: si la primera palabra empieza por `--` no se toma como consulta; las palabras sueltas posteriores a la consulta se ignoran.
+- `logs`: el enmascarado solo cubre pares `clave=valor` con las seis claves indicadas (no JSON, cabeceras ni `Bearer`); `--grep` compara con el texto sin enmascarar y solo ve las `min(N*20, 1000)` entradas más recientes; solo se muestra la primera línea de cada mensaje.
+- `test-all` puede tardar hasta 120 s; si Prowlarr tarda más, falla con el mensaje de conexión, indistinguible de un servicio caído. Las llamadas no distinguen la causa de un fallo de curl; solo los fallos HTTP informan del código.
+- Solo se quita una barra final de `PROWLARR_URL`.
 
-**CRÍTICO:** al invocar scripts de esta skill mediante la zsh-tool, **USA SIEMPRE `pty: true`**.
+## Referencia
 
-Sin el modo PTY, la salida de los comandos no será visible aunque se ejecuten correctamente.
+- [Wiki de Prowlarr](https://wiki.servarr.com/prowlarr)
+- [API de Prowlarr](https://prowlarr.com/docs/api/)
 
-**Patrón de invocación correcto:**
-```typescript
-<invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">"${CLAUDE_PLUGIN_ROOT}/skills/SKILL_NAME/scripts/SCRIPT.sh" [args]</parameter>
-<parameter name="pty">true</parameter>
-</invoke>
-```
+Para la referencia local detallada, consulta:
+- **[Endpoints de la API](./references/api-endpoints.md)** - Comando del script, método, ruta y parámetros
+- **[Referencia rápida](./references/quick-reference.md)** - Configuración y ejemplos para copiar y pegar
+- **[Resolución de problemas](./references/troubleshooting.md)** - Autenticación, conexión y uso

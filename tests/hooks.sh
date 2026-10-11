@@ -96,6 +96,7 @@ c deny "sonarr.sh remove" "$T" "bash skills/sonarr/scripts/sonarr.sh remove 8118
 c deny "sonarr.sh remove --delete-files" "$T" "bash skills/sonarr/scripts/sonarr.sh remove 81189 --delete-files"
 c pasa "sonarr.sh remove con marcador" "$T" "PLEX_CREW_CONFIRMED=1 bash skills/sonarr/scripts/sonarr.sh remove 81189"
 c deny "prowlarr-api.sh delete" "$T" "prowlarr-api.sh delete 3"
+c pasa "prowlarr-api.sh delete con marcador" "$T" "PLEX_CREW_CONFIRMED=1 bash skills/prowlarr/scripts/prowlarr-api.sh delete 3"
 c deny "arr_delete" "$T" "source skills/_lib/arr-api.sh; arr_delete radarr movie/1"
 c pasa "rm fuera de las raíces" "$T" "rm -rf $O/z"
 c pasa "ls" "$T" "ls -la $R"

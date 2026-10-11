@@ -1,410 +1,87 @@
 # Referencia rápida de Prowlarr
 
-Operaciones habituales para copiar y pegar.
-
 ## Configuración
 
-Añade a `~/.claude/plex-crew/.env`:
-
 ```bash
+# ~/.claude/plex-crew/.env
 PROWLARR_URL="http://localhost:9696"
-PROWLARR_API_KEY="your-api-key"
+PROWLARR_API_KEY="<your_api_key>"
+# Opcional: HOMELAB_ENV=/ruta/a/otro/.env
+# Opcional: PROWLARR_MAX_TIME=30
+# Opcional: PROWLARR_TESTALL_MAX_TIME=120
 ```
-
-Los ejemplos siguientes usan estas variables de entorno.
-
-## Información del sistema
-
-### Obtener el estado del sistema
 
 ```bash
-curl -s "$PROWLARR_URL/api/v1/system/status" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq
+PR="${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh"
 ```
 
-## Gestión de indexadores
-
-### Obtener todos los indexadores
+## Comandos del script
 
 ```bash
-curl -s "$PROWLARR_URL/api/v1/indexer" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.[] | {id, name, enable, protocol}'
+bash "$PR" help
+# Búsqueda (solo lectura)
+bash "$PR" search "ubuntu 22.04"
+bash "$PR" search "inception" --category 2000 --torrents --limit 10
+bash "$PR" tv-search --tvdb 71663 --season 1 --episode 1
+bash "$PR" movie-search --imdb tt0111161
+bash "$PR" movie-search --tmdb 278
+# Consulta
+bash "$PR" indexers
+bash "$PR" indexers --verbose
+bash "$PR" stats
+bash "$PR" apps
+bash "$PR" status
+bash "$PR" health
+bash "$PR" logs
+bash "$PR" logs 20 --level warn --grep "indexer"
+bash "$PR" logs --files
+# Pruebas (consultan indexadores externos; test-all puede tardar hasta 120 s)
+bash "$PR" test 5
+bash "$PR" test-all
+# Modifican estado: confirma con el usuario antes
+bash "$PR" disable 5
+bash "$PR" enable 5
+bash "$PR" sync
+# Destructivo: doble confirmación y PLEX_CREW_CONFIRMED=1 (plex-crew-rules)
+PLEX_CREW_CONFIRMED=1 bash "$PR" delete 5
 ```
 
-### Obtener un indexador por ID
+## Filtros con jq
 
 ```bash
-curl -s "$PROWLARR_URL/api/v1/indexer/1" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq
+bash "$PR" search "ubuntu" | jq -r '.[] | "\(.seeders)\t\(.size)\t\(.title)"'
+bash "$PR" search "ubuntu" | jq 'sort_by(-.seeders) | .[0:5]'
+bash "$PR" indexers | jq -r '.[] | select(.enabled | not) | "\(.id) \(.name)"'
+bash "$PR" stats | jq -r '.[] | select(.failures > 0) | "\(.name): \(.failures) fallos"'
 ```
 
-### Obtener el esquema de indexadores (indexadores disponibles)
+## Categorías habituales
+
+| Id | Categoría |
+|----|-----------|
+| 2000 | Películas (2040 HD, 2045 UHD, 2050 BluRay) |
+| 5000 | TV (5040 HD, 5045 UHD, 5070 Anime) |
+| 3000 | Audio |
+| 4000 | PC |
+| 7000 | Libros |
+
+## curl directo (sin clave literal)
+
+Prefiere siempre el script. Si necesitas curl, usa las variables y no imprimas la clave; ten en cuenta que así la clave sí queda visible en `ps`:
 
 ```bash
-curl -s "$PROWLARR_URL/api/v1/indexer/schema" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.[] | {implementationName, protocol}'
+curl -s -H "X-Api-Key: $PROWLARR_API_KEY" "$PROWLARR_URL/api/v1/system/status" | jq '.version'
 ```
 
-### Añadir un indexador
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/indexer" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "1337x",
-    "implementationName": "1337x",
-    "implementation": "1337x",
-    "configContract": "1337xSettings",
-    "protocol": "torrent",
-    "priority": 25,
-    "enable": true,
-    "fields": []
-  }'
-```
-
-### Actualizar un indexador
-
-```bash
-curl -X PUT "$PROWLARR_URL/api/v1/indexer/1" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1,
-    "enable": false
-  }'
-```
-
-### Probar un indexador
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/indexer/test" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1
-  }'
-```
-
-### Eliminar un indexador
-
-```bash
-curl -X DELETE "$PROWLARR_URL/api/v1/indexer/1" \
-  -H "X-Api-Key: $PROWLARR_API_KEY"
-```
-
-## Búsqueda
-
-### Buscar en todos los indexadores
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/search?query=ubuntu&type=search" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.[] | {title, indexer, seeders, size}'
-```
-
-### Buscar en un indexador concreto
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/search?query=ubuntu&indexerIds=1" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq
-```
-
-### Búsqueda de películas (TMDB)
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/search?query=inception&type=movie&tmdbId=27205" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq
-```
-
-### Búsqueda de series (TVDB)
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/search?query=breaking%20bad&type=tvsearch&tvdbId=81189" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq
-```
-
-## Aplicaciones (sincronización con Sonarr/Radarr)
-
-### Obtener todas las aplicaciones
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/applications" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.[] | {id, name, implementation, syncLevel}'
-```
-
-### Añadir una aplicación (Sonarr)
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/applications" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Sonarr",
-    "implementation": "Sonarr",
-    "configContract": "SonarrSettings",
-    "syncLevel": "fullSync",
-    "fields": [
-      {"name": "baseUrl", "value": "http://sonarr:8989"},
-      {"name": "apiKey", "value": "SONARR_API_KEY"},
-      {"name": "syncCategories", "value": [5000, 5030, 5040]}
-    ]
-  }'
-```
-
-### Añadir una aplicación (Radarr)
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/applications" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Radarr",
-    "implementation": "Radarr",
-    "configContract": "RadarrSettings",
-    "syncLevel": "fullSync",
-    "fields": [
-      {"name": "baseUrl", "value": "http://radarr:7878"},
-      {"name": "apiKey", "value": "RADARR_API_KEY"},
-      {"name": "syncCategories", "value": [2000, 2040, 2050]}
-    ]
-  }'
-```
-
-### Probar una aplicación
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/applications/test" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1
-  }'
-```
-
-### Sincronizar las aplicaciones
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/command" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "ApplicationSync"
-  }'
-```
-
-## Clientes de descarga
-
-### Obtener todos los clientes de descarga
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/downloadclient" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.[] | {id, name, implementation, protocol}'
-```
-
-### Añadir un cliente de descarga (qBittorrent)
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/downloadclient" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "qBittorrent",
-    "implementation": "QBittorrent",
-    "configContract": "QBittorrentSettings",
-    "protocol": "torrent",
-    "fields": [
-      {"name": "host", "value": "qbittorrent"},
-      {"name": "port", "value": 8080},
-      {"name": "username", "value": "admin"},
-      {"name": "password", "value": "adminpass"}
-    ]
-  }'
-```
-
-## Estadísticas
-
-### Obtener las estadísticas de los indexadores
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/indexerstats" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.indexers[] | {indexerName, averageResponseTime, numberOfQueries, numberOfGrabs}'
-```
-
-## Historial
-
-### Obtener el historial reciente
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/history?page=1&pageSize=20" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.records[] | {date, eventType, indexer: .indexer.name}'
-```
-
-### Obtener el historial por indexador
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/history?indexerId=1" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq
-```
-
-## Etiquetas
-
-### Obtener todas las etiquetas
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/tag" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq
-```
-
-### Crear una etiqueta
-
-```bash
-curl -X POST "$PROWLARR_URL/api/v1/tag" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "label": "public-trackers"
-  }'
-```
-
-## Notificaciones
-
-### Obtener todas las notificaciones
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/notification" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | jq '.[] | {id, name, implementation}'
-```
-
-## Flujos de trabajo
-
-### Flujo de trabajo: añadir un indexador y sincronizarlo con las aplicaciones
-
-1. **Obtener los esquemas de indexadores disponibles:**
-   ```bash
-   curl -s "$PROWLARR_URL/api/v1/indexer/schema" \
-     -H "X-Api-Key: $PROWLARR_API_KEY" | \
-     jq '.[] | select(.implementationName == "1337x")'
-   ```
-
-2. **Añadir el indexador:**
-   ```bash
-   curl -X POST "$PROWLARR_URL/api/v1/indexer" \
-     -H "X-Api-Key: $PROWLARR_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "name": "1337x",
-       "implementationName": "1337x",
-       "implementation": "1337x",
-       "configContract": "1337xSettings",
-       "protocol": "torrent",
-       "priority": 25,
-       "enable": true,
-       "fields": []
-     }' | jq '.id'
-   ```
-
-3. **Sincronizar con las aplicaciones:**
-   ```bash
-   curl -X POST "$PROWLARR_URL/api/v1/command" \
-     -H "X-Api-Key: $PROWLARR_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "ApplicationSync"}'
-   ```
-
-### Flujo de trabajo: probar todos los indexadores
-
-```bash
-curl -s "$PROWLARR_URL/api/v1/indexer" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | \
-  jq -r '.[].id' | \
-  while read indexer_id; do
-    echo "Testing indexer ID $indexer_id"
-    curl -X POST "$PROWLARR_URL/api/v1/indexer/test" \
-      -H "X-Api-Key: $PROWLARR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d "{\"id\": $indexer_id}" 2>&1 | \
-      grep -q "200" && echo "  ✓ Passed" || echo "  ✗ Failed"
-    sleep 1
-  done
-```
-
-### Flujo de trabajo: deshabilitar todos los indexadores con fallos
-
-```bash
-# Obtener las estadísticas de los indexadores y deshabilitar los que tengan errores
-curl -s "$PROWLARR_URL/api/v1/indexerstats" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | \
-  jq -r '.indexers[] | select(.numberOfFailures > 5) | .indexerId' | \
-  while read indexer_id; do
-    echo "Disabling indexer ID $indexer_id due to failures"
-
-    # Obtener la configuración actual del indexador
-    indexer=$(curl -s "$PROWLARR_URL/api/v1/indexer/$indexer_id" \
-      -H "X-Api-Key: $PROWLARR_API_KEY")
-
-    # Actualizar para deshabilitarlo
-    echo "$indexer" | jq '.enable = false' | \
-    curl -X PUT "$PROWLARR_URL/api/v1/indexer/$indexer_id" \
-      -H "X-Api-Key: $PROWLARR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d @-
-  done
-```
-
-### Flujo de trabajo: importación masiva de indexadores desde una lista
-
-```bash
-# Ejemplo: importar varios trackers públicos
-INDEXERS=("1337x" "EZTV" "ThePirateBay" "RARBG")
-
-for indexer_name in "${INDEXERS[@]}"; do
-  echo "Adding $indexer_name"
-
-  curl -X POST "$PROWLARR_URL/api/v1/indexer" \
-    -H "X-Api-Key: $PROWLARR_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"name\": \"$indexer_name\",
-      \"implementationName\": \"$indexer_name\",
-      \"implementation\": \"$indexer_name\",
-      \"configContract\": \"${indexer_name}Settings\",
-      \"protocol\": \"torrent\",
-      \"priority\": 25,
-      \"enable\": true,
-      \"fields\": []
-    }"
-
-  sleep 1
-done
-
-# Sincronizar con las aplicaciones
-curl -X POST "$PROWLARR_URL/api/v1/command" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "ApplicationSync"}'
-```
-
-### Flujo de trabajo: comparación de búsquedas entre indexadores
-
-```bash
-QUERY="ubuntu"
-
-# Obtener todos los indexadores habilitados
-indexers=$(curl -s "$PROWLARR_URL/api/v1/indexer" \
-  -H "X-Api-Key: $PROWLARR_API_KEY" | \
-  jq -r '.[] | select(.enable == true) | .id')
-
-# Buscar en cada indexador
-for indexer_id in $indexers; do
-  indexer_name=$(curl -s "$PROWLARR_URL/api/v1/indexer/$indexer_id" \
-    -H "X-Api-Key: $PROWLARR_API_KEY" | jq -r '.name')
-
-  echo "Searching $indexer_name (ID: $indexer_id)"
-
-  results=$(curl -s "$PROWLARR_URL/api/v1/search?query=$QUERY&indexerIds=$indexer_id" \
-    -H "X-Api-Key: $PROWLARR_API_KEY" | jq 'length')
-
-  echo "  Found $results results"
-  echo ""
-done
-```
+## Salidas habituales
+
+| Comando | Salida |
+|---------|--------|
+| `test` | `{"status": "ok", "indexer": "5", "tested": true}` |
+| `test-all` | `{"status": "ok", "tested": 3, "failed": 0}` |
+| `enable` / `disable` | `{"status": "ok", "indexer": "5", "enabled": true}` |
+| `delete` | `{"status": "ok", "indexer": "5", "deleted": true}` |
+| `sync` | Cuerpo de Prowlarr y `{"status": "ok", "message": "Syncing indexers to applications"}` |
+| `logs` | `2026-01-03T10:00:03Z  WARN  Indexer  mensaje` |
+
+Códigos de salida: 0 correcto; 1 error de uso, fallo de conexión, HTTP no 2xx, o `test` y `test-all` con indexador fallido.

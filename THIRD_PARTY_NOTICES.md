@@ -1,8 +1,10 @@
 # Avisos de terceros
 
+Ninguna skill vigente contiene ya código de terceros; este aviso se conserva solo por el historial de git.
+
 ## jmagar/claude-homelab
 
-La skill `prowlarr` (carpeta `skills/prowlarr/`) es una copia adaptada de la del repositorio https://github.com/jmagar/claude-homelab, distribuido bajo la licencia MIT. Las adaptaciones son propias de este proyecto y no cuentan con el respaldo del autor original.
+Lista de skills vigentes con código de este origen: ninguna. Versiones anteriores de la skill `prowlarr` eran una copia adaptada de https://github.com/jmagar/claude-homelab, distribuido bajo la licencia MIT.
 
 ```
 MIT License

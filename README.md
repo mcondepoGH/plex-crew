@@ -102,20 +102,13 @@ Las URL del `.env` van sin barra final (`http://host:puerto`).
 
 ## Skills
 
-Cada skill tiene su `README.md` con el detalle. Todas siguen la misma estructura que las de [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español, salvo los `references/` de la skill de jmagar (`prowlarr`), que sigue en inglés (`plex`, `tautulli`, `sonarr` y `radarr` son propias y están todas en español). La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
-
-### Skill de servicio adaptada de jmagar
-
-Adaptada de la skill del repositorio [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) (licencia MIT, ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)). Se han cambiado la carga de credenciales (ahora `skills/_lib/load-env.sh`) y las rutas de ejecución.
-
-| Skill | Servicio | Propósito |
-|---|---|---|
-| [`prowlarr`](skills/prowlarr/README.md) | Prowlarr | Buscar en indexadores y gestionarlos |
+Cada skill tiene su `README.md` con el detalle. Todas son propias, siguen la misma estructura (`SKILL.md`, `README.md`, `scripts/` y `references/`) y su documentación está en español. La guía para crear o revisar skills está en [`skills/README.md`](skills/README.md).
 
 ### Skills propias
 
 | Skill | Tipo | Propósito |
 |---|---|---|
+| [`prowlarr`](skills/prowlarr/README.md) | Servicio | Buscar en indexadores y gestionarlos (reescrita en sala limpia) |
 | [`plex`](skills/plex/README.md) | Servicio | Explorar bibliotecas, buscar y ver sesiones (reescrita en sala limpia) |
 | [`tautulli`](skills/tautulli/README.md) | Servicio | Estadísticas y actividad de Plex (reescrita en sala limpia) |
 | [`sonarr`](skills/sonarr/README.md) | Servicio | Gestión de series (reescrita en sala limpia) |
@@ -210,7 +203,7 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 ├── CLAUDE.md                  Guía de desarrollo del repositorio (no se carga instalado)
 ├── README.md                  Este índice
 ├── LICENSE                    Licencia MIT
-├── THIRD_PARTY_NOTICES.md     Avisos de terceros (jmagar/claude-homelab)
+├── THIRD_PARTY_NOTICES.md     Aviso histórico de terceros (sin código vigente)
 ├── .env.example              Plantilla de credenciales
 ├── .claude-plugin/            plugin.json y marketplace.json
 ├── settings.json              Agente de sesión por defecto (orchestrator)
@@ -235,4 +228,4 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 
 | Proyecto | Relación |
 |---|---|
-| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Origen de la skill de servicio `prowlarr` |
+| [jmagar/claude-homelab](https://github.com/jmagar/claude-homelab) | Antiguo origen de la skill `prowlarr`, ya reescrita en sala limpia (ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)) |

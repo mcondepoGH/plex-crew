@@ -1,266 +1,123 @@
-# Resolución de problemas de la API de Prowlarr
+# Resolución de problemas de Prowlarr
 
 ## Problemas de autenticación
 
-### "401 Unauthorized"
-**Causa:** Clave de API no válida o ausente
+### "ERROR: GET /system/status respondió HTTP 401"
+**Causa:** la clave de API es incorrecta o ha cambiado
 
 **Solución:**
-1. Obtén la clave de API en Settings → General → Security → API Key
-2. Verifica la clave en la petición: `curl -v "$PROWLARR_URL/api/v1/system/status" -H "X-Api-Key: $KEY"`
-3. Comprueba que no haya espacios ni caracteres de más en la clave
-4. Asegúrate de que el nombre de la cabecera sea `X-Api-Key` (distingue mayúsculas y minúsculas)
+1. Copia la clave de Prowlarr → Settings → General → Security → API Key
+2. Actualiza `PROWLARR_API_KEY` en `~/.claude/plex-crew/.env`
+3. Comprueba que no hay espacios ni comillas de más
+4. Si has exportado la variable en la shell, recuerda que tiene prioridad sobre el fichero
 
-### "403 Forbidden"
-**Causa:** Endpoint de la API deshabilitado o restringido
+### "faltan variables en el .env"
+**Causa:** `PROWLARR_URL` o `PROWLARR_API_KEY` no están exportadas ni figuran en el fichero de entorno (incluso `help` las exige)
 
 **Solución:**
-1. Settings → General → Security → Authentication
-2. Asegúrate de que "Authentication" no esté configurado como "Disabled"
-3. Comprueba si el acceso a la API está restringido por dirección IP
+1. Comprueba que el fichero existe: `ls -la ~/.claude/plex-crew/.env`
+2. Comprueba las variables: `grep -c PROWLARR ~/.claude/plex-crew/.env`
+3. Para usar otro fichero, exporta `HOMELAB_ENV=/ruta/.env`
 
 ## Problemas de conexión
 
-### "ECONNREFUSED" o tiempo de espera agotado
-**Causa:** Prowlarr no está en ejecución o el puerto es incorrecto
+### "ERROR: no se pudo contactar con Prowlarr en <URL>"
+**Causa:** Prowlarr no está en marcha, la URL o el puerto son incorrectos, o la petición superó el timeout (10 s de conexión y 30 s en total; 120 s en `test-all`). El mensaje no distingue la causa
 
 **Solución:**
-1. Comprueba el servicio: `curl http://localhost:9696/api/v1/system/status`
-2. Verifica el puerto en Settings → General → Port (por defecto: 9696)
-3. Revisa los registros de Docker: `docker logs prowlarr`
-4. Verifica la URL base si está configurada: `/api/v1` pasa a ser `/<urlbase>/api/v1`
+1. Comprueba que la URL incluye el puerto (9696 por defecto)
+2. Prueba el acceso: `curl -s -o /dev/null -w '%{http_code}\n' "$PROWLARR_URL/ping"`
+3. Revisa que el contenedor o servicio de Prowlarr está activo
+4. Si solo falla `test-all` o una búsqueda lenta, amplía el tiempo con `PROWLARR_TESTALL_MAX_TIME` o `PROWLARR_MAX_TIME` (en segundos)
 
-### "SSL certificate problem"
-**Causa:** Certificado SSL no válido o autofirmado
-
-**Solución:**
-1. Usa la opción `-k` para pruebas: `curl -k https://...`
-2. Instala un certificado SSL adecuado o usa HTTP para pruebas locales
-3. Añade el certificado al almacén de confianza del sistema
-
-## Problemas de indexadores
-
-### "404 Not Found" al añadir un indexador
-**Causa:** Nombre de implementación del indexador no válido
+### "Not Found" o rutas con `//api`
+**Causa:** `PROWLARR_URL` termina en más de una barra, o Prowlarr usa una ruta base (URL Base) que falta en la URL
 
 **Solución:**
-1. Obtén las implementaciones válidas: `GET /api/v1/indexer/schema`
-2. Usa exactamente `implementation` e `implementationName` del esquema
-3. Revisa la ortografía y las mayúsculas
+1. Deja como máximo una barra final (el script quita solo una)
+2. Si Prowlarr tiene URL Base (Settings → General), inclúyela: `http://host:9696/prowlarr`
 
-### "400 Bad Request" al añadir un indexador
-**Causa:** Faltan campos obligatorios o la configuración no es válida
+## Problemas de uso
 
-**Solución:**
-1. Obtén el esquema del indexador: `GET /api/v1/indexer/schema`
-2. Revisa los campos obligatorios del esquema
-3. Verifica que `configContract` coincida con la implementación
-4. Asegúrate de proporcionar todos los ajustes obligatorios
-
-### Indexador añadido pero no funciona
-**Causa:** Error de configuración o indexador caído
+### "ERROR: id debe ser un número entero" o "ERROR: falta id"
+**Causa:** `test`, `enable`, `disable` y `delete` exigen el id numérico del indexador; falta o contiene otros caracteres
 
 **Solución:**
-1. Prueba el indexador: `POST /api/v1/indexer/test` con `{"id": indexer_id}`
-2. Comprueba que la URL del indexador sea accesible
-3. Verifica las credenciales si son necesarias (claves de API, usuario/contraseña)
-4. Revisa los límites de tasa del indexador
-5. Revisa los registros de Prowlarr: Settings → System → Logs
+1. Obtén el id con `indexers` (campo `id`)
+2. Pasa solo dígitos, sin nombre del indexador
 
-### La prueba del indexador falla
-**Causa:** Problemas de conectividad de red o credenciales no válidas
+### "ERROR: GET /indexer/9 respondió HTTP 404"
+**Causa:** el indexador no existe (id equivocado o ya eliminado)
 
 **Solución:**
-1. Prueba la URL del indexador manualmente (navegador o curl)
-2. Verifica la configuración de VPN/proxy si el indexador la requiere
-3. Comprueba la resolución DNS
-4. Verifica que las credenciales sean correctas
-5. Asegúrate de que el indexador admita las llamadas a la API de Prowlarr
+1. Ejecuta `indexers` y usa un `id` de la lista
 
-### Los indexadores no se sincronizan con las aplicaciones
-**Causa:** Aplicación sin configurar o sincronización deshabilitada
+### "ERROR: POST /indexer/test respondió HTTP 400" o un `test` que falla
+**Causa:** Prowlarr rechazó la prueba: credenciales o cookies del tracker caducadas, tracker caído, o la definición del indexador tiene errores de validación. El script solo informa del mensaje HTTP
 
 **Solución:**
-1. Verifica que las aplicaciones estén configuradas: `GET /api/v1/applications`
-2. Comprueba el nivel de sincronización de la aplicación: se requiere `fullSync` para la sincronización automática
-3. Lanza la sincronización manualmente: `POST /api/v1/command` con `{"name": "ApplicationSync"}`
-4. Prueba la conexión de la aplicación: `POST /api/v1/applications/test`
-5. Verifica que las claves de API de las aplicaciones sean correctas
+1. Lee el mensaje que sigue al código
+2. Revisa `logs 20 --level warn --grep "<nombre del indexador>"`
+3. Corrige el indexador desde la interfaz de Prowlarr y repite `test <id>`
 
-## Problemas de búsqueda
-
-### "No results" en las búsquedas
-**Causa:** Indexadores sin configurar o problemas con la consulta
+### "ERROR: PUT /indexer/<id> respondió HTTP 400" al activar o desactivar
+**Causa:** `enable` y `disable` reenvían la definición completa del indexador y Prowlarr la rechaza si tiene errores de validación
 
 **Solución:**
-1. Verifica que los indexadores estén habilitados: `GET /api/v1/indexer`
-2. Prueba los indexadores de uno en uno con `?indexerIds=1`
-3. Comprueba las estadísticas de los indexadores en busca de fallos: `GET /api/v1/indexerstats`
-4. Prueba con términos de búsqueda más amplios
-5. Verifica que los indexadores admitan el tipo de búsqueda (película/serie/música)
+1. Lee el mensaje de validación
+2. Corrige el indexador desde la interfaz de Prowlarr, que es donde se editan
+3. Repite el comando
 
-### Respuestas de búsqueda lentas
-**Causa:** Varios indexadores agotan el tiempo de espera
+### `test-all` indica indexadores con fallo
+**Causa:** `ERROR: indexers con fallo:` y la lista `[{id, name, errors}]` indican qué indexadores no pasaron la prueba y por qué
 
 **Solución:**
-1. Deshabilita los indexadores lentos o averiados
-2. Reduce el número de indexadores consultados
-3. Comprueba la conectividad de red
-4. Revisa las estadísticas de los indexadores: `GET /api/v1/indexerstats`
-5. Aumenta el tiempo de espera en Settings → Indexers → Indexer Timeout
+1. Revisa `errors` de cada uno
+2. Repite con `test <id>` para confirmar
+3. Si el indexador no tiene arreglo, propón `disable <id>` (tras confirmar con el usuario) y `sync`
 
-### Los resultados de búsqueda no muestran seeders/peers
-**Causa:** El indexador no proporciona datos de seeders
+### `sync` no tiene efecto
+**Causa:** `sync` solo encola el comando `ApplicationIndexerSync` y no espera ni comprueba el resultado; la aplicación destino puede estar caída o tener un nivel de sincronización que no aplica el cambio
 
 **Solución:**
-1. Es normal en algunos indexadores
-2. Usa indexadores que proporcionen metadatos completos
-3. Ordena por otros campos (tamaño, fecha de publicación)
+1. Ejecuta `apps` y revisa `syncLevel` de cada aplicación
+2. Ejecuta `health` para ver avisos de aplicaciones no alcanzables
+3. Revisa `logs 30 --grep "sync"`
 
-## Problemas de sincronización de aplicaciones
-
-### Sonarr/Radarr no reciben los indexadores
-**Causa:** Sincronización sin configurar o credenciales incorrectas
+### Una búsqueda devuelve `[]`
+**Causa:** ningún indexador activo tiene resultados para esa consulta, la categoría no encaja, o los indexadores están caídos
 
 **Solución:**
-1. Verifica que la aplicación esté añadida: `GET /api/v1/applications`
-2. Prueba la aplicación: `POST /api/v1/applications/test`
-3. Comprueba que las claves de API coincidan entre Prowlarr y la aplicación
-4. Asegúrate de usar el nivel de sincronización correcto: `fullSync` o `addOnly`
-5. Sincroniza manualmente: `POST /api/v1/command` con `{"name": "ApplicationSync"}`
+1. Comprueba `indexers` (que haya activos), `health` y `stats`
+2. Quita `--category` o prueba otra categoría
+3. Para películas y series, usa `movie-search --imdb` o `tv-search --tvdb`; con Torrentio el texto libre devuelve un título fijo (ver la skill `arr-language-filters`)
 
-### Indexadores duplicados en Sonarr/Radarr
-**Causa:** Indexadores manuales + sincronización de Prowlarr
+### Una búsqueda falla con un error de jq
+**Causa:** algún resultado tiene `size` nulo, o el servicio devolvió algo que no es un array
 
 **Solución:**
-1. Elimina los indexadores manuales de Sonarr/Radarr
-2. Deja que Prowlarr gestione todos los indexadores mediante la sincronización
-3. O deshabilita la sincronización de Prowlarr y gestiónalos manualmente
+1. Repite con `--limit` o con otra consulta
+2. Revisa `health` por si un indexador devuelve respuestas inválidas
 
-### La sincronización con las aplicaciones elimina indexadores
-**Causa:** Indexador deshabilitado o eliminado en Prowlarr
-
-**Solución:**
-1. La sincronización de Prowlarr elimina de las aplicaciones los indexadores deshabilitados
-2. Vuelve a habilitar los indexadores en Prowlarr para restaurarlos en las aplicaciones
-3. Usa el nivel de sincronización `addOnly` para evitar eliminaciones
-
-## Problemas de clientes de descarga
-
-### La prueba del cliente de descarga falla
-**Causa:** Problemas de conexión o de credenciales
+### "ERROR: falta al menos --tvdb" o "ERROR: falta --imdb o --tmdb"
+**Causa:** `tv-search` o `movie-search` sin ningún id
 
 **Solución:**
-1. Verifica que el cliente de descarga esté en ejecución
-2. Comprueba que el host y el puerto sean correctos
-3. Prueba las credenciales manualmente
-4. Asegúrate de que la API del cliente de descarga esté habilitada
-5. Comprueba la conectividad de red (redes de Docker, etc.)
+1. Pasa `--tvdb <id>` o `--imdb <id>` / `--tmdb <id>`
+2. Para texto libre, usa `search "<texto>"`
 
-### Las descargas no se inician desde Prowlarr
-**Causa:** Prowlarr es solo de búsqueda, no un gestor de descargas
+### "ERROR: respuesta inesperada de /log"
+**Causa:** el servicio no expone el endpoint `/log`, o la respuesta no trae `records`
 
 **Solución:**
-1. Prowlarr proporciona resultados de búsqueda a las aplicaciones
-2. Sonarr/Radarr gestionan las descargas reales
-3. Revisa los clientes de descarga en Sonarr/Radarr, no en Prowlarr
-4. Los clientes de descarga de Prowlarr son solo para descargas manuales
+1. Comprueba la versión con `status`
+2. Prueba `logs --files`, que usa otro endpoint
+3. Revisa los logs desde la interfaz de Prowlarr (System → Logs)
 
-## Problemas de categorías
-
-### Se sincronizan categorías incorrectas con las aplicaciones
-**Causa:** Mapeo de categorías mal configurado
+### "ERROR: N debe ser un entero entre 1 y 1000" u otro error de `logs`
+**Causa:** argumento no válido en `logs`: N fuera de rango, opción desconocida, `--level` o `--grep` sin valor, o nivel no válido
 
 **Solución:**
-1. Revisa los ajustes de la aplicación en Prowlarr
-2. Verifica `syncCategories` en la configuración de la aplicación
-3. Categorías estándar:
-   - Películas: 2000-2999
-   - Series: 5000-5999
-   - Música: 3000-3999
-   - Libros: 7000-7999
-4. Actualiza la aplicación: `PUT /api/v1/applications/{id}`
-
-## Problemas de rendimiento
-
-### Uso elevado de CPU
-**Causa:** Demasiados indexadores o búsquedas frecuentes
-
-**Solución:**
-1. Deshabilita los indexadores que no uses
-2. Reduce la frecuencia de sincronización RSS
-3. Aumenta la duración de la caché de búsquedas
-4. Comprueba si hay fallos de indexadores que provoquen reintentos
-
-### Errores de base de datos bloqueada
-**Causa:** Límites de concurrencia de SQLite
-
-**Solución:**
-1. Haz primero una copia de seguridad de la base de datos
-2. Reinicia Prowlarr
-3. Reduce las operaciones concurrentes
-4. Comprueba el rendimiento de E/S del disco
-
-## Problemas del historial
-
-### Faltan entradas del historial
-**Causa:** Limpieza del historial o problema de base de datos
-
-**Solución:**
-1. Revisa los ajustes de retención del historial
-2. El historial solo conserva las entradas recientes
-3. Revisa los registros de la base de datos en busca de errores
-4. Aumenta la retención del historial si es necesario
-
-## Problemas de notificaciones
-
-### Las notificaciones no funcionan
-**Causa:** Servicio de notificaciones mal configurado
-
-**Solución:**
-1. Prueba la notificación: `POST /api/v1/notification/test`
-2. Verifica las credenciales del servicio de notificaciones
-3. Comprueba que los disparadores de notificación estén habilitados
-4. Revisa los registros del servicio de notificaciones
-
-## Limitaciones conocidas
-
-- **Solo búsqueda:** Prowlarr no descarga contenido, solo proporciona resultados de búsqueda
-- **Específico de cada indexador:** Algunos indexadores tienen requisitos propios (VPN, credenciales)
-- **Límites de tasa:** Muchos indexadores tienen límites de tasa (respétalos)
-- **Sin búsqueda masiva:** Busca una consulta cada vez mediante la API
-- **Límites de categorías:** No todos los indexadores admiten todas las categorías
-
-## Problemas específicos de versión
-
-### API v1 (actual)
-- API estable desde la v1.0
-- Los cambios incompatibles se anuncian en las notas de la versión
-- Comprueba la versión: `GET /api/v1/system/status` devuelve el campo `version`
-
-### Actualizaciones de definiciones de indexadores
-- Los indexadores se actualizan regularmente mediante definiciones
-- Settings → System → Updates → Update Definitions
-- Puede ser necesario reiniciar tras actualizar las definiciones
-
-## Modo de depuración
-
-Habilita el registro de depuración para obtener información detallada de los errores:
-
-1. Settings → General → Log Level → Debug (o Trace para máxima verbosidad)
-2. Reinicia Prowlarr
-3. Revisa los registros: `/config/logs/prowlarr.txt` (Docker) o UI → System → Logs
-4. Filtra por componente: `API` para los registros específicos de la API
-
-## Mensajes de error comunes
-
-| Error | Causa | Solución |
-|-------|-------|----------|
-| "Indexer already exists" | Indexador duplicado | Revisa primero los indexadores existentes |
-| "Unable to connect to indexer" | Problema de red/cortafuegos | Verifica la conectividad y las credenciales |
-| "Invalid API key for application" | Clave de API de la aplicación incorrecta | Actualiza la clave de API en la configuración de la aplicación en Prowlarr |
-| "Application sync failed" | Aplicación inaccesible | Prueba la conexión y la red de la aplicación |
-| "Indexer returned no results" | Problema con la consulta de búsqueda | Prueba otros términos o revisa el indexador |
-| "Rate limit exceeded" | Demasiadas peticiones | Espera y reintenta, reduce la frecuencia |
-| "Indexer is unavailable" | Indexador caído | Deshabilita el indexador temporalmente |
-| "Invalid search type" | El indexador no admite el tipo | Usa solo indexadores compatibles |
+1. Usa un N de 1 a 1000
+2. Usa niveles `trace`, `debug`, `info`, `warn`, `error` o `fatal`
+3. Pon el texto de `--grep` y el nivel de `--level` justo después de la opción

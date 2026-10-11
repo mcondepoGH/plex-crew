@@ -177,6 +177,21 @@ if [ -f "$RDR" ]; then
   done
 fi
 
+# 5g. prowlarr: validación de argumentos (rc 1, sin red) y help con los comandos principales
+PRW=skills/prowlarr/scripts/prowlarr-api.sh
+if [ -f "$PRW" ]; then
+  env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$PRW" help >"$TMP/out" 2>&1
+  for c in search tv-search movie-search indexers stats test test-all enable disable delete apps sync status health logs; do
+    if grep -q -- "$c" "$TMP/out"; then ok "$PRW help lista $c"; else fail "$PRW help lista $c"; fi
+  done
+  for bad in "search" "search x --limit abc" "tv-search" "movie-search" "test" "test abc" "enable" "enable abc" "disable" "disable abc" "delete" "delete abc" "comando-desconocido-zzz"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$PRW" $bad >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$PRW $bad rc 1"; else fail "$PRW $bad rc 1" "rc=$rc"; fi
+  done
+fi
+
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck tests/smoke.sh" shellcheck "$ROOT/tests/smoke.sh"
