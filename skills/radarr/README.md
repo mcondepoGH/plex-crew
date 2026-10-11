@@ -10,6 +10,7 @@ Busca y añade películas a tu biblioteca de Radarr.
 - **Comprobación** — Verifica si una película ya existe en tu biblioteca
 - **Baja** — Elimina películas de tu biblioteca (con borrado opcional de archivos)
 - **Configuración** — Consulta carpetas raíz y perfiles de calidad
+- **Logs** — Lee las últimas entradas del log (`logs`, solo lectura)
 
 Todas las operaciones usan la API v3 de Radarr y admiten detección de colecciones y búsqueda al añadir.
 
@@ -127,6 +128,16 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config
 ```
 
 Úsalo para determinar el ID de tu `defaultQualityProfile`.
+
+### Ver los logs (solo lectura)
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 20 --level error
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 100 --grep "import"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --files
+```
+
+Formato: `tiempo  NIVEL  logger  mensaje`. Opciones: `[N]` (1-1000, 50 por defecto), `--level`, `--grep`, `--files`.
 
 ## Referencia de la API
 

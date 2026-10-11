@@ -96,6 +96,16 @@ prowlarr-api.sh sync
 | 1000 | Consolas |
 | 4000 | PC |
 
+### Logs (solo lectura)
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 20 --level warn
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 100 --grep flaresolverr
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs --files
+```
+
+Formato: `tiempo  NIVEL  logger  mensaje`. Opciones: `[N]` (1-1000, 50 por defecto), `--level`, `--grep`, `--files`.
+
 ## Variables de entorno
 
 La skill carga las credenciales desde `~/.claude/plex-crew/.env`. También puedes sustituirlas temporalmente:

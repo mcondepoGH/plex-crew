@@ -73,6 +73,21 @@ curl -s "$PROWLARR_URL/api/v1/system/status" \
 
 ---
 
+#### GET /log
+
+Lee las entradas del log (solo lectura). Parámetros: `page`, `pageSize`, `sortKey` (`time`), `sortDirection` y `level`. Devuelve `{page, pageSize, totalRecords, records: [{time, level, logger, message, exception}]}`. Lo usa `prowlarr-api.sh logs`.
+
+```bash
+curl -s "$PROWLARR_URL/api/v1/log?page=1&pageSize=20&sortKey=time&sortDirection=descending&level=warn" \
+  -H "X-Api-Key: $PROWLARR_API_KEY"
+```
+
+#### GET /log/file
+
+Lista los ficheros de log (`filename`, `lastWriteTime`, `contentsUrl`). Lo usa `prowlarr-api.sh logs --files`.
+
+---
+
 ### Indexadores
 
 #### GET /indexer

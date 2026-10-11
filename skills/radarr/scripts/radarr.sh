@@ -268,6 +268,58 @@ case "$cmd" in
     curl -s -H "$AUTH" "$API/collection" | jq --argjson tid "$tmdbId" '.[] | select(.tmdbId == $tid)'
     ;;
     
+  logs)
+    # Solo lectura: GET /log (o /log/file con --files). Nunca imprime claves ni cabeceras.
+    logUso="Uso: radarr.sh logs [N] [--level warn|error|info] [--grep texto] [--files]"
+    logN=50; logLevel=""; logGrep=""; logFiles="false"
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --level)
+          [ $# -ge 2 ] || { echo "ERROR: --level requiere un valor" >&2; echo "$logUso" >&2; exit 1; }
+          logLevel="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"; shift 2 ;;
+        --grep)
+          [ $# -ge 2 ] || { echo "ERROR: --grep requiere un texto" >&2; echo "$logUso" >&2; exit 1; }
+          logGrep="$2"; shift 2 ;;
+        --files) logFiles="true"; shift ;;
+        -*) echo "ERROR: opción desconocida para logs: $1" >&2
+            echo "$logUso" >&2; exit 1 ;;
+        *)  if [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 1000 ]; then
+              logN="$1"; shift
+            else
+              echo "ERROR: N debe ser un entero entre 1 y 1000: $1" >&2
+              echo "$logUso" >&2; exit 1
+            fi ;;
+      esac
+    done
+    case "$logLevel" in
+      ""|trace|debug|info|warn|error|fatal) ;;
+      *) echo "ERROR: nivel no válido: $logLevel (usa trace, debug, info, warn, error o fatal)" >&2; exit 1 ;;
+    esac
+    if [ "$logFiles" = "true" ]; then
+      arr_call GET "/log/file" || exit 1
+      jq -r 'if type == "array" then (.[] | "\(.lastWriteTime // "?")  \(.filename // "?")") else empty end' <<<"$ARR_BODY"
+      exit 0
+    fi
+    # Con --grep se pide una página mayor y se filtra en cliente.
+    logPage="$logN"
+    if [ -n "$logGrep" ]; then logPage=$(( logN * 20 > 1000 ? 1000 : logN * 20 )); fi
+    logQuery="page=1&pageSize=$logPage&sortKey=time&sortDirection=descending"
+    if [ -n "$logLevel" ]; then logQuery+="&level=$logLevel"; fi
+    arr_call GET "/log?$logQuery" || exit 1
+    if ! jq -e '.records | type == "array"' >/dev/null 2>&1 <<<"$ARR_BODY"; then
+      echo "ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)" >&2
+      exit 1
+    fi
+    jq -r --arg g "$logGrep" --argjson n "$logN" '
+      [ .records[]
+        | select($g == "" or ((.message // "") | ascii_downcase | contains($g | ascii_downcase))
+                 or ((.logger // "") | ascii_downcase | contains($g | ascii_downcase)))
+      ] | .[:$n] | reverse | .[]
+      | "\(.time // "?")  \((.level // "?") | ascii_upcase | .[0:5])  \(.logger // "?")  " +
+        (((.message // "") | split("\n")[0] | gsub("(?i)(?<k>api_?key|token|passkey|password|secret)=[^&\\s]+"; "\(.k)=***")) | if length > 200 then .[0:200] + "..." else . end)
+    ' <<<"$ARR_BODY"
+    ;;
+
   ""|help|-h|--help)
     echo "Usage: radarr.sh <command> [args]"
     echo ""
@@ -281,6 +333,8 @@ case "$cmd" in
     echo "  add-collection <tmdbId> [--no-search]  Add full collection"
     echo "  remove <tmdbId>             Remove a movie from library"
     echo "  collection-info <tmdbId>    Get collection details"
+    echo "  logs [N] [--level warn|error|info] [--grep texto] [--files]"
+    echo "                              Últimas N entradas del log (solo lectura, 50 por defecto)"
     ;;
 
   *)

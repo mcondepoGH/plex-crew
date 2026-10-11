@@ -25,6 +25,7 @@ Esta skill permite gestionar tu biblioteca de películas de Radarr:
 - Comprobar si las películas ya existen
 - Eliminar películas (con borrado opcional de archivos)
 - Consultar perfiles de calidad y carpetas raíz
+- Leer los logs del servicio (`logs`, solo lectura)
 
 Las operaciones incluyen acciones de lectura y de escritura. **Confirma siempre antes de eliminar películas con borrado de archivos.**
 
@@ -52,7 +53,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Inception"
 
 ## Comandos
 
-Todos los comandos devuelven salida JSON.
+Salvo `logs` (texto), todos los comandos devuelven salida JSON o texto según el caso. Sin comando se muestra la ayuda (rc 0); un comando desconocido da rc 1; un argumento ausente o inválido imprime el uso y da rc 1.
 
 ### Buscar películas
 
@@ -112,6 +113,19 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" status
 
 **Salida:** versión e instancia de Radarr (`/system/status`).
 
+### Ver los logs (solo lectura)
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs                         # últimas 50 entradas
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 20 --level error        # últimas 20 con nivel error o superior
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 100 --grep "import"     # filtra por texto en mensaje o logger
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --files                 # lista los ficheros de log (sin contenido)
+```
+
+Comando de **solo lectura** (`GET /api/v3/log` y `/api/v3/log/file`): no modifica nada y el hook `confirm-destructive` no lo bloquea. `N` va de 1 a 1000 (50 por defecto); `--level` acepta `trace|debug|info|warn|error|fatal`. Con `--grep` se examinan hasta `N*20` entradas (máx. 1000) y se muestran las `N` últimas que coinciden.
+
+**Salida:** texto, una línea por entrada en orden cronológico: `tiempo  NIVEL  logger  mensaje` (primera línea del mensaje, máx. 200 caracteres; los valores `apikey=`/`token=` se enmascaran). Nunca imprime claves ni cabeceras. Si el servicio no expone el endpoint, imprime `ERROR: ...` y devuelve rc 1.
+
 ## Flujo de trabajo
 
 Cuando el usuario pregunte por películas:
@@ -121,6 +135,7 @@ Cuando el usuario pregunte por películas:
 3. **"Añade todas las películas de Star Wars"** → Busca la colección y después `add-collection <collectionId>`
 4. **"Elimina The Matrix"** → Pregunta por el borrado de archivos y ejecuta `remove <tmdbId>` con el flag adecuado
 5. **"¿Qué perfiles de calidad tengo?"** → Ejecuta `config`
+6. **"¿Qué errores hay en Radarr?"** → Ejecuta `logs 50 --level error` (solo lectura)
 
 ### Presentar los resultados de búsqueda
 

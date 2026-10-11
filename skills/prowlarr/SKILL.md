@@ -129,6 +129,20 @@ El script está en `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/`. Los ejemplo
 "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" health
 ```
 
+
+### Logs (solo lectura)
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs                       # últimas 50 entradas
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 20 --level warn       # últimas 20 con nivel warn o superior
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs 100 --grep flaresolverr
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" logs --files               # lista los ficheros de log
+```
+
+Comando de **solo lectura** (`GET /api/v1/log` y `/api/v1/log/file`): no modifica nada y el hook `confirm-destructive` no lo bloquea. `N` va de 1 a 1000 (50 por defecto); `--level` acepta `trace|debug|info|warn|error|fatal`. Con `--grep` se examinan hasta `N*20` entradas (máx. 1000).
+
+**Salida:** texto, una línea por entrada en orden cronológico: `tiempo  NIVEL  logger  mensaje` (primera línea, máx. 200 caracteres; `apikey=`/`token=` enmascarados). Nunca imprime claves ni cabeceras. Si el servicio no expone el endpoint, imprime `ERROR: ...` y devuelve rc 1.
+
 ---
 
 ## Categorías de búsqueda

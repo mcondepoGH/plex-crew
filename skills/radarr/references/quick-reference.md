@@ -341,3 +341,11 @@ curl -s "$RADARR_URL/api/v3/wanted/cutoff?pageSize=100" \
     sleep 2
   done
 ```
+
+## Logs (solo lectura)
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs 20 --level error
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --grep "import" 100
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --files
+```

@@ -65,6 +65,21 @@ curl -s "$RADARR_URL/api/v3/system/status" \
 
 ---
 
+#### GET /log
+
+Lee las entradas del log (solo lectura). Parámetros: `page`, `pageSize`, `sortKey` (`time`), `sortDirection` (`ascending`/`descending`) y `level` (`trace`, `debug`, `info`, `warn`, `error`). Devuelve `{page, pageSize, totalRecords, records: [{time, level, logger, message, exception}]}`. Lo usa `radarr.sh logs`.
+
+```bash
+curl -s "$RADARR_URL/api/v3/log?page=1&pageSize=20&sortKey=time&sortDirection=descending&level=error" \
+  -H "X-Api-Key: $RADARR_API_KEY"
+```
+
+#### GET /log/file
+
+Lista los ficheros de log (`filename`, `lastWriteTime`, `contentsUrl`). Lo usa `radarr.sh logs --files`.
+
+---
+
 ### Películas
 
 #### GET /movie

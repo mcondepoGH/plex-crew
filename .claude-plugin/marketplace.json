@@ -10,7 +10,7 @@
     {
       "name": "plex-crew",
       "source": "./",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "category": "homelab",
       "description": "Orquestador y subagentes para operar un homelab Plex (Radarr, Sonarr, Prowlarr...)"
     }

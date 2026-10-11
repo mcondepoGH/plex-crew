@@ -89,6 +89,10 @@ App Sync:
 System:
   status                        System status
   health                        Health check
+  logs [N] [options]            Últimas N entradas del log (solo lectura, 50 por defecto)
+    --level <nivel>             trace|debug|info|warn|error|fatal
+    --grep <texto>              Filtra por texto en mensaje o logger
+    --files                     Lista los ficheros de log (sin contenido)
 
 Examples:
   $(basename "$0") search "ubuntu 22.04"
@@ -96,6 +100,7 @@ Examples:
   $(basename "$0") tv-search --tvdb 71663 --season 1 --episode 1
   $(basename "$0") movie-search --imdb tt0111161
   $(basename "$0") stats
+  $(basename "$0") logs 20 --level warn
 EOF
 }
 
@@ -334,6 +339,60 @@ cmd_health() {
     }]'
 }
 
+cmd_logs() {
+    # Solo lectura: GET /log (o /log/file con --files). Nunca imprime claves ni cabeceras.
+    local n=50 level="" grep_text="" files=false
+    local uso="Uso: $(basename "$0") logs [N] [--level warn|error|info] [--grep texto] [--files]"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --level)
+                [[ $# -ge 2 ]] || { echo "ERROR: --level requiere un valor" >&2; echo "$uso" >&2; exit 1; }
+                level="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"; shift 2 ;;
+            --grep)
+                [[ $# -ge 2 ]] || { echo "ERROR: --grep requiere un texto" >&2; echo "$uso" >&2; exit 1; }
+                grep_text="$2"; shift 2 ;;
+            --files) files=true; shift ;;
+            -*) echo "ERROR: opción desconocida para logs: $1" >&2; echo "$uso" >&2; exit 1 ;;
+            *)
+                if [[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -ge 1 ]] && [[ "$1" -le 1000 ]]; then
+                    n="$1"; shift
+                else
+                    echo "ERROR: N debe ser un entero entre 1 y 1000: $1" >&2; echo "$uso" >&2; exit 1
+                fi ;;
+        esac
+    done
+    case "$level" in
+        ""|trace|debug|info|warn|error|fatal) ;;
+        *) echo "ERROR: nivel no válido: $level (usa trace, debug, info, warn, error o fatal)" >&2; exit 1 ;;
+    esac
+
+    local body
+    if [[ "$files" == "true" ]]; then
+        body=$(api GET "/log/file") || exit 1
+        jq -r 'if type == "array" then (.[] | "\(.lastWriteTime // "?")  \(.filename // "?")") else empty end' <<<"$body"
+        return 0
+    fi
+
+    # Con --grep se pide una página mayor y se filtra en cliente.
+    local page="$n"
+    if [[ -n "$grep_text" ]]; then page=$(( n * 20 > 1000 ? 1000 : n * 20 )); fi
+    local query="page=1&pageSize=$page&sortKey=time&sortDirection=descending"
+    if [[ -n "$level" ]]; then query+="&level=$level"; fi
+    body=$(api GET "/log?$query") || exit 1
+    if ! jq -e '.records | type == "array"' >/dev/null 2>&1 <<<"$body"; then
+        echo "ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)" >&2
+        exit 1
+    fi
+    jq -r --arg g "$grep_text" --argjson n "$n" '
+      [ .records[]
+        | select($g == "" or ((.message // "") | ascii_downcase | contains($g | ascii_downcase))
+                 or ((.logger // "") | ascii_downcase | contains($g | ascii_downcase)))
+      ] | .[:$n] | reverse | .[]
+      | "\(.time // "?")  \((.level // "?") | ascii_upcase | .[0:5])  \(.logger // "?")  " +
+        (((.message // "") | split("\n")[0] | gsub("(?i)(?<k>api_?key|token|passkey|password|secret)=[^&\\s]+"; "\(.k)=***")) | if length > 200 then .[0:200] + "..." else . end)
+    ' <<<"$body"
+}
+
 # Main dispatch
 case "${1:-}" in
     search) shift; cmd_search "$@" ;;
@@ -350,6 +409,7 @@ case "${1:-}" in
     sync) shift; cmd_sync "$@" ;;
     status) shift; cmd_status "$@" ;;
     health) shift; cmd_health "$@" ;;
+    logs) shift; cmd_logs "$@" ;;
     -h|--help|help|"") usage ;;
     *) echo "Unknown command: $1" >&2; usage; exit 1 ;;
 esac

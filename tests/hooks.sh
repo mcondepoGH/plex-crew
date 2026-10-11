@@ -98,6 +98,8 @@ c pasa "mv dentro de medios sigue permitido" "$T" "mv $R/a $R/b"
 c pasa "mv a otra raíz" "$T" "mv $R/a $S/a"
 c pasa "rsync sin --delete" "$T" "rsync -a $O/ $R/"
 c pasa "docker ps" "$T" "docker ps"
+c pasa "radarr.sh logs no es destructivo" "$T" "bash skills/radarr/scripts/radarr.sh logs 20 --level error"
+c pasa "prowlarr-api.sh logs no es destructivo" "$T" "bash skills/prowlarr/scripts/prowlarr-api.sh logs 20 --level warn --grep delete"
 c pasa "cwd en raíz y ruta fuera" "$R" "rm -rf $O/z"
 
 # --- marcador PLEX_CREW_CONFIRMED=1 ligado al segmento

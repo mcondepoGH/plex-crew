@@ -102,6 +102,21 @@ for f in skills/*/scripts/*.sh; do
   if [ "$rc" -eq 1 ]; then ok "$f comando desconocido rc 1"; else fail "$f comando desconocido rc 1" "rc=$rc"; fi
 done
 
+# 5b. comando logs (solo lectura): aparece en help y valida el uso sin red
+for f in skills/radarr/scripts/radarr.sh skills/prowlarr/scripts/prowlarr-api.sh; do
+  env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$f" help >"$TMP/out" 2>&1
+  if grep -q 'logs' "$TMP/out"; then ok "$f help muestra logs"; else fail "$f help muestra logs"; fi
+  for bad in "abc" "0" "5000" "--bogus" "--level" "--level zzz" "--grep"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$f" logs $bad >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$f logs $bad rc 1"; else fail "$f logs $bad rc 1" "rc=$rc"; fi
+  done
+done
+for sk in radarr prowlarr; do
+  if grep -q 'logs' "skills/$sk/SKILL.md"; then ok "skills/$sk/SKILL.md documenta logs"; else fail "skills/$sk/SKILL.md documenta logs"; fi
+done
+
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck tests/smoke.sh" shellcheck "$ROOT/tests/smoke.sh"
