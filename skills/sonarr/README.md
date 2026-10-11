@@ -1,158 +1,114 @@
 # Skill de Sonarr
 
-Busca y añade series de TV a tu biblioteca de Sonarr.
+Busca series en TVDB, comprueba si están en Sonarr y las añade o las quita desde la API v3.
 
 ## Qué hace
 
-- **Búsqueda** — Encuentra series por nombre mediante TVDB
-- **Alta** — Añade series a tu biblioteca de Sonarr con búsqueda automática
-- **Comprobación** — Verifica si una serie ya existe en tu biblioteca
-- **Baja** — Elimina series de tu biblioteca (con borrado opcional de archivos)
-- **Configuración** — Consulta carpetas raíz y perfiles de calidad
-
-Todas las operaciones usan la API v3 de Sonarr y admiten opciones de monitorización y búsqueda al añadir.
+- **Buscar** — Lista hasta 10 series con enlace a TVDB, o devuelve el JSON completo
+- **Comprobar** — Indica si una serie ya está en la biblioteca
+- **Configuración** — Muestra carpetas raíz y perfiles de calidad
+- **Estado** — Versión, instancia, sistema operativo y rama
+- **Añadir** — Da de alta una serie; por defecto busca los episodios que faltan
+- **Quitar** — Da de baja una serie, con o sin borrado de ficheros (destructivo)
 
 ## Configuración
 
-### 1. Obtén tu clave de API de Sonarr
+### 1. Obtén tu clave de API
 
 1. Abre la interfaz web de Sonarr
-2. Ve a **Settings → General**
-3. Desplázate a la sección **Security**
-4. Copia tu **API Key**
+2. Ve a **Settings → General → Security**
+3. Copia la **API Key**
 
-### 2. Añade las credenciales al .env
+### 2. Configura las variables de entorno
 
-Añade lo siguiente a `~/.claude/plex-crew/.env`:
+Añade las credenciales a `~/.claude/plex-crew/.env`:
 
 ```bash
 SONARR_URL="http://localhost:8989"
 SONARR_API_KEY="<your_api_key>"
-SONARR_DEFAULT_QUALITY_PROFILE="1"  # Optional: defaults to 1 if not set
+# SONARR_DEFAULT_QUALITY_PROFILE=1
 ```
 
-**Variables de configuración:**
-- `SONARR_URL`: URL del servidor Sonarr (sin barra final)
-- `SONARR_API_KEY`: tu clave de API de Sonarr
-- `SONARR_DEFAULT_QUALITY_PROFILE`: ID del perfil de calidad (opcional, ejecuta el comando `config` para ver los perfiles disponibles)
+**Opciones de configuración:**
+- `SONARR_URL`: URL de Sonarr con puerto, sin barra final (la API se llama en `<SONARR_URL>/api/v3`)
+- `SONARR_API_KEY`: tu clave de API
+- `SONARR_DEFAULT_QUALITY_PROFILE`: perfil de calidad por defecto de `add` (opcional; 1 si falta)
+- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno
 
 ### 3. Pruébalo
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
-```
-
-### Cómo invocar el script
-
-En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/sonarr/scripts/sonarr.sh status` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" status`). Los ejemplos de abajo usan la ruta corta `scripts/sonarr.sh` y suponen que estás en `skills/sonarr/`.
-
-## Ejemplos de uso
-
-### Buscar series
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "The Office"
-```
-
-Devuelve una lista numerada con IDs de TVDB y enlaces.
-
-### Comprobar si una serie existe
-
-Antes de añadir, comprueba si la serie ya está en tu biblioteca:
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" exists 81189  # TVDB ID de Breaking Bad
-```
-
-### Añadir una serie
-
-Añade una serie con búsqueda automática (por defecto):
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189  # Busca de inmediato
-```
-
-Añade sin buscar (búsqueda manual posterior):
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189 --no-search
-```
-
-### Eliminar una serie
-
-Elimina conservando los archivos descargados:
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189
-```
-
-Elimina y borra todos los archivos:
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189 --delete-files
-```
-
-**Pregunta siempre al usuario si quiere borrar los archivos al eliminar.**
-
-### Comprobar la conexión
-
-Comprueba que el servicio responde y que las credenciales son válidas (comando `status`):
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" status
 ```
 
-### Ver la configuración
+Fuera de una sesión de Claude Code `${CLAUDE_PLUGIN_ROOT}` no existe: usa la ruta real del plugin.
 
-Obtén las carpetas raíz y los perfiles de calidad disponibles:
+## Ejemplos de uso
+
+### Buscar
 
 ```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "breaking bad"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search-json "breaking bad" | jq '.[0].overview'
+```
+
+### Comprobar y consultar la configuración
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" exists 81189
 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" config
 ```
 
-Úsalo para determinar el ID de tu `SONARR_DEFAULT_QUALITY_PROFILE`.
+### **Añadir una serie**
+
+Confirma con el usuario antes de añadir: sin `--no-search`, Sonarr busca y puede descargar.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189 5 --no-search
+```
+
+### **Quitar una serie**
+
+Destructivo. El hook `confirm-destructive` bloquea `sonarr.sh remove` sin `PLEX_CREW_CONFIRMED=1`, que solo se antepone tras la doble confirmación de la regla global (`plex-crew-rules`).
+
+```bash
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189 --delete-files
+```
 
 ## Referencia de la API
 
-La documentación detallada de la API está en el directorio `references/`:
-
-- **[Endpoints de la API](./references/api-endpoints.md)** - Referencia completa de endpoints
-- **[Referencia rápida](./references/quick-reference.md)** - Operaciones habituales con ejemplos listos para copiar y pegar
-- **[Resolución de problemas](./references/troubleshooting.md)** - Soluciones para errores de autenticación, conexión y otros errores comunes
+- [Endpoints de la API](references/api-endpoints.md)
+- [Referencia rápida](references/quick-reference.md)
+- [Resolución de problemas](references/troubleshooting.md)
+- [Documentación oficial](https://sonarr.tv/docs/api/)
 
 ## Flujo de trabajo
 
-Cuando un usuario pida añadir una serie de TV:
-
-1. **Buscar**: `bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Show Name"`
-2. **Presentar resultados**: incluye siempre enlaces de TVDB con el formato `[Title (Year)](https://thetvdb.com/series/SLUG)`
-3. **El usuario elige**: el usuario selecciona un número de los resultados
-4. **Comprobar**: ejecuta `exists <tvdbId>` para verificar que no esté ya añadida
-5. **Añadir**: ejecuta `add <tvdbId>` para añadir la serie e iniciar la búsqueda
+1. `search` para encontrar la serie y su `tvdbId` (el número del enlace)
+2. `exists` para comprobar que no está ya
+3. `config` para elegir el perfil de calidad
+4. `add` tras confirmarlo con el usuario
 
 ## Resolución de problemas
 
-**"Sonarr not configured"**
-→ Comprueba que tu fichero `.env` exista en `~/.claude/plex-crew/.env` y contenga SONARR_URL y SONARR_API_KEY
+**ERROR: GET /system/status respondió HTTP 401**
+→ Revisa `SONARR_API_KEY` en `~/.claude/plex-crew/.env`.
 
-**"Connection refused"**
-→ Verifica que la URL de tu servidor Sonarr sea correcta y que Sonarr esté en ejecución
+**ERROR: no se pudo contactar con Sonarr en <URL>**
+→ Comprueba la URL, el puerto (8989) y que Sonarr esté en marcha.
 
-**401 Unauthorized**
-→ Tu clave de API no es válida: revisa Settings → General → Security
+**ERROR: tvdbId no válido: 'abc'**
+→ Pasa el id numérico de TVDB.
 
-**"Quality profile not found"**
-→ Ejecuta `bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" config` para ver los IDs de perfil disponibles
+**❌ Failed to add show**
+→ Lee el mensaje que sigue: serie ya existente, perfil inexistente o carpeta raíz no válida.
 
 ## Notas
 
-- Usa la API v3 de Sonarr
-- Las credenciales se cargan desde `~/.claude/plex-crew/.env` (SIN ficheros de configuración JSON)
-- El perfil de calidad por defecto se puede sustituir en cada alta si hace falta
-- Los resultados de búsqueda incluyen IDs de TVDB para una identificación fiable
-- Admite todas las opciones de monitorización de Sonarr (future, all, none, etc.)
-- Requiere `curl` y `jq` instalados
+- Los ids son de TVDB, no de TMDB.
+- Limitaciones conocidas: `add` y `remove` no comprueban el código HTTP y `remove` imprime éxito aunque Sonarr lo rechace; `add` usa la primera carpeta raíz y `monitor: all`; `search` muestra solo 10 resultados. Detalle en `SKILL.md`.
+- La clave nunca se imprime.
+- Requiere `bash`, `curl` y `jq`.
 
 ## Licencia
 

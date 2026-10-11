@@ -147,6 +147,21 @@ if [ -f "$PLX" ]; then
   done
 fi
 
+# 5e. sonarr: validación de argumentos (rc 1, sin red) y help con los comandos principales
+SNR=skills/sonarr/scripts/sonarr.sh
+if [ -f "$SNR" ]; then
+  env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$SNR" help >"$TMP/out" 2>&1
+  for c in search search-json exists config status add remove; do
+    if grep -q -- "$c" "$TMP/out"; then ok "$SNR help lista $c"; else fail "$SNR help lista $c"; fi
+  done
+  for bad in "search" "exists" "exists abc" "add" "add abc" "add 1 abc" "remove" "remove abc" "comando-desconocido-zzz"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$SNR" $bad >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$SNR $bad rc 1"; else fail "$SNR $bad rc 1" "rc=$rc"; fi
+  done
+fi
+
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck tests/smoke.sh" shellcheck "$ROOT/tests/smoke.sh"

@@ -1,297 +1,60 @@
 # Referencia rápida de Sonarr
 
-Operaciones habituales para copiar y pegar.
-
 ## Configuración
 
-Añade las credenciales a `~/.claude/plex-crew/.env`:
-
 ```bash
+# ~/.claude/plex-crew/.env
 SONARR_URL="http://localhost:8989"
 SONARR_API_KEY="<your_api_key>"
+# Opcional: SONARR_DEFAULT_QUALITY_PROFILE=1
+# Opcional: HOMELAB_ENV=/ruta/a/otro/.env
 ```
-
-Cárgalas en los scripts:
 
 ```bash
-source ~/.claude/plex-crew/.env
+SO="${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh"
 ```
 
-## Información del sistema
-
-### Obtener el estado del sistema
+## Comandos del script
 
 ```bash
-curl -s "$SONARR_URL/api/v3/system/status" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq
+bash "$SO" help
+bash "$SO" search "breaking bad"
+bash "$SO" search-json "breaking bad"
+bash "$SO" exists 81189
+bash "$SO" config
+bash "$SO" status
+# Modifican estado: confirma con el usuario antes de añadir
+bash "$SO" add 81189
+bash "$SO" add 81189 5
+bash "$SO" add 81189 5 --no-search
+# Destructivo: doble confirmación y PLEX_CREW_CONFIRMED=1 (plex-crew-rules)
+PLEX_CREW_CONFIRMED=1 bash "$SO" remove 81189
+PLEX_CREW_CONFIRMED=1 bash "$SO" remove 81189 --delete-files
 ```
 
-### Obtener el espacio en disco
+## Filtros con jq
 
 ```bash
-curl -s "$SONARR_URL/api/v3/diskspace" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq
+bash "$SO" search-json "breaking bad" | jq -r '.[] | "\(.tvdbId) \(.title) (\(.year))"'
+bash "$SO" search-json "breaking bad" | jq -r '.[0].overview'
 ```
 
-## Gestión de series
+## curl directo (sin clave literal)
 
-### Obtener todas las series
+Prefiere siempre el script. Si necesitas curl, usa las variables y no imprimas la clave:
 
 ```bash
-curl -s "$SONARR_URL/api/v3/series" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.[] | {id, title, status, monitored}'
+curl -s -H "X-Api-Key: $SONARR_API_KEY" "$SONARR_URL/api/v3/system/status" | jq '.version'
 ```
 
-### Obtener una serie por ID
+## Salidas habituales
 
-```bash
-curl -s "$SONARR_URL/api/v3/series/1" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq
-```
+| Comando | Salida |
+|---------|--------|
+| `search` | `1. Breaking Bad (2008) - https://thetvdb.com/dereferrer/series/81189` |
+| `exists` | `not_found`, o `exists` y `ID: 12, Title: Breaking Bad, Seasons: 5` |
+| `status` | `Sonarr 4.0.9.2244 - Sonarr (debian, branch main)` |
+| `add` | `✅ Added: Breaking Bad (2008) - 5 seasons` y `🔍 Search started` |
+| `remove` | `🗑️ Removed: Breaking Bad (2008) (files kept)` |
 
-### Buscar una serie
-
-```bash
-curl -s "$SONARR_URL/api/v3/series/lookup?term=breaking%20bad" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.[] | {title, tvdbId, year}'
-```
-
-### Añadir una serie
-
-```bash
-curl -X POST "$SONARR_URL/api/v3/series" \
-  -H "X-Api-Key: $SONARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Breaking Bad",
-    "qualityProfileId": 1,
-    "titleSlug": "breaking-bad",
-    "tvdbId": 81189,
-    "path": "/tv/Breaking Bad",
-    "monitored": true,
-    "seasonFolder": true,
-    "addOptions": {
-      "searchForMissingEpisodes": true
-    }
-  }'
-```
-
-### Actualizar una serie (activar/desactivar monitorización)
-
-```bash
-curl -X PUT "$SONARR_URL/api/v3/series/1" \
-  -H "X-Api-Key: $SONARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1,
-    "monitored": false
-  }'
-```
-
-### Eliminar una serie
-
-```bash
-curl -X DELETE "$SONARR_URL/api/v3/series/1?deleteFiles=false" \
-  -H "X-Api-Key: $SONARR_API_KEY"
-```
-
-## Gestión de episodios
-
-### Obtener todos los episodios de una serie
-
-```bash
-curl -s "$SONARR_URL/api/v3/episode?seriesId=1" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.[] | {id, seasonNumber, episodeNumber, title, hasFile}'
-```
-
-### Obtener un episodio por ID
-
-```bash
-curl -s "$SONARR_URL/api/v3/episode/100" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq
-```
-
-### Monitorizar/dejar de monitorizar un episodio
-
-```bash
-curl -X PUT "$SONARR_URL/api/v3/episode/100" \
-  -H "X-Api-Key: $SONARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 100,
-    "monitored": true
-  }'
-```
-
-## Cola y descargas
-
-### Obtener la cola (descargas activas)
-
-```bash
-curl -s "$SONARR_URL/api/v3/queue" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.records[] | {title, status, sizeleft, timeleft}'
-```
-
-### Eliminar un elemento de la cola
-
-```bash
-curl -X DELETE "$SONARR_URL/api/v3/queue/1?removeFromClient=true&blocklist=false" \
-  -H "X-Api-Key: $SONARR_API_KEY"
-```
-
-## Búsqueda y descarga
-
-### Buscar los episodios de una serie
-
-```bash
-curl -X POST "$SONARR_URL/api/v3/command" \
-  -H "X-Api-Key: $SONARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "SeriesSearch",
-    "seriesId": 1
-  }'
-```
-
-### Buscar un episodio concreto
-
-```bash
-curl -X POST "$SONARR_URL/api/v3/command" \
-  -H "X-Api-Key: $SONARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "EpisodeSearch",
-    "episodeIds": [100]
-  }'
-```
-
-### Búsqueda manual (obtener la lista de releases)
-
-```bash
-curl -s "$SONARR_URL/api/v3/release?episodeId=100" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.[] | {title, size, quality, indexer}'
-```
-
-### Descargar un release
-
-```bash
-curl -X POST "$SONARR_URL/api/v3/release" \
-  -H "X-Api-Key: $SONARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "guid": "release-guid-from-manual-search",
-    "indexerId": 1
-  }'
-```
-
-## Calendario
-
-### Obtener los próximos episodios (próximos 7 días)
-
-```bash
-START=$(date -u +%Y-%m-%d)
-END=$(date -u -d '+7 days' +%Y-%m-%d)
-curl -s "$SONARR_URL/api/v3/calendar?start=$START&end=$END" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.[] | {series: .series.title, episode: .title, airDate}'
-```
-
-## Historial
-
-### Obtener el historial reciente
-
-```bash
-curl -s "$SONARR_URL/api/v3/history?page=1&pageSize=20" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.records[] | {date, eventType, series: .series.title, episode: .episode.title}'
-```
-
-## Perfiles de calidad
-
-### Obtener todos los perfiles de calidad
-
-```bash
-curl -s "$SONARR_URL/api/v3/qualityprofile" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.[] | {id, name}'
-```
-
-## Carpetas raíz
-
-### Obtener las carpetas raíz
-
-```bash
-curl -s "$SONARR_URL/api/v3/rootfolder" \
-  -H "X-Api-Key: $SONARR_API_KEY" | jq '.[] | {id, path, freeSpace}'
-```
-
-## Flujos de trabajo
-
-### Flujo de trabajo: añadir una serie y buscarla
-
-1. **Busca la serie:**
-   ```bash
-   curl -s "$SONARR_URL/api/v3/series/lookup?term=breaking%20bad" \
-     -H "X-Api-Key: $SONARR_API_KEY" | jq '.[0] | {title, tvdbId, year}'
-   ```
-
-2. **Añade la serie con búsqueda:**
-   ```bash
-   curl -X POST "$SONARR_URL/api/v3/series" \
-     -H "X-Api-Key: $SONARR_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "title": "Breaking Bad",
-       "qualityProfileId": 1,
-       "titleSlug": "breaking-bad",
-       "tvdbId": 81189,
-       "path": "/tv/Breaking Bad",
-       "monitored": true,
-       "seasonFolder": true,
-       "addOptions": {
-         "searchForMissingEpisodes": true
-       }
-     }' | jq '.id'
-   ```
-
-3. **Comprueba la cola de descargas:**
-   ```bash
-   curl -s "$SONARR_URL/api/v3/queue" \
-     -H "X-Api-Key: $SONARR_API_KEY" | jq '.records[] | {title, status}'
-   ```
-
-### Flujo de trabajo: actualizar todas las series
-
-```bash
-curl -X POST "$SONARR_URL/api/v3/command" \
-  -H "X-Api-Key: $SONARR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "RefreshSeries"}'
-```
-
-### Flujo de trabajo: monitorizar temporadas en lote
-
-```bash
-# Monitorizar todos los episodios de la temporada 1 de la serie con ID 1
-curl -s "$SONARR_URL/api/v3/episode?seriesId=1" \
-  -H "X-Api-Key: $SONARR_API_KEY" | \
-  jq -r '.[] | select(.seasonNumber == 1) | .id' | \
-  while read episode_id; do
-    curl -X PUT "$SONARR_URL/api/v3/episode/$episode_id" \
-      -H "X-Api-Key: $SONARR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d "{\"id\": $episode_id, \"monitored\": true}"
-    sleep 0.5
-  done
-```
-
-### Flujo de trabajo: limpiar descargas fallidas
-
-```bash
-# Obtener los elementos fallidos de la cola
-curl -s "$SONARR_URL/api/v3/queue" \
-  -H "X-Api-Key: $SONARR_API_KEY" | \
-  jq -r '.records[] | select(.status == "failed") | .id' | \
-  while read queue_id; do
-    echo "Removing failed item $queue_id"
-    curl -X DELETE "$SONARR_URL/api/v3/queue/$queue_id?removeFromClient=true&blocklist=true" \
-      -H "X-Api-Key: $SONARR_API_KEY"
-  done
-```
+Códigos de salida: 0 correcto; 1 error de uso, serie no encontrada o fallo de conexión.

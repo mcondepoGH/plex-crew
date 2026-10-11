@@ -3,30 +3,30 @@ name: sonarr
 description: Esta skill debe usarse cuando se gestionan series de TV en Sonarr. Úsala cuando el usuario pida "añadir una serie", "buscar en Sonarr", "encontrar una serie", "añadir a Sonarr", "eliminar una serie", "comprobar si una serie existe", "biblioteca de Sonarr", "buscar en TVDB", o mencione la gestión de series de TV u operaciones de Sonarr.
 ---
 
-# Skill de gestión de series de TV en Sonarr
+# Skill de gestión de series de Sonarr
 
 **⚠️ INVOCACIÓN OBLIGATORIA DE LA SKILL ⚠️**
 
 **DEBES invocar esta skill (no es opcional) cuando el usuario mencione CUALQUIERA de estos disparadores:**
-- "añadir una serie", "buscar en Sonarr", "encontrar una serie", "añadir a Sonarr"
-- "eliminar una serie", "borrar serie", "comprobar si una serie existe"
-- "biblioteca de Sonarr", "gestión de series de TV", "añadir serie"
-- Cualquier mención de Sonarr o de la gestión de series de TV
+- "añadir una serie", "añadir a Sonarr", "eliminar una serie"
+- "buscar en Sonarr", "encontrar una serie", "buscar en TVDB"
+- "comprobar si una serie existe", "biblioteca de Sonarr"
+- Cualquier mención de la gestión de series de TV o de operaciones de Sonarr
 
 **Si no invocas esta skill cuando se dan estos disparadores, incumples tus requisitos operativos.**
 
-Busca y añade series de TV a tu biblioteca de Sonarr, con soporte de opciones de monitorización, perfiles de calidad y búsqueda al añadir.
+Busca series en TVDB, comprueba si están en la biblioteca de Sonarr y las añade o las quita.
 
 ## Propósito
 
-Esta skill permite gestionar tu biblioteca de series de TV de Sonarr:
-- Buscar series por nombre
-- Añadir series a tu biblioteca con opciones configurables
-- Comprobar si las series ya existen
-- Eliminar series (con borrado opcional de archivos)
-- Consultar perfiles de calidad y carpetas raíz
+Esta skill usa la API v3 de Sonarr para:
+- Buscar series por texto (resultados con enlace a TVDB)
+- Comprobar si una serie ya está en la biblioteca
+- Mostrar las carpetas raíz, los perfiles de calidad y el estado de Sonarr
+- Añadir una serie (modifica estado; por defecto lanza la búsqueda de episodios)
+- Quitar una serie, con o sin borrado de ficheros (destructivo)
 
-Las operaciones incluyen acciones de lectura y de escritura. **Confirma siempre antes de eliminar series con borrado de archivos.**
+Los identificadores son de TVDB (`tvdbId`), no de TMDB: `radarr` y `seerr` usan TMDB.
 
 ## Configuración
 
@@ -34,139 +34,130 @@ Añade las credenciales a `~/.claude/plex-crew/.env`:
 
 ```bash
 SONARR_URL="http://localhost:8989"
-SONARR_API_KEY="<your_api_key>"
-SONARR_DEFAULT_QUALITY_PROFILE="1"  # Optional: defaults to 1 if not set
+SONARR_API_KEY="your-api-key"
+# Opcional: perfil de calidad por defecto de `add` (1 si falta o está vacía)
+# SONARR_DEFAULT_QUALITY_PROFILE=1
 ```
 
-**Variables de configuración:**
-- `SONARR_URL`: URL de tu servidor Sonarr (sin barra final)
-- `SONARR_API_KEY`: clave de API de Sonarr (Settings → General → API Key)
-- `SONARR_DEFAULT_QUALITY_PROFILE`: ID del perfil de calidad (opcional, por defecto 1)
+- `SONARR_URL`: URL de Sonarr con el puerto (8989 por defecto), sin barra final
+- `SONARR_API_KEY`: clave de API, en Sonarr → Settings → General → Security → API Key
+- `SONARR_DEFAULT_QUALITY_PROFILE`: id del perfil que usa `add` si no se indica otro
+- `HOMELAB_ENV`: ruta opcional a otro fichero de entorno; las variables ya exportadas tienen prioridad (si `SONARR_URL` y `SONARR_API_KEY` ya están exportadas, el fichero no se lee y `SONARR_DEFAULT_QUALITY_PROFILE` solo se toma del entorno)
 
 ## Ejecución del script
 
-El script está en `${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/`. Los ejemplos usan la ruta absoluta, así que no alteran el directorio de trabajo de la sesión:
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
-```
+El script está en `${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh`. Llámalo siempre con esa ruta y con `bash`, sin cambiar el directorio de trabajo de la sesión. Necesita `curl` y `jq`. Hasta `help` exige credenciales cargadas.
 
 ## Comandos
 
-Todos los comandos devuelven salida JSON.
+`search-json` devuelve JSON (el array completo de Sonarr); el resto de comandos imprime texto. Sin comando, o con `help`, `-h` o `--help`, se muestra la ayuda por stdout (código de salida 0). Un comando desconocido imprime `ERROR: comando desconocido: <x>` y `Usa: sonarr.sh help` por stderr y termina con 1. `search` sin texto, y `exists`, `add` y `remove` con un `tvdbId` ausente o no numérico (o `add` con un perfil no numérico) imprimen `ERROR:` y el uso por stderr y terminan con 1. Si no se puede contactar con Sonarr, imprime `ERROR: no se pudo contactar con Sonarr en <URL>` (en `search` y `status`, los mensajes de la librería compartida) y termina con 1.
 
 ### Buscar series
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "The Office"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "breaking bad"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search-json "breaking bad"
 ```
 
-**Salida:** lista numerada con IDs de TVDB, títulos, años y sinopsis.
+**Salida:** `search` imprime hasta 10 líneas, una por resultado: `1. Breaking Bad (2008) - https://thetvdb.com/dereferrer/series/81189`. Sin resultados no imprime nada. Si falta el año o el id, aparece `null`. Solo se usa el primer argumento: entrecomilla el texto. `search-json` devuelve el JSON crudo, sin límite de 10 y con sinopsis, `titleSlug` y demás campos; úsalo cuando necesites más datos.
+
+Presenta los resultados al usuario en una lista numerada con el enlace a TVDB.
 
 ### Comprobar si una serie existe
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" exists <tvdbId>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" exists 81189
 ```
 
-**Salida:** booleano que indica si la serie está en la biblioteca.
+**Salida:** `not_found` si no está en la biblioteca. Si está, dos líneas: `exists` y `ID: 12, Title: Breaking Bad, Seasons: 5`.
 
-### Añadir una serie
+Ejecútalo siempre antes de `add`.
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add <tvdbId>              # Busca de inmediato (por defecto)
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add <tvdbId> --no-search  # Añade sin buscar
-```
-
-### Eliminar una serie
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove <tvdbId>                # Conserva los archivos
-bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove <tvdbId> --delete-files # Borra también los archivos
-```
-
-**Importante:** pregunta siempre al usuario si quiere borrar los archivos al eliminar.
-
-### Obtener la configuración
+### Carpetas raíz y perfiles de calidad
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" config
 ```
 
-**Salida:** carpetas raíz y perfiles de calidad disponibles con sus IDs.
+**Salida:** `=== Root Folders ===`, una línea `<id>: <ruta>` por carpeta, una línea en blanco, `=== Quality Profiles ===` y una línea `<id>: <nombre>` por perfil.
 
-### Comprobar el estado del servicio
+Úsalo para elegir el `profileId` de `add`.
+
+### Estado de Sonarr
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" status
 ```
 
-**Salida:** versión e instancia de Sonarr (`/system/status`).
+**Salida:** una línea: `Sonarr 4.0.9.2244 - Sonarr (debian, branch main)`. Sin nombre de instancia sale `Sonarr`; sin sistema operativo o rama, `?`.
+
+### Añadir una serie
+
+**Modifica estado: confirma con el usuario antes de añadir** (la serie elegida y el perfil de calidad). Avisa de que, salvo con `--no-search`, Sonarr busca los episodios que faltan y puede iniciar descargas. Comprueba antes con `exists`.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189 5
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189 5 --no-search
+```
+
+**Salida:** en éxito, `✅ Added: Breaking Bad (2008) - 5 seasons` y, si la búsqueda estaba activa, `🔍 Search started` (código 0). Si TVDB no tiene la serie: `❌ Show not found with TVDB ID: <id>` (código 1). Si Sonarr no devuelve `id`: `❌ Failed to add show` y, en otra línea, su mensaje (código 0).
+
+`add` toma la primera carpeta raíz, monitoriza todos los episodios (`monitor: all`) y crea carpeta por temporada. `--no-search` desactiva la búsqueda y se reconoce en cualquier posición, pero el id va siempre primero y el perfil, de haberlo, segundo: en `add 81189 --no-search 5` el `5` se ignora y se usa el perfil por defecto.
+
+### Quitar una serie
+
+**Destructivo.** Según la skill `plex-crew-rules`, exige doble confirmación del usuario en dos mensajes distintos y anteponer `PLEX_CREW_CONFIRMED=1` al comando; el hook `confirm-destructive` bloquea cualquier `sonarr.sh remove` sin ese marcador, con o sin `--delete-files`. Pregunta siempre si se borran también los ficheros. Esta skill nunca borra carpetas ni ficheros del mount de zurg: las operaciones de zurg van solo con las tools `zurg_*`.
+
+```bash
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189 --delete-files
+```
+
+**Salida:** `🗑️ Removed: Breaking Bad (2008) (files kept)` o, con la opción, `🗑️ Removed: Breaking Bad (2008) + deleted files` (código 0). Si la serie no está en la biblioteca: `❌ Show not found in library` (código 1). La opción solo se reconoce como segundo argumento.
 
 ## Flujo de trabajo
 
-Cuando el usuario pregunte por series de TV:
-
-1. **"Añade Breaking Bad a Sonarr"** → Ejecuta `search "Breaking Bad"`, presenta los resultados con enlaces de TVDB y después `add <tvdbId>`
-2. **"¿Está The Office en mi biblioteca?"** → Ejecuta `exists <tvdbId>`
-3. **"Elimina Game of Thrones"** → Pregunta por el borrado de archivos y ejecuta `remove <tvdbId>` con el flag adecuado
-4. **"¿Qué perfiles de calidad tengo?"** → Ejecuta `config`
-
-### Presentar los resultados de búsqueda
-
-Incluye siempre enlaces de TVDB al presentar resultados de búsqueda:
-- Formato: `[Title (Year)](https://thetvdb.com/series/SLUG)`
-- Muestra una lista numerada para que el usuario elija
-- Incluye el año y una breve sinopsis
-
-### Añadir series
-
-1. Busca la serie
-2. Presenta los resultados con enlaces de TVDB
-3. El usuario elige un número
-4. Añade la serie (busca episodios por defecto)
+1. **"Añade X a Sonarr"** → `search "X"`, muestra la lista numerada y deja elegir
+2. Toma el `tvdbId` del enlace elegido y ejecuta `exists <tvdbId>`; si ya existe, avisa y no añadas
+3. Ejecuta `config` para ver los perfiles y confirma con el usuario perfil y búsqueda
+4. Tras la confirmación, ejecuta `add <tvdbId> [perfilId] [--no-search]`
+5. **"Quita X"** → `exists`, doble confirmación, pregunta por los ficheros y `PLEX_CREW_CONFIRMED=1 ... remove`
 
 ## Parámetros
 
-### Comando add
-- `<tvdbId>`: ID de TVDB de la serie (obligatorio)
-- `--no-search`: no buscar episodios tras añadirla
-
-### Comando remove
-- `<tvdbId>`: ID de TVDB de la serie (obligatorio)
-- `--delete-files`: borra también los archivos multimedia (por defecto se conservan)
+| Argumento | Comandos | Notas |
+|-----------|----------|-------|
+| `<texto>` | search, search-json | Solo el primer argumento; entrecomíllalo |
+| `<tvdbId>` | exists, add, remove | Entero de TVDB |
+| `[perfilId]` | add | Entero; segundo argumento; por defecto `SONARR_DEFAULT_QUALITY_PROFILE` o 1 |
+| `--no-search` | add | En cualquier posición; no lanza la búsqueda |
+| `--delete-files` | remove | Solo como segundo argumento; borra los ficheros del disco |
 
 ## Notas
 
-- Requiere acceso de red a tu servidor Sonarr
-- Usa la API v3 de Sonarr
-- Todas las operaciones de datos devuelven JSON
-- Los IDs de perfil de calidad varían según la instalación: usa `config` para descubrir los tuyos
-- Al añadir series se usa el `SONARR_DEFAULT_QUALITY_PROFILE` de `~/.claude/plex-crew/.env` (por defecto 1)
+- Nunca imprimas `SONARR_API_KEY` ni uses `curl` con la clave en línea: usa siempre el script.
+- Timeouts: `search` y `status` 25 s (librería compartida); el resto, 10 s de conexión y 30 s en total, sin reintentos.
+- El usuario trabaja en Europe/Madrid (regla global en `plex-crew-rules`).
+
+### Limitaciones conocidas
+
+- `add` no comprueba el código HTTP de la alta: si Sonarr la rechaza (serie ya existente, perfil inexistente), imprime `❌ Failed to add show` con código 0.
+- `add` usa siempre la primera carpeta raíz de `/rootfolder`, `monitor: all` y carpeta por temporada; no se pueden elegir carpeta, tipo de serie ni monitorización.
+- El perfil por defecto no se valida contra `/qualityprofile`; si no existe, Sonarr rechaza la alta.
+- `remove` no comprueba el código HTTP del borrado: imprime `🗑️ Removed` aunque Sonarr lo rechace. Verifica con `exists`.
+- `exists` compara el cuerpo con `[]` exacto, de modo que una respuesta de error (por ejemplo HTTP 401) cuenta como `exists` y la línea de datos falla o sale vacía. Tampoco indica el estado de la serie.
+- `search` muestra solo 10 resultados, sin sinopsis ni slug; `search-json` devuelve todos.
+- `search` y `status` usan la librería compartida: sin límite de conexión propio y con la clave en la línea de comandos de curl (visible en `ps`). El resto de comandos la pasa por stdin.
+- La barra final de `SONARR_URL` no se quita y da `//api/v3`.
+- No hay comandos de episodios, calendario, cola, historial, logs, refresh ni búsqueda de episodios.
 
 ## Referencia
 
-- [Documentación de la API de Sonarr](https://sonarr.tv/docs/api/)
-- [TVDB](https://thetvdb.com/) — base de datos de series de TV
+- [API de Sonarr](https://sonarr.tv/docs/api/)
+- [TVDB](https://thetvdb.com/)
 
-Para una referencia local detallada, consulta:
-- **[Endpoints de la API](./references/api-endpoints.md)** - Referencia completa de endpoints con parámetros
-- **[Referencia rápida](./references/quick-reference.md)** - Operaciones habituales con ejemplos para copiar y pegar
-- **[Resolución de problemas](./references/troubleshooting.md)** - Soluciones para errores de autenticación, conexión y otros
-
----
-
-## 🔧 Requisitos de uso de herramientas del agente
-
-**CRÍTICO:** al invocar scripts de esta skill mediante la zsh-tool, **USA SIEMPRE `pty: true`**.
-
-Sin el modo PTY, la salida de los comandos no será visible aunque se ejecuten correctamente.
-
-**Patrón de invocación correcto:**
-```typescript
-<invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">"${CLAUDE_PLUGIN_ROOT}/skills/SKILL_NAME/scripts/SCRIPT.sh" [args]</parameter>
-<parameter name="pty">true</parameter>
-</invoke>
-```
+Para la referencia local detallada, consulta:
+- **[Endpoints de la API](./references/api-endpoints.md)** - Comando del script, método, ruta y cuerpo de la alta
+- **[Referencia rápida](./references/quick-reference.md)** - Configuración y ejemplos para copiar y pegar
+- **[Resolución de problemas](./references/troubleshooting.md)** - Autenticación, conexión y uso
