@@ -307,7 +307,7 @@ curl -s "$PLEX_URL/status/sessions" \
         "type": "movie",
         "title": "Inception",
         "Player": {
-          "address": "192.168.1.100",
+          "address": "<host>",
           "device": "Chrome",
           "state": "playing",
           "title": "Living Room"

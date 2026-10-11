@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
 source "$_LOAD_ENV" || { echo "ERROR: no se encuentra load-env.sh" >&2; exit 1; }
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/../../_lib/arr-api.sh" || { echo "ERROR: no se encuentra arr-api.sh" >&2; exit 1; }
 
 # Load credentials from .env
 load_service_credentials "radarr" "RADARR_URL" "RADARR_API_KEY"
@@ -17,26 +19,37 @@ DEFAULT_QUALITY_PROFILE="${RADARR_DEFAULT_QUALITY_PROFILE:-1}"
 API="$RADARR_URL/api/v3"
 AUTH="X-Api-Key: $RADARR_API_KEY"
 
-cmd="$1"
+cmd="${1:-}"
 shift || true
 
 case "$cmd" in
   search)
-    query="$1"
-    curl -s -H "$AUTH" "$API/movie/lookup?term=$(echo "$query" | jq -sRr @uri)" | jq -r '
-      to_entries | .[] | 
-      "\(.key + 1). \(.value.title) (\(.value.year)) - https://themoviedb.org/movie/\(.value.tmdbId)" + 
+    query="${1:-}"
+    if [ -z "$query" ]; then
+      echo "ERROR: falta el texto de búsqueda" >&2
+      echo "Uso: radarr.sh search <query>" >&2
+      exit 1
+    fi
+    arr_call GET "/movie/lookup?term=$(printf '%s' "$query" | jq -sRr @uri)" || exit 1
+    jq -r '
+      to_entries | .[] |
+      "\(.key + 1). \(.value.title) (\(.value.year)) - https://themoviedb.org/movie/\(.value.tmdbId)" +
       (if .value.collection.tmdbId then " [Collection: \(.value.collection.title)]" else "" end)
-    '
+    ' <<<"$ARR_BODY"
+    ;;
+
+  status)
+    arr_call GET "/system/status" || exit 1
+    jq -r '"Radarr \(.version) - \(.instanceName // "Radarr") (\(.osName // "?"), branch \(.branch // "?"))"' <<<"$ARR_BODY"
     ;;
     
   search-json)
-    query="$1"
-    curl -s -H "$AUTH" "$API/movie/lookup?term=$(echo "$query" | jq -sRr @uri)"
+    query="${1:-}"
+    curl -s -H "$AUTH" "$API/movie/lookup?term=$(printf '%s' "$query" | jq -sRr @uri)"
     ;;
     
   exists)
-    tmdbId="$1"
+    tmdbId="${1:-}"
     result=$(curl -s -H "$AUTH" "$API/movie?tmdbId=$tmdbId")
     if [ "$result" = "[]" ]; then
       echo "not_found"
@@ -55,8 +68,8 @@ case "$cmd" in
     ;;
     
   add)
-    tmdbId="$1"
-    qualityProfileId="$2"
+    tmdbId="${1:-}"
+    qualityProfileId="${2:-}"
     searchFlag="true"
     
     # Check for --no-search flag
@@ -109,8 +122,8 @@ case "$cmd" in
     ;;
     
   add-collection)
-    collectionTmdbId="$1"
-    searchTerm="$2"
+    collectionTmdbId="${1:-}"
+    searchTerm="${2:-}"
     searchFlag="true"
     
     # Check for --no-search flag
@@ -140,7 +153,7 @@ case "$cmd" in
     fi
     
     # Search for movies
-    allMovies=$(curl -s -H "$AUTH" "$API/movie/lookup?term=$(echo "$searchTerm" | jq -sRr @uri)")
+    allMovies=$(curl -s -H "$AUTH" "$API/movie/lookup?term=$(printf '%s' "$searchTerm" | jq -sRr @uri)")
     
     # Filter to only movies in our collection
     moviesToAdd=$(echo "$allMovies" | jq --argjson cid "$collectionTmdbId" '[.[] | select(.collection.tmdbId == $cid)]')
@@ -222,9 +235,9 @@ case "$cmd" in
     ;;
     
   remove)
-    tmdbId="$1"
+    tmdbId="${1:-}"
     deleteFiles="false"
-    if [ "$2" = "--delete-files" ]; then
+    if [ "${2:-}" = "--delete-files" ]; then
       deleteFiles="true"
     fi
     
@@ -251,11 +264,11 @@ case "$cmd" in
     ;;
     
   collection-info)
-    tmdbId="$1"
+    tmdbId="${1:-}"
     curl -s -H "$AUTH" "$API/collection" | jq --argjson tid "$tmdbId" '.[] | select(.tmdbId == $tid)'
     ;;
     
-  *)
+  ""|help|-h|--help)
     echo "Usage: radarr.sh <command> [args]"
     echo ""
     echo "Commands:"
@@ -263,9 +276,16 @@ case "$cmd" in
     echo "  search-json <query>         Search (JSON output)"
     echo "  exists <tmdbId>             Check if movie is in library"
     echo "  config                      Show root folders & quality profiles"
+    echo "  status                      Show radarr version/status"
     echo "  add <tmdbId> [profileId] [--no-search]  Add a movie (searches by default)"
     echo "  add-collection <tmdbId> [--no-search]  Add full collection"
     echo "  remove <tmdbId>             Remove a movie from library"
     echo "  collection-info <tmdbId>    Get collection details"
+    ;;
+
+  *)
+    echo "ERROR: comando desconocido: $cmd" >&2
+    echo "Usa: radarr.sh help" >&2
+    exit 1
     ;;
 esac

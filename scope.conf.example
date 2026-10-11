@@ -1,16 +1,29 @@
-# Rutas donde el agente plex-naming puede escribir (hook hooks/enforce-agent-scope.js).
+# Rutas de medios del homelab. Las leen AMBOS hooks:
+#
+#  - hooks/enforce-agent-scope.js: el agente plex-naming solo puede escribir bajo estas rutas.
+#    Sin fichero o sin rutas, deniega toda escritura a plex-naming.
+#  - hooks/confirm-destructive.js: estas rutas definen qué operaciones destructivas de fichero
+#    se vigilan. Sin fichero o sin rutas, las deniega (falla cerrado).
 #
 # Copia este fichero a ~/.claude/plex-crew/scope.conf y ajusta las rutas a tu instalación:
 #
 #   mkdir -p ~/.claude/plex-crew
 #   cp scope.conf.example ~/.claude/plex-crew/scope.conf
 #
-# También puedes guardarlo en otro sitio y apuntar a él con la variable PLEX_CREW_CONFIG.
+# También puedes guardarlo en otro sitio y apuntar a él con la variable PLEX_CREW_CONFIG
+# (en el entorno de la shell, no en el .env).
 #
 # Formato: una ruta absoluta por línea. Las líneas vacías y las que empiezan por # se ignoran.
 # Se admite ~ al principio de la ruta. Cada ruta incluye todo lo que cuelga de ella.
-# Si no hay ninguna ruta configurada, el hook deniega toda escritura.
+#
+# Notas:
+#  - `mv` dentro de estas raíces está permitido a propósito (es la operación de renombrado).
+#  - El marcador PLEX_CREW_CONFIRMED=1 debe ir al inicio del mismo segmento del comando que
+#    la operación destructiva (el segmento es lo que queda entre ; && || o |).
+#
+# Ejemplo (layout genérico; sustituye por tus rutas reales):
 
-/media/plex/movies
-/media/plex/shows
-/media/downloads
+/workspace/mnt/plex-stack/plex/multimedia/movies
+/workspace/mnt/plex-stack/plex/multimedia/shows
+/workspace/mnt/plex-stack/plex/multimedia/animes
+/workspace/mnt/plex-stack/plex/multimedia/music

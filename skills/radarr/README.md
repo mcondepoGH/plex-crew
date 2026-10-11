@@ -40,16 +40,20 @@ RADARR_DEFAULT_QUALITY_PROFILE="1"  # Optional (defaults to 1)
 ### 3. Pruébalo
 
 ```bash
-bash scripts/radarr.sh search "Inception"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Inception"
 ```
+
+### Cómo invocar el script
+
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/radarr/scripts/radarr.sh status` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" status`). Los ejemplos de abajo usan la ruta corta `scripts/radarr.sh` y suponen que estás en `skills/radarr/`.
 
 ## Ejemplos de uso
 
 ### Buscar películas
 
 ```bash
-bash scripts/radarr.sh search "Inception"
-bash scripts/radarr.sh search "The Matrix"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Inception"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "The Matrix"
 ```
 
 Devuelve una lista numerada con IDs de TMDB, información de la colección y enlaces.
@@ -59,7 +63,7 @@ Devuelve una lista numerada con IDs de TMDB, información de la colección y enl
 Antes de añadir, comprueba si la película ya está en tu biblioteca:
 
 ```bash
-bash scripts/radarr.sh exists 27205  # TMDB ID de Inception
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" exists 27205  # TMDB ID de Inception
 ```
 
 ### Añadir una película
@@ -67,13 +71,13 @@ bash scripts/radarr.sh exists 27205  # TMDB ID de Inception
 Añade una película con búsqueda automática (por defecto):
 
 ```bash
-bash scripts/radarr.sh add 27205  # Busca de inmediato
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add 27205  # Busca de inmediato
 ```
 
 Añade sin buscar (búsqueda manual posterior):
 
 ```bash
-bash scripts/radarr.sh add 27205 --no-search
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add 27205 --no-search
 ```
 
 ### Añadir una colección completa
@@ -81,13 +85,13 @@ bash scripts/radarr.sh add 27205 --no-search
 Si una película pertenece a una colección (p. ej., Marvel Cinematic Universe, Star Wars), puedes añadir la colección entera:
 
 ```bash
-bash scripts/radarr.sh add-collection 86311  # Marvel Cinematic Universe
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection 86311  # Marvel Cinematic Universe
 ```
 
 Sin buscar:
 
 ```bash
-bash scripts/radarr.sh add-collection 86311 --no-search
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection 86311 --no-search
 ```
 
 ### Eliminar una película
@@ -95,23 +99,31 @@ bash scripts/radarr.sh add-collection 86311 --no-search
 Elimina conservando los archivos descargados:
 
 ```bash
-bash scripts/radarr.sh remove 27205
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 27205
 ```
 
 Elimina y borra todos los archivos:
 
 ```bash
-bash scripts/radarr.sh remove 27205 --delete-files
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 27205 --delete-files
 ```
 
 **Pregunta siempre al usuario si quiere borrar los archivos al eliminar.**
+
+### Comprobar la conexión
+
+Comprueba que el servicio responde y que las credenciales son válidas (comando `status`):
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" status
+```
 
 ### Ver la configuración
 
 Obtén las carpetas raíz y los perfiles de calidad disponibles:
 
 ```bash
-bash scripts/radarr.sh config
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config
 ```
 
 Úsalo para determinar el ID de tu `defaultQualityProfile`.
@@ -128,7 +140,7 @@ La documentación detallada de la API está en el directorio `references/`:
 
 Cuando un usuario pida añadir una película:
 
-1. **Buscar**: `bash scripts/radarr.sh search "Movie Name"`
+1. **Buscar**: `bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Movie Name"`
 2. **Presentar resultados**: incluye siempre enlaces de TMDB con el formato `[Title (Year)](https://themoviedb.org/movie/ID)`
 3. **El usuario elige**: el usuario selecciona un número de los resultados
 4. **Comprobar colección**: si la película pertenece a una colección, pregunta al usuario si quiere añadir la colección completa
@@ -148,7 +160,7 @@ Cuando un usuario pida añadir una película:
 → Tu clave de API no es válida: revisa Settings → General → Security
 
 **"Quality profile not found"**
-→ Ejecuta `bash scripts/radarr.sh config` para ver los IDs de perfil disponibles
+→ Ejecuta `bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config` para ver los IDs de perfil disponibles
 
 **Colección no encontrada**
 → No todas las películas pertenecen a una colección: revisa la información de colección en los resultados de búsqueda

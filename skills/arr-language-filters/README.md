@@ -29,11 +29,11 @@ Combinada con las skills de servicio (cada una documenta sus propias variables d
 
 ```bash
 # Lectura: ver si Radarr ya conoce la película y su configuración (perfiles, carpetas raíz)
-bash scripts/radarr.sh exists 603
-bash scripts/radarr.sh config
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" exists 603
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config
 
 # Lectura: buscar candidatos por imdbid (evita el fallo de texto libre de Torrentio)
-bash scripts/prowlarr-api.sh movie-search --imdb tt0133093
+bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0133093
 ```
 
 Ejecuta desde la carpeta de cada skill (`skills/radarr`, `skills/prowlarr`).

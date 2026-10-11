@@ -24,6 +24,19 @@ Especial:  Mi Serie (2015) {imdb-tt1234567}/Season 00/... S00E01 ... {imdb-tt123
 
 El renombrado se hace en local con `Bash`; las bibliotecas de Plex se localizan con la skill `plex` (comando `libraries`).
 
+## Rutas de contenedor y rutas del host
+
+Plex (en Docker) ve las carpetas con rutas de contenedor, que no existen en el host donde se renombra. Antes de renombrar, traduce la ruta a la del host bajo las raíces de `scope.conf`:
+
+| Ruta de contenedor (Plex) | Ruta del host (ejemplo) |
+|---|---|
+| `/library/zurg/movies` | punto de montaje de zurg, carpeta `movies` |
+| `/library/zurg/shows` | punto de montaje de zurg, carpeta `shows` |
+| `/movies-local` | `/workspace/mnt/plex-stack/plex/multimedia/movies` |
+| `/shows-local` | `/workspace/mnt/plex-stack/plex/multimedia/shows` |
+
+Las rutas del host dependen de la instalación: la correspondencia real es la de tus raíces en `scope.conf`. Si una ruta traducida cae fuera de esas raíces, el hook `enforce-agent-scope` la denegará: no la rodees y devuélvelo al orquestador.
+
 ## Referencia de la API
 
 La referencia detallada está en el directorio `references/`:

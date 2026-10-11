@@ -43,10 +43,10 @@ Obtén tu clave de API en: Prowlarr → Settings → General → Security → AP
 
 ## Ejecución del script
 
-El script está en `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/`. Los ejemplos siguientes usan rutas relativas a la carpeta de la skill, así que ejecútalos en un subshell que no altere el directorio de trabajo de la sesión:
+El script está en `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/`. Los ejemplos usan la ruta absoluta, así que no alteran el directorio de trabajo de la sesión:
 
 ```bash
-(cd "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr" && ./scripts/prowlarr-api.sh search "ubuntu 22.04")
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 22.04"
 ```
 
 ---
@@ -57,76 +57,76 @@ El script está en `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/`. Los ejemplo
 
 ```bash
 # Búsqueda básica en todos los indexadores
-./scripts/prowlarr-api.sh search "ubuntu 22.04"
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 22.04"
 
 # Buscar solo torrents
-./scripts/prowlarr-api.sh search "ubuntu" --torrents
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu" --torrents
 
 # Buscar solo usenet
-./scripts/prowlarr-api.sh search "ubuntu" --usenet
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu" --usenet
 
 # Buscar en categorías concretas (2000=Películas, 5000=TV, 3000=Audio, 7000=Libros)
-./scripts/prowlarr-api.sh search "inception" --category 2000
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "inception" --category 2000
 
 # Búsqueda de series con TVDB ID
-./scripts/prowlarr-api.sh tv-search --tvdb 71663 --season 1 --episode 1
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" tv-search --tvdb 71663 --season 1 --episode 1
 
 # Búsqueda de películas con IMDB ID
-./scripts/prowlarr-api.sh movie-search --imdb tt0111161
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0111161
 ```
 
 ### Listar indexadores
 
 ```bash
 # Todos los indexadores
-./scripts/prowlarr-api.sh indexers
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" indexers
 
 # Con detalles de estado
-./scripts/prowlarr-api.sh indexers --verbose
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" indexers --verbose
 ```
 
 ### Estado y estadísticas de los indexadores
 
 ```bash
 # Estadísticas de uso por indexador
-./scripts/prowlarr-api.sh stats
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" stats
 
-# Probar todos los indexadores
-./scripts/prowlarr-api.sh test-all
+# Probar todos los indexadores (timeout 120 s; devuelve rc 1 y lista los que fallan)
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test-all
 
 # Probar un indexador concreto
-./scripts/prowlarr-api.sh test <indexer-id>
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test <indexer-id>
 ```
 
 ### Gestión de indexadores
 
 ```bash
 # Activar o desactivar un indexador
-./scripts/prowlarr-api.sh enable <indexer-id>
-./scripts/prowlarr-api.sh disable <indexer-id>
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" enable <indexer-id>
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" disable <indexer-id>
 
 # Eliminar un indexador
-./scripts/prowlarr-api.sh delete <indexer-id>
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" delete <indexer-id>
 ```
 
 ### Sincronización con apps
 
 ```bash
 # Sincronizar indexadores con Sonarr/Radarr/etc
-./scripts/prowlarr-api.sh sync
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" sync
 
 # Listar las apps conectadas
-./scripts/prowlarr-api.sh apps
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" apps
 ```
 
 ### Sistema
 
 ```bash
 # Estado del sistema
-./scripts/prowlarr-api.sh status
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
 
 # Comprobación de salud
-./scripts/prowlarr-api.sh health
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" health
 ```
 
 ---
@@ -151,28 +151,28 @@ Subcategorías: 2010 (Movies/Foreign), 2020 (Movies/Other), 2030 (Movies/SD), 20
 
 **"Busca la última ISO de Ubuntu"**
 ```bash
-./scripts/prowlarr-api.sh search "ubuntu 24.04"
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "ubuntu 24.04"
 ```
 
 **"Encuentra Game of Thrones S01E01"**
 ```bash
-./scripts/prowlarr-api.sh tv-search --tvdb 121361 --season 1 --episode 1
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" tv-search --tvdb 121361 --season 1 --episode 1
 ```
 
 **"Busca Inception en 4K"**
 ```bash
-./scripts/prowlarr-api.sh search "inception 2160p" --category 2045
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" search "inception 2160p" --category 2045
 ```
 
 **"Comprueba si mis indexadores funcionan bien"**
 ```bash
-./scripts/prowlarr-api.sh stats
-./scripts/prowlarr-api.sh test-all
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" stats
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" test-all
 ```
 
 **"Envía los cambios de indexadores a Sonarr/Radarr"**
 ```bash
-./scripts/prowlarr-api.sh sync
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" sync
 ```
 
 ## Flujo de trabajo
@@ -207,7 +207,7 @@ Sin el modo PTY, la salida de los comandos no será visible aunque se ejecuten c
 **Patrón de invocación correcto:**
 ```typescript
 <invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">./skills/SKILL_NAME/scripts/SCRIPT.sh [args]</parameter>
+<parameter name="command">"${CLAUDE_PLUGIN_ROOT}/skills/SKILL_NAME/scripts/SCRIPT.sh" [args]</parameter>
 <parameter name="pty">true</parameter>
 </invoke>
 ```

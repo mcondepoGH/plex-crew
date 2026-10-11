@@ -37,15 +37,19 @@ SEERR_API_KEY="<your_api_key>"
 ### 3. Pruébalo
 
 ```bash
-bash scripts/seerr.sh status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" status
 ```
+
+### Cómo invocar el script
+
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/seerr/scripts/seerr.sh status` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" status`). Los ejemplos de abajo usan la ruta corta `scripts/seerr.sh` y suponen que estás en `skills/seerr/`.
 
 ## Ejemplos de uso
 
 ### Buscar títulos
 
 ```bash
-bash scripts/seerr.sh search "Dune"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" search "Dune"
 ```
 
 Devuelve una línea por resultado con tipo, id de TMDB, título, año y estado en Seerr.
@@ -53,9 +57,9 @@ Devuelve una línea por resultado con tipo, id de TMDB, título, año y estado e
 ### Listar solicitudes
 
 ```bash
-bash scripts/seerr.sh requests pending
-bash scripts/seerr.sh requests approved
-bash scripts/seerr.sh requests all
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" requests pending
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" requests approved
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" requests all
 ```
 
 Devuelve hasta 50 solicitudes con id, tipo, id de TMDB, estado y solicitante.
@@ -63,7 +67,7 @@ Devuelve hasta 50 solicitudes con id, tipo, id de TMDB, estado y solicitante.
 ### Solicitar una película
 
 ```bash
-bash scripts/seerr.sh request-movie 438631
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" request-movie 438631
 ```
 
 **¡Confirma siempre con el usuario antes de solicitar!**
@@ -73,19 +77,19 @@ bash scripts/seerr.sh request-movie 438631
 Todas las temporadas:
 
 ```bash
-bash scripts/seerr.sh request-tv 1396
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" request-tv 1396
 ```
 
 Solo las temporadas 1 y 2:
 
 ```bash
-bash scripts/seerr.sh request-tv 1396 1,2
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" request-tv 1396 1,2
 ```
 
 ### Leer los logs
 
 ```bash
-bash scripts/seerr.sh logs 20 error
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" logs 20 error
 ```
 
 ## Referencia de la API
@@ -100,7 +104,7 @@ La documentación detallada de la API está en el directorio `references/`:
 
 Cuando un usuario pida solicitar un título:
 
-1. **Buscar**: `bash scripts/seerr.sh search "Title"`
+1. **Buscar**: `bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" search "Title"`
 2. **Presentar resultados**: incluye el id de TMDB y el estado en Seerr de cada resultado
 3. **Comprobar el estado**: si el estado en Seerr no es `none`, el título ya está solicitado o disponible; díselo al usuario
 4. **El usuario elige**: el usuario selecciona un resultado

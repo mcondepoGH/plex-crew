@@ -60,7 +60,7 @@ Obtiene la información y la versión del servidor Tautulli.
       "pms_name": "MyPlexServer",
       "pms_version": "1.32.5.7349",
       "pms_platform": "Linux",
-      "pms_ip": "192.168.1.100",
+      "pms_ip": "<host>",
       "pms_port": "32400",
       "pms_is_remote": 0,
       "pms_ssl": 0
@@ -187,7 +187,7 @@ Obtiene el historial de reproducción con filtrado detallado.
           "stopped": 1704156789,
           "duration": 6789,
           "paused_counter": 2,
-          "ip_address": "192.168.1.50"
+          "ip_address": "<host>"
         }
       ]
     }
@@ -226,7 +226,7 @@ Obtiene la lista de todos los usuarios con estadísticas básicas.
         "allow_guest": 0,
         "user_thumb": "/path/to/thumb.jpg",
         "last_seen": 1704156789,
-        "ip_address": "192.168.1.50",
+        "ip_address": "<host>",
         "plays": 1234,
         "duration": 456789
       }

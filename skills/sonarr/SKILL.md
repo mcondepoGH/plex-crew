@@ -45,10 +45,10 @@ SONARR_DEFAULT_QUALITY_PROFILE="1"  # Optional: defaults to 1 if not set
 
 ## Ejecución del script
 
-El script está en `${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/`. Los ejemplos siguientes usan rutas relativas a la carpeta de la skill, así que ejecútalos en un subshell que no altere el directorio de trabajo de la sesión:
+El script está en `${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/`. Los ejemplos usan la ruta absoluta, así que no alteran el directorio de trabajo de la sesión:
 
 ```bash
-(cd "${CLAUDE_PLUGIN_ROOT}/skills/sonarr" && bash scripts/sonarr.sh search "Breaking Bad")
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
 ```
 
 ## Comandos
@@ -58,8 +58,8 @@ Todos los comandos devuelven salida JSON.
 ### Buscar series
 
 ```bash
-bash scripts/sonarr.sh search "Breaking Bad"
-bash scripts/sonarr.sh search "The Office"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "The Office"
 ```
 
 **Salida:** lista numerada con IDs de TVDB, títulos, años y sinopsis.
@@ -67,7 +67,7 @@ bash scripts/sonarr.sh search "The Office"
 ### Comprobar si una serie existe
 
 ```bash
-bash scripts/sonarr.sh exists <tvdbId>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" exists <tvdbId>
 ```
 
 **Salida:** booleano que indica si la serie está en la biblioteca.
@@ -75,15 +75,15 @@ bash scripts/sonarr.sh exists <tvdbId>
 ### Añadir una serie
 
 ```bash
-bash scripts/sonarr.sh add <tvdbId>              # Busca de inmediato (por defecto)
-bash scripts/sonarr.sh add <tvdbId> --no-search  # Añade sin buscar
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add <tvdbId>              # Busca de inmediato (por defecto)
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add <tvdbId> --no-search  # Añade sin buscar
 ```
 
 ### Eliminar una serie
 
 ```bash
-bash scripts/sonarr.sh remove <tvdbId>                # Conserva los archivos
-bash scripts/sonarr.sh remove <tvdbId> --delete-files # Borra también los archivos
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove <tvdbId>                # Conserva los archivos
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove <tvdbId> --delete-files # Borra también los archivos
 ```
 
 **Importante:** pregunta siempre al usuario si quiere borrar los archivos al eliminar.
@@ -91,10 +91,18 @@ bash scripts/sonarr.sh remove <tvdbId> --delete-files # Borra también los archi
 ### Obtener la configuración
 
 ```bash
-bash scripts/sonarr.sh config
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" config
 ```
 
 **Salida:** carpetas raíz y perfiles de calidad disponibles con sus IDs.
+
+### Comprobar el estado del servicio
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" status
+```
+
+**Salida:** versión e instancia de Sonarr (`/system/status`).
 
 ## Flujo de trabajo
 
@@ -158,7 +166,7 @@ Sin el modo PTY, la salida de los comandos no será visible aunque se ejecuten c
 **Patrón de invocación correcto:**
 ```typescript
 <invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">./skills/SKILL_NAME/scripts/SCRIPT.sh [args]</parameter>
+<parameter name="command">"${CLAUDE_PLUGIN_ROOT}/skills/SKILL_NAME/scripts/SCRIPT.sh" [args]</parameter>
 <parameter name="pty">true</parameter>
 </invoke>
 ```

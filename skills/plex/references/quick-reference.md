@@ -15,7 +15,7 @@ export PLEX_TOKEN="your-plex-token"
 
 Añade a `~/.claude/plex-crew/.env`:
 ```bash
-PLEX_URL="http://192.168.1.100:32400"
+PLEX_URL="http://<host>:32400"
 PLEX_TOKEN="your-plex-token"
 ```
 
@@ -45,7 +45,7 @@ curl -X POST "https://plex.tv/users/sign_in.json" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh identity | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" identity | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/identity" \
@@ -56,7 +56,7 @@ curl -s "$PLEX_URL/identity" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh info | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" info | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/" \
@@ -68,7 +68,7 @@ curl -s "$PLEX_URL/" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh prefs | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" prefs | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/:/prefs" \
@@ -79,7 +79,7 @@ curl -s "$PLEX_URL/:/prefs" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh sessions | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" sessions | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/status/sessions" \
@@ -93,7 +93,7 @@ curl -s "$PLEX_URL/status/sessions" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh libraries | jq '.MediaContainer.Directory[] | {key, title, type}'
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" libraries | jq '.MediaContainer.Directory[] | {key, title, type}'
 
 # O con curl directo
 curl -s "$PLEX_URL/library/sections" \
@@ -105,8 +105,8 @@ curl -s "$PLEX_URL/library/sections" \
 
 ```bash
 # Con el script auxiliar (sustituye 1 por la clave de tu biblioteca)
-./skills/plex/scripts/plex-api.sh library 1 | jq '.MediaContainer.Metadata[] | {title, year, type}'
-./skills/plex/scripts/plex-api.sh library 1 --limit 50 --offset 100
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" library 1 | jq '.MediaContainer.Metadata[] | {title, year, type}'
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" library 1 --limit 50 --offset 100
 
 # O con curl directo
 curl -s "$PLEX_URL/library/sections/LIBRARY_KEY/all" \
@@ -118,8 +118,8 @@ curl -s "$PLEX_URL/library/sections/LIBRARY_KEY/all" \
 
 ```bash
 # Con el script auxiliar (por defecto: 20 elementos)
-./skills/plex/scripts/plex-api.sh recent | jq
-./skills/plex/scripts/plex-api.sh recent --limit 10
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" recent | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" recent --limit 10
 
 # O con curl directo
 curl -s "$PLEX_URL/library/recentlyAdded" \
@@ -131,7 +131,7 @@ curl -s "$PLEX_URL/library/recentlyAdded" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh refresh 1
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" refresh 1
 
 # O con curl directo
 curl -s "$PLEX_URL/library/sections/LIBRARY_KEY/refresh" \
@@ -152,7 +152,7 @@ curl -s "$PLEX_URL/library/sections/LIBRARY_KEY/refresh?force=1" \
 
 ```bash
 # Con el script auxiliar (sustituye 12345 por la rating key)
-./skills/plex/scripts/plex-api.sh metadata 12345 | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" metadata 12345 | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/library/metadata/RATING_KEY" \
@@ -164,7 +164,7 @@ curl -s "$PLEX_URL/library/metadata/RATING_KEY" \
 
 ```bash
 # Con el script auxiliar (obtiene las temporadas de una serie)
-./skills/plex/scripts/plex-api.sh children 12345 | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" children 12345 | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/library/metadata/RATING_KEY/children" \
@@ -176,8 +176,8 @@ curl -s "$PLEX_URL/library/metadata/RATING_KEY/children" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh search "Inception" | jq
-./skills/plex/scripts/plex-api.sh search "Marvel" --limit 5
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" search "Inception" | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" search "Marvel" --limit 5
 
 # O con curl directo
 curl -s "$PLEX_URL/search?query=inception" \
@@ -191,7 +191,7 @@ curl -s "$PLEX_URL/search?query=inception" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh sessions | jq '.MediaContainer.Metadata[] | {title, user: .User.title, player: .Player.title}'
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" sessions | jq '.MediaContainer.Metadata[] | {title, user: .User.title, player: .Player.title}'
 
 # O con curl directo
 curl -s "$PLEX_URL/status/sessions" \
@@ -203,8 +203,8 @@ curl -s "$PLEX_URL/status/sessions" \
 
 ```bash
 # Con el script auxiliar (por defecto: 10 elementos)
-./skills/plex/scripts/plex-api.sh ondeck | jq
-./skills/plex/scripts/plex-api.sh ondeck --limit 5
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" ondeck | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" ondeck --limit 5
 
 # O con curl directo
 curl -s "$PLEX_URL/library/onDeck" \
@@ -216,7 +216,7 @@ curl -s "$PLEX_URL/library/onDeck" \
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh clients | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" clients | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/clients" \
@@ -246,7 +246,7 @@ curl -X DELETE "$PLEX_URL/status/sessions/terminate?sessionId=SESSION_ID&reason=
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh playlists | jq '.MediaContainer.Metadata[] | {title, playlistType, leafCount}'
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" playlists | jq '.MediaContainer.Metadata[] | {title, playlistType, leafCount}'
 
 # O con curl directo
 curl -s "$PLEX_URL/playlists" \
@@ -275,7 +275,7 @@ curl -X POST "$PLEX_URL/playlists?type=video&title=My%20Playlist&smart=0&uri=ser
 
 ```bash
 # Con el script auxiliar (solo administrador)
-./skills/plex/scripts/plex-api.sh accounts | jq
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" accounts | jq
 
 # O con curl directo
 curl -s "$PLEX_URL/accounts" \

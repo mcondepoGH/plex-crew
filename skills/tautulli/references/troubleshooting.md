@@ -75,7 +75,7 @@ Problemas habituales y soluciones al usar la skill de Tautulli.
 3. **Verifica el formato:**
    ```bash
    # Formato correcto en .env
-   TAUTULLI_URL="http://192.168.1.100:8181"
+   TAUTULLI_URL="http://<host>:8181"
    TAUTULLI_API_KEY="<your_api_key>"
 
    # SIN espacios alrededor del =
@@ -94,7 +94,7 @@ Problemas habituales y soluciones al usar la skill de Tautulli.
 
 **Síntomas:**
 ```
-curl: (7) Failed to connect to 192.168.1.100 port 8181: Connection refused
+curl: (7) Failed to connect to <host> port 8181: Connection refused
 ```
 
 **Causas:**
@@ -111,13 +111,13 @@ curl: (7) Failed to connect to 192.168.1.100 port 8181: Connection refused
    docker ps | grep tautulli
 
    # Comprobar si el puerto está escuchando
-   nc -zv 192.168.1.100 8181
+   nc -zv <host> 8181
    ```
 
 2. **Verifica la URL y el puerto:**
    ```bash
    # Probar el acceso a la interfaz web
-   curl -I http://192.168.1.100:8181
+   curl -I http://<host>:8181
 
    # Debe devolver 200 OK o una redirección 302
    ```
@@ -134,8 +134,8 @@ curl: (7) Failed to connect to 192.168.1.100 port 8181: Connection refused
 4. **Prueba desde la misma red:**
    ```bash
    # Asegúrate de que puedes acceder a Tautulli desde tu equipo
-   ping 192.168.1.100
-   curl http://192.168.1.100:8181
+   ping <host>
+   curl http://<host>:8181
    ```
 
 5. **Revisa los logs de Tautulli:**
@@ -156,7 +156,7 @@ curl: (7) Failed to connect to 192.168.1.100 port 8181: Connection refused
 1. **Usa HTTP en su lugar:**
    ```bash
    # En ~/.claude/plex-crew/.env
-   TAUTULLI_URL="http://192.168.1.100:8181"  # Not https://
+   TAUTULLI_URL="http://<host>:8181"  # Not https://
    ```
 
 2. **O desactiva la verificación SSL (no recomendado):**
@@ -198,7 +198,7 @@ curl: (7) Failed to connect to 192.168.1.100 port 8181: Connection refused
 2. **Verifica la conexión con Plex:**
    ```bash
    # Comprobar la información del servidor
-   ./scripts/tautulli-api.sh server-info
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info
 
    # Debe mostrar pms_name y pms_version
    ```
@@ -213,10 +213,10 @@ curl: (7) Failed to connect to 192.168.1.100 port 8181: Connection refused
 4. **Quita los filtros y vuelve a intentarlo:**
    ```bash
    # En lugar de:
-   ./scripts/tautulli-api.sh history --user "john" --days 1
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --user "john" --days 1
 
    # Prueba:
-   ./scripts/tautulli-api.sh history --limit 100
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --limit 100
    ```
 
 5. **Revisa la retención del historial:**
@@ -233,13 +233,13 @@ curl: (7) Failed to connect to 192.168.1.100 port 8181: Connection refused
 
 1. **Lista primero las secciones disponibles:**
    ```bash
-   ./scripts/tautulli-api.sh libraries
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries
    ```
 
 2. **Usa el section_id correcto:**
    ```bash
    # Obtén los IDs de sección de la salida anterior (normalmente 1, 2, 3...)
-   ./scripts/tautulli-api.sh library-stats --section-id 1
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" library-stats --section-id 1
    ```
 
 3. **Los IDs de sección coinciden con los de Plex:**
@@ -315,22 +315,22 @@ ls -l skills/tautulli/scripts/tautulli-api.sh
 1. **Usa rangos de tiempo más cortos:**
    ```bash
    # En lugar de todo el histórico:
-   ./scripts/tautulli-api.sh history --limit 1000
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --limit 1000
 
    # Usa datos recientes:
-   ./scripts/tautulli-api.sh history --days 30 --limit 100
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --days 30 --limit 100
    ```
 
 2. **Limita el tamaño del resultado:**
    ```bash
    # Usa límites razonables
-   ./scripts/tautulli-api.sh history --limit 50  # No 10000
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --limit 50  # No 10000
    ```
 
 3. **Usa filtros específicos:**
    ```bash
    # Acotar la búsqueda
-   ./scripts/tautulli-api.sh history --user "john" --section-id 1 --days 7
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --user "john" --section-id 1 --days 7
    ```
 
 4. **Revisa el tamaño de la base de datos:**
@@ -358,7 +358,7 @@ ls -l skills/tautulli/scripts/tautulli-api.sh
    ```bash
    #!/bin/bash
    for user in alice bob charlie; do
-       ./scripts/tautulli-api.sh user-stats --user "$user"
+       "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --user "$user"
        sleep 1  # Esperar 1 segundo entre llamadas
    done
    ```
@@ -366,13 +366,13 @@ ls -l skills/tautulli/scripts/tautulli-api.sh
 2. **Agrupa las operaciones:**
    ```bash
    # En lugar de varias llamadas, usa filtros
-   ./scripts/tautulli-api.sh history --limit 500
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --limit 500
    ```
 
 3. **Almacena los resultados en caché:**
    ```bash
    # Guardar los datos de uso frecuente
-   ./scripts/tautulli-api.sh libraries > /tmp/tautulli_libs.json
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries > /tmp/tautulli_libs.json
 
    # Reutilizar los datos en caché
    cat /tmp/tautulli_libs.json | jq '.response.data'
@@ -391,7 +391,7 @@ ls -l skills/tautulli/scripts/tautulli-api.sh
 
 1. **Comprueba la conexión con Plex:**
    ```bash
-   ./scripts/tautulli-api.sh server-info
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info
    # Verifica que pms_name y pms_version son correctos
    ```
 
@@ -422,7 +422,7 @@ ls -l skills/tautulli/scripts/tautulli-api.sh
 
 1. **Lista todas las secciones:**
    ```bash
-   ./scripts/tautulli-api.sh libraries | jq '.response.data[] | {id: .section_id, name: .section_name, type: .section_type}'
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries | jq '.response.data[] | {id: .section_id, name: .section_name, type: .section_type}'
    ```
 
 2. **Usa los IDs correctos:**
@@ -448,13 +448,13 @@ ls -l skills/tautulli/scripts/tautulli-api.sh
 **Incorrecto:**
 ```bash
 # Esto no funcionará
-./scripts/tautulli-api.sh history --start-date "2024-01-01"
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --start-date "2024-01-01"
 ```
 
 **Correcto:**
 ```bash
 # Usar el parámetro --days
-./scripts/tautulli-api.sh history --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --days 30
 
 # O convertir a marca de tiempo Unix
 START=$(date -d "2024-01-01" +%s)
@@ -468,13 +468,13 @@ curl "${TAUTULLI_URL}/api/v2?apikey=${TAUTULLI_API_KEY}&cmd=get_history&start_da
 **Incorrecto:**
 ```bash
 # Podría fallar en silencio
-./scripts/tautulli-api.sh activity | jq '.response.data.sessions'
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" activity | jq '.response.data.sessions'
 ```
 
 **Correcto:**
 ```bash
 # Comprobar primero result
-RESULT=$(./scripts/tautulli-api.sh activity)
+RESULT=$("${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" activity)
 if echo "$RESULT" | jq -e '.response.result == "success"' > /dev/null; then
     echo "$RESULT" | jq '.response.data.sessions'
 else
@@ -489,11 +489,11 @@ fi
 **Solución:**
 ```bash
 # Comprobar el total de registros
-TOTAL=$(./scripts/tautulli-api.sh history | jq '.response.data.recordsTotal')
+TOTAL=$("${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history | jq '.response.data.recordsTotal')
 echo "Total records: $TOTAL"
 
 # Usar un límite adecuado
-./scripts/tautulli-api.sh history --limit 100
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --limit 100
 
 # O paginar
 for offset in 0 100 200 300; do
@@ -509,13 +509,13 @@ done
 **Incorrecto:**
 ```bash
 # Los espacios rompen la consulta
-./scripts/tautulli-api.sh history --search "Star Wars"
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --search "Star Wars"
 ```
 
 **Correcto:**
 ```bash
 # Usar comillas
-./scripts/tautulli-api.sh history --search "Star Wars"
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --search "Star Wars"
 
 # En las llamadas directas a la API, codificar en la URL
 QUERY=$(echo "Star Wars" | jq -sRr @uri)
@@ -563,7 +563,7 @@ curl -v "${TAUTULLI_URL}/api/v2?apikey=${TAUTULLI_API_KEY}&cmd=get_server_info"
 env | grep TAUTULLI
 
 # Salida esperada:
-TAUTULLI_URL=http://192.168.1.100:8181
+TAUTULLI_URL=http://<host>:8181
 TAUTULLI_API_KEY=<your_api_key>
 ```
 
@@ -581,12 +581,12 @@ Si ninguna de estas soluciones funciona:
 
 1. **Verifica la versión de Tautulli:**
    ```bash
-   ./scripts/tautulli-api.sh server-info | jq '.response.data.tautulli_version'
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info | jq '.response.data.tautulli_version'
    ```
 
 2. **Comprueba la conexión con Plex:**
    ```bash
-   ./scripts/tautulli-api.sh server-info | jq '.response.data | {pms_name, pms_version, pms_ip}'
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info | jq '.response.data | {pms_name, pms_version, pms_ip}'
    ```
 
 3. **Prueba con un comando mínimo:**
@@ -610,7 +610,7 @@ Si ninguna de estas soluciones funciona:
    echo "Tautulli URL: $TAUTULLI_URL"
    echo "API Key length: ${#TAUTULLI_API_KEY}"
    echo "Server info:"
-   ./scripts/tautulli-api.sh server-info
+   "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info
    ```
 
 6. **Consulta los recursos de la comunidad de Tautulli** por si hay problemas similares.

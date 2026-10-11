@@ -35,6 +35,7 @@ validate_env_vars() {
 }
 
 load_service_credentials() {
+    local service="$1"
     local url_var="$2"
     local key_var="$3"
 
@@ -42,5 +43,8 @@ load_service_credentials() {
         load_env_file || return 1
     fi
 
-    validate_env_vars "$url_var" "$key_var"
+    validate_env_vars "$url_var" "$key_var" || {
+        echo "ERROR: faltan variables de $service (credenciales de $service)" >&2
+        return 1
+    }
 }

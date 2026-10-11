@@ -23,6 +23,15 @@ Episodio:  Título [calidad] SxxExx {imdb-tt...}.ext
 Especial:  Serie (Año) {imdb-tt...}/Season 00/... S00EXX ... {imdb-tt...}.ext
 ```
 
+## Rutas de contenedor a rutas del host
+
+| Contenedor (lo que muestra Plex) | Host |
+|---|---|
+| `/library/zurg/movies`, `/library/zurg/shows` | carpetas `movies` y `shows` del montaje de zurg |
+| `/movies-local`, `/shows-local` | carpetas locales `movies` y `shows` bajo las raíces de `scope.conf` |
+
+Renombra siempre con la ruta del host; la de contenedor no existe fuera de Docker.
+
 ## Comandos de la skill plex utilizados
 
 - `libraries`: localizar las bibliotecas locales de Plex

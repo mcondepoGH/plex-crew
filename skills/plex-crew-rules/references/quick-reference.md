@@ -17,10 +17,10 @@ Reglas de un vistazo.
 ```bash
 # Correcto
 PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 603
-(cd "${CLAUDE_PLUGIN_ROOT}/skills/radarr" && PLEX_CREW_CONFIRMED=1 bash scripts/radarr.sh remove 603)
+(cd /ruta/de/trabajo && PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 603)
 
 # Incorrecto: el marcador no está al inicio de un comando
-bash scripts/radarr.sh remove 603 PLEX_CREW_CONFIRMED=1
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 603 PLEX_CREW_CONFIRMED=1
 ```
 
 ## Comandos que el hook bloquea sin el marcador

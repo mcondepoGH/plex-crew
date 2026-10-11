@@ -65,7 +65,7 @@ Añade tus credenciales de Tautulli a `~/.claude/plex-crew/.env`:
 
 ```bash
 # Tautulli Analytics
-TAUTULLI_URL="http://192.168.1.100:8181"
+TAUTULLI_URL="http://<host>:8181"
 TAUTULLI_API_KEY="<your_api_key>"
 ```
 
@@ -77,10 +77,14 @@ TAUTULLI_API_KEY="<your_api_key>"
 
 ```bash
 cd skills/tautulli
-./scripts/tautulli-api.sh server-info
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" server-info
 ```
 
 Deberías ver una salida JSON con la versión de tu servidor Tautulli.
+
+### Cómo invocar el script
+
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/tautulli/scripts/tautulli-api.sh help` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" help`). Los ejemplos de abajo usan la ruta corta `scripts/tautulli-api.sh` y suponen que estás en `skills/tautulli/`.
 
 ## Ejemplos de uso
 
@@ -91,7 +95,7 @@ Todos los ejemplos usan el script auxiliar `tautulli-api.sh`.
 Consulta quién está viendo algo ahora mismo:
 
 ```bash
-./scripts/tautulli-api.sh activity
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" activity
 ```
 
 **La salida incluye:**
@@ -108,22 +112,22 @@ Historial de reproducción reciente:
 
 ```bash
 # Últimas 25 reproducciones (por defecto)
-./scripts/tautulli-api.sh history
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history
 
 # Últimas 50 reproducciones
-./scripts/tautulli-api.sh history --limit 50
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --limit 50
 
 # Historial de la última semana
-./scripts/tautulli-api.sh history --days 7
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --days 7
 
 # Historial de un usuario concreto
-./scripts/tautulli-api.sh history --user "john"
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --user "john"
 
 # Solo películas
-./scripts/tautulli-api.sh history --media-type movie
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --media-type movie
 
 # Buscar un título concreto
-./scripts/tautulli-api.sh history --search "Inception"
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" history --search "Inception"
 ```
 
 ### Estadísticas de usuarios
@@ -132,16 +136,16 @@ Sigue los patrones de visionado de los usuarios:
 
 ```bash
 # Todos los usuarios
-./scripts/tautulli-api.sh user-stats
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats
 
 # Un usuario concreto
-./scripts/tautulli-api.sh user-stats --user "john"
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --user "john"
 
 # Los 10 usuarios más activos
-./scripts/tautulli-api.sh user-stats --sort-by plays --limit 10
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --sort-by plays --limit 10
 
 # Actividad de los últimos 30 días
-./scripts/tautulli-api.sh user-stats --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" user-stats --days 30
 ```
 
 ### Estadísticas de bibliotecas
@@ -150,16 +154,16 @@ Analiza tus bibliotecas:
 
 ```bash
 # Listar todas las bibliotecas
-./scripts/tautulli-api.sh libraries
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries
 
 # Estadísticas de una biblioteca concreta (sustituye 1 por el ID de tu biblioteca)
-./scripts/tautulli-api.sh library-stats --section-id 1
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" library-stats --section-id 1
 
 # Películas más populares
-./scripts/tautulli-api.sh popular --media-type movie --limit 10
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" popular --media-type movie --limit 10
 
 # Lo más visto en los últimos 30 días
-./scripts/tautulli-api.sh popular --section-id 1 --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" popular --section-id 1 --days 30
 ```
 
 ### Contenido añadido recientemente
@@ -168,16 +172,16 @@ Consulta las novedades:
 
 ```bash
 # Últimas 25 incorporaciones (por defecto)
-./scripts/tautulli-api.sh recent
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent
 
 # Últimas 50 incorporaciones
-./scripts/tautulli-api.sh recent --limit 50
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent --limit 50
 
 # Solo películas recientes
-./scripts/tautulli-api.sh recent --media-type movie
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent --media-type movie
 
 # Incorporaciones de la última semana
-./scripts/tautulli-api.sh recent --days 7
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" recent --days 7
 ```
 
 ### Analítica de streams
@@ -186,19 +190,19 @@ Entiende cómo se está transmitiendo el contenido:
 
 ```bash
 # Tipos de stream (reproducción directa frente a transcodificación)
-./scripts/tautulli-api.sh plays-by-stream --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-stream --days 30
 
 # Distribución por plataforma (Roku, Apple TV, etc.)
-./scripts/tautulli-api.sh plays-by-platform --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-platform --days 30
 
 # Reproducciones por fecha
-./scripts/tautulli-api.sh plays-by-date --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-date --days 30
 
 # Reproducciones por hora del día
-./scripts/tautulli-api.sh plays-by-hour --days 7
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-hour --days 7
 
 # Reproducciones por día de la semana
-./scripts/tautulli-api.sh plays-by-day --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" plays-by-day --days 30
 ```
 
 ### Streams simultáneos
@@ -207,10 +211,10 @@ Supervisa la reproducción simultánea:
 
 ```bash
 # Historial de streams simultáneos
-./scripts/tautulli-api.sh concurrent-streams --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" concurrent-streams --days 30
 
 # Pico de streams simultáneos
-./scripts/tautulli-api.sh concurrent-streams --days 7 --peak
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" concurrent-streams --days 7 --peak
 ```
 
 ### Estadísticas del panel
@@ -219,10 +223,10 @@ Obtén estadísticas generales como las de la página de inicio de Tautulli:
 
 ```bash
 # Estadísticas globales
-./scripts/tautulli-api.sh home-stats
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" home-stats
 
 # Últimos 30 días
-./scripts/tautulli-api.sh home-stats --days 30
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" home-stats --days 30
 ```
 
 ### Metadatos de contenido
@@ -231,10 +235,10 @@ Obtén información detallada de un contenido concreto:
 
 ```bash
 # Por rating key de Plex
-./scripts/tautulli-api.sh metadata --rating-key 12345
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" metadata --rating-key 12345
 
 # Por GUID de Plex
-./scripts/tautulli-api.sh metadata --guid "plex://movie/5d776..."
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" metadata --guid "plex://movie/5d776..."
 ```
 
 ## Flujo de trabajo
@@ -388,10 +392,10 @@ curl "http://localhost:8181/api/v2?apikey=<your_api_key>&cmd=get_server_info"
 **Solución:**
 ```bash
 # Lista primero las bibliotecas disponibles
-./scripts/tautulli-api.sh libraries
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" libraries
 
 # Después usa el section_id correcto
-./scripts/tautulli-api.sh library-stats --section-id 1
+"${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.sh" library-stats --section-id 1
 ```
 
 ## Notas

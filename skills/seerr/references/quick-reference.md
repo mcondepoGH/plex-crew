@@ -64,10 +64,10 @@ curl -s -X POST "$SEERR_URL/api/v1/request" \
 ## Script auxiliar
 
 ```bash
-bash scripts/seerr.sh status
-bash scripts/seerr.sh search "Dune"
-bash scripts/seerr.sh requests pending
-bash scripts/seerr.sh logs 20 error
-bash scripts/seerr.sh request-movie 438631
-bash scripts/seerr.sh request-tv 1396 1,2
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" search "Dune"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" requests pending
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" logs 20 error
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" request-movie 438631
+bash "${CLAUDE_PLUGIN_ROOT}/skills/seerr/scripts/seerr.sh" request-tv 1396 1,2
 ```

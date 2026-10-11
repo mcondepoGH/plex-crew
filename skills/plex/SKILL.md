@@ -35,7 +35,7 @@ Añade las credenciales de tu servidor Plex a `~/.claude/plex-crew/.env`:
 
 ```bash
 # Plex Media Server
-PLEX_URL="http://192.168.1.100:32400"
+PLEX_URL="http://<host-plex>:32400"
 PLEX_TOKEN="<your_plex_token>"
 ```
 
@@ -52,17 +52,17 @@ PLEX_TOKEN="<your_plex_token>"
 
 Todos los comandos devuelven JSON. Usa `jq` para dar formato o filtrar.
 
-El script auxiliar `plex-api.sh` simplifica el acceso a la API. Está en `${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh`. Los ejemplos de abajo usan rutas relativas a la raíz del plugin, así que ejecútalos en un subshell que deje intacto el directorio de trabajo de la sesión:
+El script auxiliar `plex-api.sh` simplifica el acceso a la API. Está en `${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh`. Los ejemplos usan la ruta absoluta, así que no alteran el directorio de trabajo de la sesión:
 
 ```bash
-(cd "${CLAUDE_PLUGIN_ROOT}" && ./skills/plex/scripts/plex-api.sh info)
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" info
 ```
 
 ### Información del servidor
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh info
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" info
 
 # O con curl directo
 curl -s "$PLEX_URL/?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -74,7 +74,7 @@ Lista todas las secciones de biblioteca:
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh libraries
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" libraries
 
 # O con curl directo
 curl -s "$PLEX_URL/library/sections?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -84,8 +84,8 @@ curl -s "$PLEX_URL/library/sections?X-Plex-Token=$PLEX_TOKEN" -H "Accept: applic
 
 ```bash
 # Con el script auxiliar (sustituye 1 por la clave de tu sección)
-./skills/plex/scripts/plex-api.sh library 1
-./skills/plex/scripts/plex-api.sh library 1 --limit 50 --offset 100
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" library 1
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" library 1 --limit 50 --offset 100
 
 # O con curl directo
 curl -s "$PLEX_URL/library/sections/1/all?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -95,8 +95,8 @@ curl -s "$PLEX_URL/library/sections/1/all?X-Plex-Token=$PLEX_TOKEN" -H "Accept: 
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh search "Inception"
-./skills/plex/scripts/plex-api.sh search "Avengers" --limit 10
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" search "Inception"
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" search "Avengers" --limit 10
 
 # O con curl directo
 curl -s "$PLEX_URL/search?query=SEARCH_TERM&X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -106,8 +106,8 @@ curl -s "$PLEX_URL/search?query=SEARCH_TERM&X-Plex-Token=$PLEX_TOKEN" -H "Accept
 
 ```bash
 # Con el script auxiliar (por defecto: 20 elementos)
-./skills/plex/scripts/plex-api.sh recent
-./skills/plex/scripts/plex-api.sh recent --limit 10
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" recent
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" recent --limit 10
 
 # O con curl directo
 curl -s "$PLEX_URL/library/recentlyAdded?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -117,8 +117,8 @@ curl -s "$PLEX_URL/library/recentlyAdded?X-Plex-Token=$PLEX_TOKEN" -H "Accept: a
 
 ```bash
 # Con el script auxiliar (por defecto: 10 elementos)
-./skills/plex/scripts/plex-api.sh ondeck
-./skills/plex/scripts/plex-api.sh ondeck --limit 5
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" ondeck
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" ondeck --limit 5
 
 # O con curl directo
 curl -s "$PLEX_URL/library/onDeck?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -128,7 +128,7 @@ curl -s "$PLEX_URL/library/onDeck?X-Plex-Token=$PLEX_TOKEN" -H "Accept: applicat
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh sessions
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" sessions
 
 # O con curl directo
 curl -s "$PLEX_URL/status/sessions?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -138,7 +138,7 @@ curl -s "$PLEX_URL/status/sessions?X-Plex-Token=$PLEX_TOKEN" -H "Accept: applica
 
 ```bash
 # Con el script auxiliar
-./skills/plex/scripts/plex-api.sh clients
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" clients
 
 # O con curl directo
 curl -s "$PLEX_URL/clients?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
@@ -148,22 +148,22 @@ curl -s "$PLEX_URL/clients?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/jso
 
 ```bash
 # Identidad del servidor
-./skills/plex/scripts/plex-api.sh identity
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" identity
 
 # Obtener los metadatos de un elemento concreto (por rating key)
-./skills/plex/scripts/plex-api.sh metadata 12345
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" metadata 12345
 
 # Obtener los hijos de un elemento (p. ej., las temporadas de una serie)
-./skills/plex/scripts/plex-api.sh children 12345
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" children 12345
 
 # Listar listas de reproducción
-./skills/plex/scripts/plex-api.sh playlists
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" playlists
 
 # Refrescar una sección de biblioteca (buscar contenido nuevo)
-./skills/plex/scripts/plex-api.sh refresh 1
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" refresh 1
 
 # Ver todos los comandos
-./skills/plex/scripts/plex-api.sh --help
+"${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" --help
 ```
 
 ## Flujo de trabajo
@@ -236,7 +236,7 @@ Sin el modo PTY, la salida de los comandos no será visible aunque se ejecuten c
 **Patrón de invocación correcto:**
 ```typescript
 <invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">./skills/SKILL_NAME/scripts/SCRIPT.sh [args]</parameter>
+<parameter name="command">"${CLAUDE_PLUGIN_ROOT}/skills/SKILL_NAME/scripts/SCRIPT.sh" [args]</parameter>
 <parameter name="pty">true</parameter>
 </invoke>
 ```

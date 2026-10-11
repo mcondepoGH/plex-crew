@@ -1,5 +1,7 @@
 # plex-crew
 
+Versión 0.3.0.
+
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
 ## Resumen
@@ -19,6 +21,8 @@ Servicios cubiertos:
 - Prowlarr
 - Seerr
 - cli_debrid
+- Agregarr (nueva en 0.3.0)
+- Zurg, vía servidor MCP (nuevo en 0.3.0)
 
 Este README es un índice: dice qué existe y dónde está documentado. Los comandos y herramientas de cada pieza viven en su propio README.
 
@@ -77,13 +81,24 @@ Una fila por variable. Se rellenan solo los servicios que uses.
 | `CLI_DEBRID_URL` | Si usas la skill `cli_debrid` | URL base de cli_debrid |
 | `CLI_DEBRID_USER` | Si usas la skill `cli_debrid` | Usuario de cli_debrid |
 | `CLI_DEBRID_PASSWORD` | Si usas la skill `cli_debrid` | Contraseña de cli_debrid |
+| `AGREGARR_URL` | Si usas la skill `agregarr` | URL base de Agregarr (nueva en 0.3.0) |
+| `AGREGARR_API_KEY` | Si usas la skill `agregarr` | Clave de API de Agregarr |
+
+#### Zurg MCP
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `ZURG_MCP_URL` | Si usas Zurg MCP | URL del endpoint MCP de zurg (http). Claude Code la expande desde el entorno de la shell: expórtala antes de lanzar `claude` |
 
 #### Ajustes opcionales
 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
 | `HOMELAB_ENV` | No | Ruta alternativa a `~/.claude/plex-crew/.env`; la leen las skills |
-| `PLEX_CREW_CONFIG` | No | Ruta alternativa a `~/.claude/plex-crew/scope.conf` para el hook `enforce-agent-scope`; se define en el entorno, no en el `.env` |
+| `PLEX_CREW_CONFIG` | No | Ruta alternativa a `~/.claude/plex-crew/scope.conf`; la leen ambos hooks (`confirm-destructive` y `enforce-agent-scope`); se define en el entorno, no en el `.env` |
+| `RADARR_DEFAULT_QUALITY_PROFILE` / `SONARR_DEFAULT_QUALITY_PROFILE` | No | ID del perfil de calidad al añadir películas / series (por defecto 1) |
+
+Las URL del `.env` van sin barra final (`http://host:puerto`).
 
 ## Skills
 
@@ -107,9 +122,16 @@ Adaptadas de las skills del repositorio [jmagar/claude-homelab](https://github.c
 |---|---|---|
 | [`seerr`](skills/seerr/README.md) | Servicio | Buscar y gestionar solicitudes en Seerr / Overseerr |
 | [`cli_debrid`](skills/cli_debrid/README.md) | Servicio | Estado, cola, descargas y logs de cli_debrid |
+| [`agregarr`](skills/agregarr/README.md) | Servicio | Listas y colecciones de Agregarr (nueva en 0.3.0) |
 | [`plex-crew-rules`](skills/plex-crew-rules/README.md) | Reglas | Reglas globales: idioma, hora, doble confirmación, secretos, tareas programadas |
 | [`plex-naming-rules`](skills/plex-naming-rules/README.md) | Reglas | Nombrado de Plex para series, películas, especiales e identificadores |
 | [`arr-language-filters`](skills/arr-language-filters/README.md) | Reglas | Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr, y sus límites |
+
+### Servidor MCP
+
+| Servidor | Transporte | Declaración | Para qué sirve |
+|---|---|---|---|
+| `zurg` (nuevo en 0.3.0) | http | `mcpServers` en `.claude-plugin/plugin.json`, URL `${ZURG_MCP_URL}` | Operar zurg (releases, renombrado, Season Fix, rescan de Plex). Con el plugin instalado las tools se llaman `mcp__plugin_plex-crew_zurg__zurg_*`; solo las usa `plex-naming` |
 
 La carpeta [`_lib`](skills/_lib/README.md) no es una skill: contiene el código de shell compartido por los scripts.
 
@@ -128,7 +150,7 @@ Solo el orquestador lanza subagentes; los especialistas devuelven sus propuestas
 | Hook | Para qué sirve | Documentación |
 |---|---|---|
 | `confirm-destructive.js` | Bloquea comandos `Bash` destructivos sin doble confirmación (todos los agentes) | [hooks/README.md](hooks/README.md#confirm-destructivejs) |
-| `enforce-agent-scope.js` | Limita las rutas donde escribe `plex-naming` según `scope.conf` | [hooks/README.md](hooks/README.md#enforce-agent-scopejs) |
+| `enforce-agent-scope.js` | Limita las rutas donde escribe `plex-naming` según `scope.conf` (sin él, deniega todo a `plex-naming`) | [hooks/README.md](hooks/README.md#enforce-agent-scopejs) |
 
 Son una red de seguridad, no un sandbox.
 
@@ -140,11 +162,11 @@ Son una red de seguridad, no un sandbox.
 | Fichero | Para qué sirve |
 |---|---|
 | `.env` (en `~/.claude/plex-crew/`) | Credenciales de los servicios (ver [Modelo de credenciales](#modelo-de-credenciales)) |
-| `.claude-plugin/plugin.json` | Manifiesto del plugin (metadatos) |
+| `.claude-plugin/plugin.json` | Manifiesto del plugin (metadatos y servidor MCP `zurg`) |
 | `.claude-plugin/marketplace.json` | Catálogo del marketplace |
 | `settings.json` | Agente de sesión por defecto (`orchestrator`), aportado por el plugin |
 | `hooks/hooks.json` | Registro de los hooks `confirm-destructive` y `enforce-agent-scope` (plugin) |
-| `~/.claude/plex-crew/scope.conf` | Rutas donde puede escribir `plex-naming` |
+| `~/.claude/plex-crew/scope.conf` | Raíces de medios: rutas donde puede escribir `plex-naming` y rutas que vigila `confirm-destructive` |
 
 ### Alcance de escritura (`scope.conf`)
 
@@ -155,9 +177,25 @@ mkdir -p ~/.claude/plex-crew
 cp scope.conf.example ~/.claude/plex-crew/scope.conf
 ```
 
-Una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`. Sin rutas configuradas, el hook deniega toda escritura a `plex-naming`. Para guardarlo en otro sitio, define `PLEX_CREW_CONFIG`. Detalle en [hooks/README.md](hooks/README.md#scopeconf).
+Una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`. El ejemplo usa un layout genérico (`/workspace/mnt/plex-stack/plex/multimedia/{movies,shows,animes,music}`): sustitúyelo por tus raíces reales. Para guardarlo en otro sitio, define `PLEX_CREW_CONFIG`.
+
+`scope.conf` (o `PLEX_CREW_CONFIG`) lo leen **ambos** hooks y los dos fallan cerrados si falta o está vacío:
+
+- `enforce-agent-scope`: deniega toda escritura a `plex-naming`.
+- `confirm-destructive`: deniega las operaciones destructivas de fichero (no puede saber qué rutas son de medios).
+
+Dos detalles de comportamiento:
+
+- `mv` dentro de las raíces de medios está permitido a propósito: es la operación de renombrado de `plex-naming`.
+- El marcador `PLEX_CREW_CONFIRMED=1` debe ir al inicio del mismo segmento del comando que la operación destructiva (`PLEX_CREW_CONFIRMED=1 <comando destructivo>`); un marcador en otro segmento no cuenta.
+
+Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 
 ## Desarrollo
+
+- El `CLAUDE.md` de la raíz es solo la guía de desarrollo del repositorio: un plugin instalado no lo carga.
+- `claude plugin validate .` emite un aviso por ese `CLAUDE.md`: es esperado y no indica un fallo.
+- `tests/smoke.sh` ejecuta las comprobaciones estáticas (sintaxis, JSON, frontmatter, scripts sin red); también corre en CI (`.github/workflows/ci.yml`).
 
 - Crear o revisar una skill: sigue [`skills/README.md`](skills/README.md), que fija estructura, plantilla y estándar.
 - Credenciales en scripts: cárgalas siempre con las librerías de [`_lib`](skills/_lib/README.md).
@@ -179,8 +217,10 @@ Una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan 
 ├── scope.conf.example         Plantilla del alcance de escritura
 ├── agents/                    Definiciones de los agentes
 ├── docs/agents/               Un .md de documentación por agente
-├── skills/                    Una carpeta por skill (con su README.md) y _lib/
-└── hooks/                     hooks.json, README.md y los dos .js
+├── skills/                    Una carpeta por skill (con su README.md, incluida agregarr) y _lib/
+├── hooks/                     hooks.json, README.md y los dos .js
+├── tests/                     smoke.sh (comprobaciones estáticas)
+└── .github/workflows/         ci.yml
 ```
 
 ## Ficheros relacionados

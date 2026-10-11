@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _LOAD_ENV="$SCRIPT_DIR/../../_lib/load-env.sh"
 # shellcheck source=/dev/null
 source "$_LOAD_ENV" || { echo "ERROR: no se encuentra load-env.sh" >&2; exit 1; }
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/../../_lib/arr-api.sh" || { echo "ERROR: no se encuentra arr-api.sh" >&2; exit 1; }
 
 # Load credentials from .env
 load_service_credentials "sonarr" "SONARR_URL" "SONARR_API_KEY"
@@ -17,25 +19,36 @@ DEFAULT_QUALITY_PROFILE="${SONARR_DEFAULT_QUALITY_PROFILE:-1}"
 API="$SONARR_URL/api/v3"
 AUTH="X-Api-Key: $SONARR_API_KEY"
 
-cmd="$1"
+cmd="${1:-}"
 shift || true
 
 case "$cmd" in
   search)
-    query="$1"
-    curl -s -H "$AUTH" "$API/series/lookup?term=$(echo "$query" | jq -sRr @uri)" | jq -r '
-      to_entries | .[:10] | .[] | 
+    query="${1:-}"
+    if [ -z "$query" ]; then
+      echo "ERROR: falta el texto de búsqueda" >&2
+      echo "Uso: sonarr.sh search <query>" >&2
+      exit 1
+    fi
+    arr_call GET "/series/lookup?term=$(printf '%s' "$query" | jq -sRr @uri)" || exit 1
+    jq -r '
+      to_entries | .[:10] | .[] |
       "\(.key + 1). \(.value.title) (\(.value.year)) - https://thetvdb.com/dereferrer/series/\(.value.tvdbId)"
-    '
+    ' <<<"$ARR_BODY"
+    ;;
+
+  status)
+    arr_call GET "/system/status" || exit 1
+    jq -r '"Sonarr \(.version) - \(.instanceName // "Sonarr") (\(.osName // "?"), branch \(.branch // "?"))"' <<<"$ARR_BODY"
     ;;
     
   search-json)
-    query="$1"
-    curl -s -H "$AUTH" "$API/series/lookup?term=$(echo "$query" | jq -sRr @uri)"
+    query="${1:-}"
+    curl -s -H "$AUTH" "$API/series/lookup?term=$(printf '%s' "$query" | jq -sRr @uri)"
     ;;
     
   exists)
-    tvdbId="$1"
+    tvdbId="${1:-}"
     result=$(curl -s -H "$AUTH" "$API/series?tvdbId=$tvdbId")
     if [ "$result" = "[]" ]; then
       echo "not_found"
@@ -54,8 +67,8 @@ case "$cmd" in
     ;;
     
   add)
-    tvdbId="$1"
-    qualityProfileId="$2"
+    tvdbId="${1:-}"
+    qualityProfileId="${2:-}"
     searchFlag="true"
     
     # Check for --no-search flag
@@ -119,9 +132,9 @@ case "$cmd" in
     ;;
     
   remove)
-    tvdbId="$1"
+    tvdbId="${1:-}"
     deleteFiles="false"
-    if [ "$2" = "--delete-files" ]; then
+    if [ "${2:-}" = "--delete-files" ]; then
       deleteFiles="true"
     fi
     
@@ -146,7 +159,7 @@ case "$cmd" in
     fi
     ;;
     
-  *)
+  ""|help|-h|--help)
     echo "Usage: sonarr.sh <command> [args]"
     echo ""
     echo "Commands:"
@@ -154,7 +167,14 @@ case "$cmd" in
     echo "  search-json <query>         Search (JSON output)"
     echo "  exists <tvdbId>             Check if show is in library"
     echo "  config                      Show root folders & quality profiles"
+    echo "  status                      Show sonarr version/status"
     echo "  add <tvdbId> [profileId] [--no-search]  Add a show (searches by default)"
     echo "  remove <tvdbId> [--delete-files]  Remove a show from library"
+    ;;
+
+  *)
+    echo "ERROR: comando desconocido: $cmd" >&2
+    echo "Usa: sonarr.sh help" >&2
+    exit 1
     ;;
 esac

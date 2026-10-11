@@ -15,17 +15,40 @@ load_service_credentials "prowlarr" "PROWLARR_URL" "PROWLARR_API_KEY"
 # Remove trailing slash
 PROWLARR_URL="${PROWLARR_URL%/}"
 
-# API call helper
+# API call helper: imprime el cuerpo por stdout; si el HTTP no es 2xx o hay
+# timeout, imprime "ERROR: ..." por stderr y devuelve 1.
+# Timeout: PROWLARR_MAX_TIME (30 s por defecto; usa API_MAX_TIME_OVERRIDE interno)
 api() {
     local method="$1"
     local endpoint="$2"
     shift 2
-    
-    curl -sS -X "$method" \
+
+    local max_time="${API_MAX_TIME_OVERRIDE:-${PROWLARR_MAX_TIME:-30}}"
+    local out rc=0 code body
+    out=$(curl -sS --max-time "$max_time" -w $'\n%{http_code}' -X "$method" \
         -H "X-Api-Key: ${PROWLARR_API_KEY}" \
         -H "Content-Type: application/json" \
         "$@" \
-        "${PROWLARR_URL}/api/v1${endpoint}"
+        "${PROWLARR_URL}/api/v1${endpoint}") || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        if [[ $rc -eq 28 ]]; then
+            echo "ERROR: timeout tras ${max_time}s llamando a $endpoint" >&2
+        else
+            echo "ERROR: no se pudo conectar con Prowlarr ($method $endpoint, curl rc $rc)" >&2
+        fi
+        return 1
+    fi
+    code="${out##*$'\n'}"
+    body="${out%$'\n'*}"
+    API_CODE="$code"
+    if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
+        local msg
+        msg=$(jq -r 'if type == "array" then (map(.errorMessage // .message // empty) | join("; "))
+                     else (.message // .errorMessage // empty) end' <<<"$body" 2>/dev/null || true)
+        echo "ERROR: $method $endpoint respondió HTTP $code${msg:+: $msg}" >&2
+        return 1
+    fi
+    printf '%s\n' "$body"
 }
 
 usage() {
@@ -229,37 +252,59 @@ cmd_stats() {
 }
 
 cmd_test() {
-    local id="$1"
+    local id="${1:-}"
+    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
     local indexer
-    indexer=$(api GET "/indexer/$id")
-    api POST "/indexer/test" -d "$indexer"
+    indexer=$(api GET "/indexer/$id") || exit 1
+    api POST "/indexer/test" -d "$indexer" > /dev/null || {
+        echo "{\"status\": \"error\", \"indexer\": \"$id\", \"tested\": false}" >&2
+        exit 1
+    }
     echo '{"status": "ok", "indexer": "'"$id"'", "tested": true}'
 }
 
 cmd_test_all() {
-    api POST "/indexer/testall"
-    echo '{"status": "ok", "message": "Testing all indexers"}'
+    local result names failed
+    # El test de todos los indexers es lento: timeout de 120 s por defecto
+    result=$(API_MAX_TIME_OVERRIDE="${PROWLARR_TESTALL_MAX_TIME:-${PROWLARR_MAX_TIME:-120}}" api POST "/indexer/testall") || exit 1
+    if ! jq -e 'type == "array"' >/dev/null 2>&1 <<<"$result"; then
+        echo "ERROR: respuesta inesperada de Prowlarr en testall" >&2
+        exit 1
+    fi
+    names=$(api GET "/indexer" | jq 'map({key: (.id|tostring), value: .name}) | from_entries') || names='{}'
+    failed=$(jq --argjson names "$names" '[.[] | select(.isValid | not) | {id, name: ($names[(.id|tostring)] // "?"), errors: [.validationFailures[]?.errorMessage]}]' <<<"$result")
+    if jq -e 'all(.[]; .isValid)' >/dev/null <<<"$result"; then
+        echo "{\"status\": \"ok\", \"tested\": $(jq length <<<"$result"), \"failed\": 0}"
+    else
+        echo "ERROR: indexers con fallo:" >&2
+        jq . <<<"$failed" >&2
+        echo "{\"status\": \"error\", \"tested\": $(jq length <<<"$result"), \"failed\": $(jq length <<<"$failed")}"
+        exit 1
+    fi
 }
 
 cmd_enable() {
-    local id="$1"
+    local id="${1:-}"
+    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
     local indexer
-    indexer=$(api GET "/indexer/$id" | jq '.enable = true')
-    api PUT "/indexer/$id" -d "$indexer" > /dev/null
+    indexer=$(api GET "/indexer/$id" | jq '.enable = true') || exit 1
+    api PUT "/indexer/$id" -d "$indexer" > /dev/null || exit 1
     echo '{"status": "ok", "indexer": "'"$id"'", "enabled": true}'
 }
 
 cmd_disable() {
-    local id="$1"
+    local id="${1:-}"
+    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
     local indexer
-    indexer=$(api GET "/indexer/$id" | jq '.enable = false')
-    api PUT "/indexer/$id" -d "$indexer" > /dev/null
+    indexer=$(api GET "/indexer/$id" | jq '.enable = false') || exit 1
+    api PUT "/indexer/$id" -d "$indexer" > /dev/null || exit 1
     echo '{"status": "ok", "indexer": "'"$id"'", "enabled": false}'
 }
 
 cmd_delete() {
-    local id="$1"
-    api DELETE "/indexer/$id"
+    local id="${1:-}"
+    [ -n "$id" ] || { echo "ERROR: falta id" >&2; exit 1; }
+    api DELETE "/indexer/$id" > /dev/null || exit 1
     echo '{"status": "ok", "indexer": "'"$id"'", "deleted": true}'
 }
 

@@ -88,7 +88,7 @@ Frase de una línea con lo que hace.
 ### 3. Pruébalo
 
 ## Ejemplos de uso
-(un ### por acción con un bloque `bash scripts/<skill>.sh ...`)
+(un ### por acción con un bloque `bash "${CLAUDE_PLUGIN_ROOT}/skills/<skill>/scripts/<script>" ...`)
 
 ## Referencia de la API
 (enlaces a los tres ficheros de `references/`)

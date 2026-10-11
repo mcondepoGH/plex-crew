@@ -8,20 +8,22 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 
+ARR_MAX_TIME="${ARR_MAX_TIME:-25}"
+
 arr_get() {
-    curl -s -H "$AUTH" "$API$1"
+    curl -s --max-time "$ARR_MAX_TIME" -H "$AUTH" "$API$1"
 }
 
 arr_post() {
-    curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d "$2" "$API$1"
+    curl -s --max-time "$ARR_MAX_TIME" -X POST -H "$AUTH" -H "Content-Type: application/json" -d "$2" "$API$1"
 }
 
 arr_put() {
-    curl -s -X PUT -H "$AUTH" -H "Content-Type: application/json" -d "$2" "$API$1"
+    curl -s --max-time "$ARR_MAX_TIME" -X PUT -H "$AUTH" -H "Content-Type: application/json" -d "$2" "$API$1"
 }
 
 arr_delete() {
-    curl -s -X DELETE -H "$AUTH" "$API$1"
+    curl -s --max-time "$ARR_MAX_TIME" -X DELETE -H "$AUTH" "$API$1"
 }
 
 # Petición que comprueba el código HTTP (para escrituras y lecturas críticas).
@@ -31,14 +33,20 @@ arr_delete() {
 # y devuelve 1. Llámala sin $(...) para conservar ARR_BODY y ARR_CODE.
 arr_call() {
     local method="$1" path="$2" body="${3:-}" out msg
-    local args=(-s -w $'\n%{http_code}' -X "$method" -H "$AUTH")
+    local args=(-sS --max-time "$ARR_MAX_TIME" -w $'\n%{http_code}' -X "$method" -H "$AUTH")
     if [[ -n "$body" ]]; then
         args+=(-H "Content-Type: application/json" -d "$body")
     fi
     ARR_BODY=""
     ARR_CODE="000"
-    if ! out=$(curl "${args[@]}" "$API$path"); then
-        echo "ERROR: no se pudo conectar con el servicio ($method $path)" >&2
+    local rc=0
+    out=$(curl "${args[@]}" "$API$path") || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        if [[ $rc -eq 28 ]]; then
+            echo "ERROR: timeout tras ${ARR_MAX_TIME}s llamando a $path" >&2
+        else
+            echo "ERROR: no se pudo conectar con el servicio ($method $path, curl rc $rc)" >&2
+        fi
         return 1
     fi
     ARR_CODE="${out##*$'\n'}"

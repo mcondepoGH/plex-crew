@@ -79,11 +79,11 @@ curl -s -b cookies.txt -X POST \
 ## Script auxiliar
 
 ```bash
-bash scripts/cli_debrid.sh status
-bash scripts/cli_debrid.sh dashboard
-bash scripts/cli_debrid.sh queue
-bash scripts/cli_debrid.sh downloads
-bash scripts/cli_debrid.sh library-size
-bash scripts/cli_debrid.sh logs 200
-bash scripts/cli_debrid.sh trigger-task Scraping
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" dashboard
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" queue
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" downloads
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" library-size
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" logs 200
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" trigger-task Scraping
 ```

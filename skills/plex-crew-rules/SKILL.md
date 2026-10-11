@@ -34,7 +34,7 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 
 ### Doble confirmación y marcador
 - Toda operación destructiva exige dos mensajes distintos del usuario, incluso en modo automático. Una sola respuesta no basta.
-- Solo después de esa doble confirmación, antepón `PLEX_CREW_CONFIRMED=1 ` al comando. Si el comando usa `cd`, el marcador va justo antes del comando destructivo, después del `&&`: `(cd "..." && PLEX_CREW_CONFIRMED=1 bash scripts/radarr.sh remove 123)`.
+- Solo después de esa doble confirmación, antepón `PLEX_CREW_CONFIRMED=1 ` al comando. Si el comando usa `cd`, el marcador va justo antes del comando destructivo, después del `&&`: `(cd "..." && PLEX_CREW_CONFIRMED=1 "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 123)`.
 - El hook `confirm-destructive` bloquea el comando sin el marcador. No lo añadas nunca por iniciativa propia ni tras una sola respuesta.
 - Un subagente no pide la confirmación: devuelve la propuesta (qué se borra o modifica, con rutas exactas) al orquestador, que es quien pregunta al usuario.
 

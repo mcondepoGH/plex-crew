@@ -103,7 +103,7 @@ Qué vigila: que toda escritura quede dentro de las rutas permitidas (incluye to
 
 Las rutas permitidas se leen de:
 
-1. El fichero indicado en la variable de entorno `PLEX_CREW_CONFIG`, o si no existe, `~/.claude/plex-crew/scope.conf`.
+1. (Lo leen ambos hooks) El fichero indicado en la variable de entorno `PLEX_CREW_CONFIG`, o si no existe, `~/.claude/plex-crew/scope.conf`.
 2. Argumentos de línea de comandos opcionales del hook, que se añaden como rutas extra.
 
 Formato: una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`; se admite `~` al principio. La plantilla es [`scope.conf.example`](../scope.conf.example):
@@ -117,7 +117,17 @@ cp scope.conf.example ~/.claude/plex-crew/scope.conf
 
 La ruta por defecto cuelga de `~/.claude` y no de `~/.config` porque en el contenedor del stack `~/.claude` está montado desde un volumen (`./claude-code/config`) y persiste entre reinicios, mientras que `~/.config` no.
 
-Si el fichero falta o no tiene rutas, el hook deniega toda escritura con un mensaje que explica cómo crearlo.
+`scope.conf` lo leen **ambos** hooks y los dos fallan cerrados si falta o no tiene rutas:
+
+- `enforce-agent-scope`: deniega toda escritura a `plex-naming`, con un mensaje que explica cómo crearlo.
+- `confirm-destructive`: deniega las operaciones destructivas de fichero, porque sin las raíces de medios no puede decidir qué vigilar.
+
+La plantilla usa un layout genérico (`/workspace/mnt/plex-stack/plex/multimedia/{movies,shows,animes,music}`); sustitúyelo por tus raíces.
+
+Comportamiento a tener presente:
+
+- `mv` dentro de las raíces de medios está permitido a propósito: es la operación de renombrado.
+- El marcador `PLEX_CREW_CONFIRMED=1` debe ir al inicio del mismo segmento del comando que la operación destructiva (los segmentos se separan con `;`, `&&`, `||` o `|`). Si va en otro segmento, no cuenta.
 
 ## Límites
 

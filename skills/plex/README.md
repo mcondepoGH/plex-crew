@@ -33,20 +33,20 @@ Todas las operaciones son de solo lectura y usan la API de Plex Media Server.
 Crea tu configuración de Plex:
 
 ```bash
-export PLEX_URL="http://192.168.1.100:32400"
+export PLEX_URL="http://<host>:32400"
 export PLEX_TOKEN="<your_plex_token>"
 ```
 
 O añádelas al perfil de tu shell (`~/.bashrc`, `~/.zshrc`):
 
 ```bash
-echo 'export PLEX_URL="http://192.168.1.100:32400"' >> ~/.bashrc
+echo 'export PLEX_URL="http://<host>:32400"' >> ~/.bashrc
 echo 'export PLEX_TOKEN="<your_plex_token>"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
 **Opciones de configuración:**
-- `PLEX_URL`: URL de tu servidor Plex (formato: `http://IP:PUERTO`, puerto por defecto: 32400)
+- `PLEX_URL`: URL de tu servidor Plex (formato: `http://<host>:PUERTO`, puerto por defecto: 32400)
 - `PLEX_TOKEN`: tu token de autenticación de Plex
 
 ### 3. Pruébalo
@@ -54,6 +54,10 @@ source ~/.bashrc
 ```bash
 curl -s "$PLEX_URL/?X-Plex-Token=$PLEX_TOKEN" -H "Accept: application/json"
 ```
+
+### Cómo invocar el script
+
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/plex/scripts/plex-api.sh libraries` (o, desde la raíz del repositorio, `bash skills/plex/scripts/plex-api.sh libraries`). Los ejemplos de abajo usan la ruta corta `scripts/plex-api.sh` y suponen que estás en `skills/plex/`.
 
 ## Ejemplos de uso
 

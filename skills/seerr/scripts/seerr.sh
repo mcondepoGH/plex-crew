@@ -91,9 +91,16 @@ case "$cmd" in
       pending|approved|all) ;;
       *) usage_error "filtro no válido: $filter (usa pending, approved o all)" "requests [pending|approved|all]" ;;
     esac
-    api_get "/request?filter=$filter&take=50" | jq -r '
-      .results[] | "[\(.id)] \(.media.mediaType) tmdb:\(.media.tmdbId) status:\(.status) requestedBy:\(.requestedBy.displayName // .requestedBy.email // "?")"
-    '
+    arr_call GET "/request?filter=$filter&take=50" || exit 1
+    if [[ "$(jq '(.results // []) | length' <<<"$ARR_BODY")" == "0" ]]; then
+      case "$filter" in
+        pending) echo "No hay solicitudes pendientes" ;;
+        approved) echo "No hay solicitudes aprobadas" ;;
+        *) echo "No hay solicitudes" ;;
+      esac
+    else
+      jq -r '.results[]? | "[\(.id)] \(.media.mediaType) tmdb:\(.media.tmdbId) status:\(.status) requestedBy:\(.requestedBy.displayName // .requestedBy.email // "?")"' <<<"$ARR_BODY"
+    fi
     ;;
 
   request-movie)

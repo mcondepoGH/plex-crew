@@ -39,16 +39,20 @@ SONARR_DEFAULT_QUALITY_PROFILE="1"  # Optional: defaults to 1 if not set
 ### 3. Pruébalo
 
 ```bash
-bash scripts/sonarr.sh search "Breaking Bad"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
 ```
+
+### Cómo invocar el script
+
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/sonarr/scripts/sonarr.sh status` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" status`). Los ejemplos de abajo usan la ruta corta `scripts/sonarr.sh` y suponen que estás en `skills/sonarr/`.
 
 ## Ejemplos de uso
 
 ### Buscar series
 
 ```bash
-bash scripts/sonarr.sh search "Breaking Bad"
-bash scripts/sonarr.sh search "The Office"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Breaking Bad"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "The Office"
 ```
 
 Devuelve una lista numerada con IDs de TVDB y enlaces.
@@ -58,7 +62,7 @@ Devuelve una lista numerada con IDs de TVDB y enlaces.
 Antes de añadir, comprueba si la serie ya está en tu biblioteca:
 
 ```bash
-bash scripts/sonarr.sh exists 81189  # TVDB ID de Breaking Bad
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" exists 81189  # TVDB ID de Breaking Bad
 ```
 
 ### Añadir una serie
@@ -66,13 +70,13 @@ bash scripts/sonarr.sh exists 81189  # TVDB ID de Breaking Bad
 Añade una serie con búsqueda automática (por defecto):
 
 ```bash
-bash scripts/sonarr.sh add 81189  # Busca de inmediato
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189  # Busca de inmediato
 ```
 
 Añade sin buscar (búsqueda manual posterior):
 
 ```bash
-bash scripts/sonarr.sh add 81189 --no-search
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189 --no-search
 ```
 
 ### Eliminar una serie
@@ -80,23 +84,31 @@ bash scripts/sonarr.sh add 81189 --no-search
 Elimina conservando los archivos descargados:
 
 ```bash
-bash scripts/sonarr.sh remove 81189
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189
 ```
 
 Elimina y borra todos los archivos:
 
 ```bash
-bash scripts/sonarr.sh remove 81189 --delete-files
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189 --delete-files
 ```
 
 **Pregunta siempre al usuario si quiere borrar los archivos al eliminar.**
+
+### Comprobar la conexión
+
+Comprueba que el servicio responde y que las credenciales son válidas (comando `status`):
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" status
+```
 
 ### Ver la configuración
 
 Obtén las carpetas raíz y los perfiles de calidad disponibles:
 
 ```bash
-bash scripts/sonarr.sh config
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" config
 ```
 
 Úsalo para determinar el ID de tu `SONARR_DEFAULT_QUALITY_PROFILE`.
@@ -113,7 +125,7 @@ La documentación detallada de la API está en el directorio `references/`:
 
 Cuando un usuario pida añadir una serie de TV:
 
-1. **Buscar**: `bash scripts/sonarr.sh search "Show Name"`
+1. **Buscar**: `bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" search "Show Name"`
 2. **Presentar resultados**: incluye siempre enlaces de TVDB con el formato `[Title (Year)](https://thetvdb.com/series/SLUG)`
 3. **El usuario elige**: el usuario selecciona un número de los resultados
 4. **Comprobar**: ejecuta `exists <tvdbId>` para verificar que no esté ya añadida
@@ -131,7 +143,7 @@ Cuando un usuario pida añadir una serie de TV:
 → Tu clave de API no es válida: revisa Settings → General → Security
 
 **"Quality profile not found"**
-→ Ejecuta `bash scripts/sonarr.sh config` para ver los IDs de perfil disponibles
+→ Ejecuta `bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" config` para ver los IDs de perfil disponibles
 
 ## Notas
 

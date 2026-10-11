@@ -39,36 +39,40 @@ CLI_DEBRID_PASSWORD="<your_panel_password>"
 ### 3. Pruébalo
 
 ```bash
-bash scripts/cli_debrid.sh status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" status
 ```
+
+### Cómo invocar el script
+
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/cli_debrid/scripts/cli_debrid.sh status` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" status`). Los ejemplos de abajo usan la ruta corta `scripts/cli_debrid.sh` y suponen que estás en `skills/cli_debrid/`.
 
 ## Ejemplos de uso
 
 ### Consultar el estado
 
 ```bash
-bash scripts/cli_debrid.sh status
-bash scripts/cli_debrid.sh dashboard
-bash scripts/cli_debrid.sh library-size
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" status
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" dashboard
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" library-size
 ```
 
 ### Cola y descargas
 
 ```bash
-bash scripts/cli_debrid.sh queue | jq .
-bash scripts/cli_debrid.sh downloads
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" queue | jq .
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" downloads
 ```
 
 ### Leer los logs
 
 ```bash
-bash scripts/cli_debrid.sh logs 200
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" logs 200
 ```
 
 ### Forzar una tarea
 
 ```bash
-bash scripts/cli_debrid.sh trigger-task Scraping
+bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" trigger-task Scraping
 ```
 
 **¡Confirma siempre con el usuario antes de forzar una tarea, salvo que la haya pedido por su nombre!**
@@ -85,9 +89,9 @@ La documentación detallada de la API está en el directorio `references/`:
 
 Cuando un usuario pregunte por qué un título no avanza:
 
-1. **Estado**: `bash scripts/cli_debrid.sh status` para confirmar que el programa está en ejecución
-2. **Cola**: `bash scripts/cli_debrid.sh queue` para localizar el título
-3. **Logs**: `bash scripts/cli_debrid.sh logs 200` para buscar errores
+1. **Estado**: `bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" status` para confirmar que el programa está en ejecución
+2. **Cola**: `bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" queue` para localizar el título
+3. **Logs**: `bash "${CLAUDE_PLUGIN_ROOT}/skills/cli_debrid/scripts/cli_debrid.sh" logs 200` para buscar errores
 4. **Filtro de idioma**: si el título nunca aparece, revisa `arr-language-filters`
 5. **Forzar**: con la confirmación del usuario, `trigger-task <name>`
 

@@ -44,10 +44,10 @@ RADARR_DEFAULT_QUALITY_PROFILE="1"  # Optional (defaults to 1)
 
 ## Ejecución del script
 
-El script está en `${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/`. Los ejemplos siguientes usan rutas relativas a la carpeta de la skill, así que ejecútalos en un subshell que no altere el directorio de trabajo de la sesión:
+El script está en `${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/`. Los ejemplos usan la ruta absoluta, así que no alteran el directorio de trabajo de la sesión:
 
 ```bash
-(cd "${CLAUDE_PLUGIN_ROOT}/skills/radarr" && bash scripts/radarr.sh search "Inception")
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Inception"
 ```
 
 ## Comandos
@@ -57,8 +57,8 @@ Todos los comandos devuelven salida JSON.
 ### Buscar películas
 
 ```bash
-bash scripts/radarr.sh search "Inception"
-bash scripts/radarr.sh search "The Matrix"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "Inception"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" search "The Matrix"
 ```
 
 **Salida:** lista numerada con IDs de TMDB, títulos, años y sinopsis.
@@ -66,7 +66,7 @@ bash scripts/radarr.sh search "The Matrix"
 ### Comprobar si una película existe
 
 ```bash
-bash scripts/radarr.sh exists <tmdbId>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" exists <tmdbId>
 ```
 
 **Salida:** booleano que indica si la película está en la biblioteca.
@@ -74,15 +74,15 @@ bash scripts/radarr.sh exists <tmdbId>
 ### Añadir una película
 
 ```bash
-bash scripts/radarr.sh add <tmdbId>              # Busca de inmediato (por defecto)
-bash scripts/radarr.sh add <tmdbId> --no-search  # Añade sin buscar
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add <tmdbId>              # Busca de inmediato (por defecto)
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add <tmdbId> --no-search  # Añade sin buscar
 ```
 
 ### Añadir una colección completa
 
 ```bash
-bash scripts/radarr.sh add-collection <collectionTmdbId>
-bash scripts/radarr.sh add-collection <collectionTmdbId> --no-search
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection <collectionTmdbId>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection <collectionTmdbId> --no-search
 ```
 
 Añade todas las películas de una colección (p. ej., todas las de El Señor de los Anillos).
@@ -90,8 +90,8 @@ Añade todas las películas de una colección (p. ej., todas las de El Señor de
 ### Eliminar una película
 
 ```bash
-bash scripts/radarr.sh remove <tmdbId>                # Conserva los archivos
-bash scripts/radarr.sh remove <tmdbId> --delete-files # Borra también los archivos
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove <tmdbId>                # Conserva los archivos
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove <tmdbId> --delete-files # Borra también los archivos
 ```
 
 **Importante:** pregunta siempre al usuario si quiere borrar los archivos al eliminar.
@@ -99,10 +99,18 @@ bash scripts/radarr.sh remove <tmdbId> --delete-files # Borra también los archi
 ### Obtener la configuración
 
 ```bash
-bash scripts/radarr.sh config
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config
 ```
 
 **Salida:** carpetas raíz y perfiles de calidad disponibles con sus IDs.
+
+### Comprobar el estado del servicio
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" status
+```
+
+**Salida:** versión e instancia de Radarr (`/system/status`).
 
 ## Flujo de trabajo
 
@@ -173,7 +181,7 @@ Sin el modo PTY, la salida de los comandos no será visible aunque se ejecuten c
 **Patrón de invocación correcto:**
 ```typescript
 <invoke name="mcp__plugin_zsh-tool_zsh-tool__zsh">
-<parameter name="command">./skills/SKILL_NAME/scripts/SCRIPT.sh [args]</parameter>
+<parameter name="command">"${CLAUDE_PLUGIN_ROOT}/skills/SKILL_NAME/scripts/SCRIPT.sh" [args]</parameter>
 <parameter name="pty">true</parameter>
 </invoke>
 ```

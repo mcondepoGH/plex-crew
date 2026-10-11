@@ -34,8 +34,12 @@ Sustituye:
 ### 3. Pruébalo
 
 ```bash
-./skills/prowlarr/scripts/prowlarr-api.sh status
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
 ```
+
+### Cómo invocar el script
+
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/prowlarr/scripts/prowlarr-api.sh status` (o, desde la raíz del repositorio, `bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status`). Los ejemplos de abajo usan la ruta corta `scripts/prowlarr-api.sh` y suponen que estás en `skills/prowlarr/`.
 
 ## Ejemplos de uso
 
@@ -99,7 +103,7 @@ La skill carga las credenciales desde `~/.claude/plex-crew/.env`. También puede
 ```bash
 PROWLARR_URL="https://prowlarr.example.com" \
 PROWLARR_API_KEY="your-api-key" \
-./skills/prowlarr/scripts/prowlarr-api.sh status
+"${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" status
 ```
 
 ## Referencia de la API

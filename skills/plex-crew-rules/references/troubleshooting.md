@@ -16,7 +16,7 @@
 
 **Solución:**
 1. Debe ser una asignación de entorno al inicio del comando, o justo después de `;`, `&` o `|`
-2. Con un `cd`, colócalo después del `&&`: `(cd "..." && PLEX_CREW_CONFIRMED=1 bash scripts/radarr.sh remove 123)`
+2. Con un `cd`, colócalo después del `&&`: `(cd "..." && PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 123)`
 3. No lo pongas al final del comando
 
 ### Escritura denegada para `plex-naming`

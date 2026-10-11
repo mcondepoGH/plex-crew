@@ -12,7 +12,8 @@
 //
 // Para Bash se analiza de forma conservadora el comando: se trocea por ; && || | & y
 // saltos de línea, se buscan verbos de escritura (mv, cp, rm, rmdir, mkdir, touch, ln,
-// tee, truncate, install, sed -i y redirecciones > / >>) y se comprueba que todas las
+// tee, truncate, install, sed -i, rsync, rename, unlink, shred, chmod, chown, chgrp, dd of=,
+// curl/wget -o/-O y redirecciones > / >>; sh/source/. solo con scripts dentro del alcance) y se comprueba que todas las
 // rutas afectadas queden dentro del alcance. Ante la duda se deniega.
 // No es un sandbox: es una red de seguridad contra errores, no contra un adversario.
 const fs = require('fs');
@@ -61,6 +62,30 @@ function loadAllowed() {
 }
 
 const ALLOWED = loadAllowed();
+
+// Raíz del plugin (este fichero vive en <raíz>/hooks). Los scripts de las skills
+// (<raíz>/skills/*/scripts/*.sh y skills/_lib/*.sh) pueden ejecutarse con bash/sh/source.
+const PLUGIN_ROOT = real(path.resolve(__dirname, '..'));
+const ENV_ROOT = process.env.CLAUDE_PLUGIN_ROOT;
+const ENV_ROOT_OK = !ENV_ROOT || real(ENV_ROOT) === PLUGIN_ROOT;
+
+// Devuelve la ruta absoluta del script si es un script de skill del plugin; si no, null.
+// Expande ${CLAUDE_PLUGIN_ROOT} y $CLAUDE_PLUGIN_ROOT al inicio; cualquier otra expansión se rechaza.
+function skillScript(w, cwd, cwdKnown) {
+  let t = w.t;
+  if (w.exp) {
+    const m = /^(?:\$\{CLAUDE_PLUGIN_ROOT\}|\$CLAUDE_PLUGIN_ROOT)(\/.*)$/.exec(t);
+    if (!m || !ENV_ROOT_OK || m[1].includes('$') || m[1].includes('`')) return null;
+    t = PLUGIN_ROOT + m[1];
+  } else {
+    t = expandHome(t);
+    if (!path.isAbsolute(t) && !cwdKnown) return null;
+  }
+  const r = real(path.resolve(cwd, t));
+  const rel = path.relative(path.join(PLUGIN_ROOT, 'skills'), r);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
+  return /^([^/]+\/scripts|_lib)\/.+\.sh$/.test(rel.split(path.sep).join('/')) ? r : null;
+}
 
 function out(reason) {
   process.stdout.write(
@@ -274,8 +299,77 @@ function parse(cmd) {
   return { segs, subs };
 }
 
-const WRAPPERS = new Set(['sudo', 'command', 'nohup', 'nice', 'env', 'exec', 'builtin', 'time', 'then', 'do', 'else', 'elif', 'if', 'while', 'until', '!', '{']);
-const WRITE_VERBS = new Set(['mv', 'cp', 'rm', 'rmdir', 'mkdir', 'touch', 'ln', 'tee', 'truncate', 'install', 'sed']);
+// Envoltorios que se saltan para llegar al verbo real: opciones que consumen argumento
+// (`opts`) y número de argumentos posicionales propios (`pos`, p. ej. la duración de timeout).
+const WRAPPERS = {
+  sudo: { opts: ['-u', '-g', '-h', '-p', '-C', '-D', '-R', '-T'], pos: 0 },
+  command: { opts: [], pos: 0 },
+  nohup: { opts: [], pos: 0 },
+  nice: { opts: ['-n', '--adjustment'], pos: 0 },
+  env: { opts: ['-u', '--unset', '-C', '--chdir', '-S'], pos: 0 },
+  exec: { opts: ['-a'], pos: 0 },
+  builtin: { opts: [], pos: 0 },
+  time: { opts: ['-f', '-o', '--format', '--output'], pos: 0 },
+  timeout: { opts: ['-s', '--signal', '-k', '--kill-after'], pos: 1 },
+  ionice: { opts: ['-c', '--class', '-n', '--classdata', '-p', '-P', '-u'], pos: 0 },
+  stdbuf: { opts: ['-i', '-o', '-e'], pos: 0 },
+  setsid: { opts: [], pos: 0 },
+  busybox: { opts: [], pos: 0 },
+  flock: { opts: ['-w', '--timeout', '-E', '--conflict-exit-code'], pos: 1 },
+  then: { opts: [], pos: 0 },
+  do: { opts: [], pos: 0 },
+  else: { opts: [], pos: 0 },
+  elif: { opts: [], pos: 0 },
+  if: { opts: [], pos: 0 },
+  while: { opts: [], pos: 0 },
+  until: { opts: [], pos: 0 },
+  '!': { opts: [], pos: 0 },
+  '{': { opts: [], pos: 0 },
+};
+
+// Quita asignaciones iniciales VAR=valor y envoltorios (con sus opciones y valores).
+function skipWrappers(w) {
+  let i = 0;
+  for (;;) {
+    while (i < w.length && /^[A-Za-z_]\w*=/.test(w[i].t)) i++;
+    if (i >= w.length) return [];
+    const name = path.basename(w[i].t);
+    const wr = Object.prototype.hasOwnProperty.call(WRAPPERS, name) ? WRAPPERS[name] : null;
+    if (!wr) return w.slice(i);
+    i++;
+    let pos = wr.pos;
+    while (i < w.length) {
+      const t = w[i].t;
+      if (t === '--') {
+        i++;
+        break;
+      }
+      if (name === 'env' && /^[A-Za-z_]\w*=/.test(t)) {
+        i++;
+        continue;
+      }
+      if (/^-\d+$/.test(t) || (name === 'nice' && /^-n\d+$/.test(t))) {
+        i++;
+        continue;
+      }
+      if (t.startsWith('-') && t.length > 1) {
+        i += wr.opts.includes(t) ? 2 : 1;
+        continue;
+      }
+      if (pos > 0) {
+        pos--;
+        i++;
+        continue;
+      }
+      break;
+    }
+  }
+}
+
+const WRITE_VERBS = new Set([
+  'mv', 'cp', 'rm', 'rmdir', 'mkdir', 'touch', 'ln', 'tee', 'truncate', 'install', 'sed',
+  'rsync', 'rename', 'unlink', 'shred', 'chmod', 'chown', 'chgrp',
+]);
 const INTERPRETERS = /^(python\d*(\.\d+)?|perl|node|nodejs|ruby)$/;
 // Opciones que consumen el argumento siguiente (no son rutas afectadas).
 const OPT_WITH_VALUE = {
@@ -290,6 +384,17 @@ const OPT_WITH_VALUE = {
   rm: [],
   rmdir: [],
   sed: [],
+  rsync: [
+    '-e', '--rsh', '--exclude', '--include', '--exclude-from', '--include-from', '--filter', '-f',
+    '--files-from', '--backup-dir', '--log-file', '--bwlimit', '--partial-dir', '--temp-dir', '-T',
+    '--compare-dest', '--copy-dest', '--link-dest', '--max-size', '--min-size', '--port',
+    '--chmod', '--chown', '--usermap', '--groupmap', '--timeout', '--contimeout', '--rsync-path',
+  ],
+  shred: ['-n', '--iterations', '-s', '--size', '--random-source'],
+  chmod: [],
+  chown: ['--from'],
+  chgrp: [],
+  rename: [],
 };
 const TARGET_DIR_OPTS = ['-t', '--target-directory'];
 
@@ -306,6 +411,10 @@ function affectedPaths(verb, args) {
     const t = a.t;
     if (!endOpts && t === '--') {
       endOpts = true;
+      continue;
+    }
+    if (verb === 'chmod' && !endOpts && /^-[rwxXstugoa,=+-]+$/.test(t) && !/^-[RfvcHLP]+$/.test(t)) {
+      rest.push(a); // modo simbólico tipo `-x`: ocupa el lugar del modo
       continue;
     }
     if (!endOpts && t.startsWith('-') && t.length > 1) {
@@ -334,7 +443,59 @@ function affectedPaths(verb, args) {
     if (!sedInPlace) return null; // sed sin -i no escribe ficheros
     return sedScriptViaOpt ? rest : rest.slice(1);
   }
+  if (verb === 'rsync') {
+    // El último posicional es el destino; con --delete/--remove-source-files también se
+    // modifican los orígenes. Un destino remoto host:ruta no se puede comprobar.
+    if (rest.some(r => !r.exp && /^[^/]*:/.test(r.t))) return [{ t: '?remoto', exp: true }];
+    const mod = args.some(a => /^--(delete|remove-source-files)/.test(a.t));
+    return mod ? rest : rest.slice(-1);
+  }
+  if (verb === 'chmod' || verb === 'chown' || verb === 'chgrp') {
+    const hasRef = args.some(a => a.t === '--reference' || a.t.startsWith('--reference='));
+    return hasRef ? rest : rest.slice(1); // el primero es el modo/propietario
+  }
+  if (verb === 'rename') return rest.slice(1); // expresión (o 'de' en la variante util-linux)
   return res.concat(rest);
+}
+
+// Destinos de escritura de dd (of=), curl (-o/--output/-O) y wget (-O/-P; por defecto el cwd).
+// Devuelve palabras a comprobar; `cwdWord` indica que escribe en el directorio de trabajo.
+function downloadTargets(verb, args) {
+  const res = [];
+  let cwdWord = false;
+  if (verb === 'dd') {
+    for (const a of args) if (a.t.startsWith('of=')) res.push({ t: a.t.slice(3), exp: a.exp });
+    return { res, cwdWord };
+  }
+  const isCurl = verb === 'curl';
+  let stdout = false;
+  let named = false;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    const t = a.t;
+    let val = null;
+    if (isCurl) {
+      if (t === '-o' || t === '--output' || t === '--output-dir') val = args[++i];
+      else if (t.startsWith('--output=')) val = { t: t.slice(9), exp: a.exp };
+      else if (t.startsWith('--output-dir=')) val = { t: t.slice(13), exp: a.exp };
+      else if (/^-[a-zA-Z]*o$/.test(t)) val = args[++i];
+      else if (t === '--remote-name' || t === '--remote-name-all' || /^-[a-zA-Z]*O[a-zA-Z]*$/.test(t)) cwdWord = true;
+    } else {
+      if (/^-[a-zA-Z]*[OP]$/.test(t) || t === '--output-document' || t === '--directory-prefix') {
+        if (/O$/.test(t) || t === '--output-document') named = true;
+        val = args[++i];
+      } else if (t.startsWith('--output-document=')) {
+        named = true;
+        val = { t: t.slice(18), exp: a.exp };
+      } else if (t.startsWith('--directory-prefix=')) val = { t: t.slice(19), exp: a.exp };
+    }
+    if (val) {
+      if (val.t === '-' && !isCurl) stdout = true;
+      else res.push(val);
+    }
+  }
+  if (!isCurl && !stdout && !named) cwdWord = true; // wget guarda en el cwd si no hay -O
+  return { res, cwdWord };
 }
 
 function analyze(cmd, cwd0, depth = 0) {
@@ -363,8 +524,7 @@ function analyze(cmd, cwd0, depth = 0) {
   };
 
   for (const seg of segs) {
-    const words = seg.words.slice();
-    while (words.length && (/^[A-Za-z_]\w*=/.test(words[0].t) || WRAPPERS.has(words[0].t))) words.shift();
+    const words = skipWrappers(seg.words);
 
     // Redirecciones de salida: son escrituras en sí mismas.
     for (const r of seg.redirs) {
@@ -395,6 +555,12 @@ function analyze(cmd, cwd0, depth = 0) {
       problems.push('comando no analizable, simplifícalo: find con -exec/-delete');
       continue;
     }
+    if (/^(bash|sh|zsh|dash|ksh)$/.test(name) || name === 'source' || name === '.') {
+      // Un script de shell puede escribir donde quiera: solo se admite si está dentro del alcance.
+      const script = args.find(a => !a.t.startsWith('-'));
+      if (script && !skillScript(script, cwd, cwdKnown)) check(script);
+      continue;
+    }
     if (INTERPRETERS.test(name)) {
       const inline = new Set(['-c', '-e', '-p', '-E', '--eval', '--print']);
       for (let i = 0; i < args.length; i++) {
@@ -412,6 +578,15 @@ function analyze(cmd, cwd0, depth = 0) {
         check(a);
       }
       if (!cwdKnown) problems.push('comando no analizable, simplifícalo: directorio de trabajo desconocido');
+      continue;
+    }
+    if (name === 'dd' || name === 'curl' || name === 'wget') {
+      const d = downloadTargets(name, args);
+      d.res.forEach(check);
+      if (d.cwdWord) {
+        if (!cwdKnown) problems.push('comando no analizable, simplifícalo: directorio de trabajo desconocido');
+        else if (!inScope(cwd)) problems.push(`ruta fuera del alcance: ${cwd} (directorio de trabajo)`);
+      }
       continue;
     }
     if (WRITE_VERBS.has(name)) {
@@ -466,7 +641,7 @@ process.stdin.on('end', () => {
 
   const target = input.file_path || input.notebook_path || '';
   if (!target) process.exit(0);
-  const resolved = path.resolve(expandHome(target));
+  const resolved = path.resolve(payload.cwd || process.cwd(), expandHome(target));
   if (inScope(resolved)) process.exit(0);
   out(`Ruta fuera del alcance de este agente: ${resolved}. Rutas permitidas: ${listaPermitidas()}.`);
 });
