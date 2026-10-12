@@ -28,6 +28,7 @@ bash "$PLEX" playlists
 bash "$PLEX" accounts
 bash "$PLEX" prefs
 bash "$PLEX" refresh 1   # confirma antes con el usuario
+bash "$PLEX" setpref autoEmptyTrash 1   # confirma antes con el usuario
 ```
 
 ## Filtros con jq

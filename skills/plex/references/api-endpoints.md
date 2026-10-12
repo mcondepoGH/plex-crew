@@ -3,7 +3,7 @@
 ## Base y autenticación
 
 - **URL base:** `PLEX_URL` sin barra final (por ejemplo `http://host:32400`)
-- **Método:** `GET` en todos los comandos, `refresh` incluido
+- **Método:** `GET` en todos los comandos, `refresh` incluido, salvo `setpref`, que usa `PUT`
 - **Token:** se envía en la cabecera `X-Plex-Token` y como último parámetro `X-Plex-Token=<token>` de la URL (se une con `?`, o con `&` si la ruta ya contiene `?`)
 - **Cabecera de formato:** `Accept: application/json`
 - **Timeouts:** conexión 10 s, total 30 s, sin reintentos
@@ -30,6 +30,7 @@ El script pasa la URL y las cabeceras a curl por stdin (`--config -`), por lo qu
 | `accounts` | `/accounts` | ninguno (token de administrador) |
 | `prefs` | `/:/prefs` | ninguno (token de administrador) |
 | `refresh <id>` | `/library/sections/<id>/refresh` | ninguno (modifica estado) |
+| `setpref <clave> <valor>` | `PUT /:/prefs?<clave>=<valor>` | ninguno (modifica estado; token de administrador) |
 
 ## Ruta defectuosa de `library` con opciones
 

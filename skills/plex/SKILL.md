@@ -26,8 +26,9 @@ Esta skill consulta la API de Plex Media Server para:
 - Buscar contenido y leer los metadatos de un elemento y sus hijos
 - Ver las reproducciones en curso, los clientes, las listas y las cuentas
 - Lanzar el escaneo de una biblioteca (`refresh`)
+- Cambiar una preferencia del servidor (`setpref`)
 
-`refresh` es la única escritura y dispara un escaneo; no borra nada. Ningún comando es destructivo, así que el hook `confirm-destructive` no aplica. Para ids, rematches y nombres de Plex usa las skills y agentes de nombrado, no esta skill. Ignora las carpetas `.@*` (regla global en `plex-crew-rules`).
+`refresh` y `setpref` son las únicas escrituras; `refresh` dispara un escaneo y `setpref` cambia un ajuste. Ninguna borra nada. Ningún comando es destructivo, así que el hook `confirm-destructive` no aplica. Para ids, rematches y nombres de Plex usa las skills y agentes de nombrado, no esta skill. Ignora las carpetas `.@*` (regla global en `plex-crew-rules`).
 
 ## Configuración
 
@@ -115,6 +116,16 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" prefs | jq '.MediaC
 
 **Salida:** `accounts` devuelve las cuentas de usuario y `prefs` las preferencias del servidor; ambos exigen un token de administrador. `prefs` puede contener datos sensibles: filtra y no pegues la salida entera en el chat.
 
+### Cambiar una preferencia
+
+**Confirma con el usuario antes de ejecutar `setpref`** y cambia un solo ajuste por llamada.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" setpref autoEmptyTrash 1
+```
+
+**Salida:** una línea `clave: antes -> después`, p. ej. `autoEmptyTrash: false -> true` (los bool se muestran como `true`/`false`). Hace `PUT /:/prefs?<clave>=<valor>`: lee el valor actual, aplica, relee y sale con 1 si el valor final no coincide o si la clave no existe. La clave solo admite `[A-Za-z0-9]+` y el valor `[A-Za-z0-9._-]+`. En Plex un bool `true` se guarda como `1` y `false` como `0`. Requiere `jq` y token de administrador.
+
 ### Escaneo de una biblioteca
 
 **Confirma con el usuario antes de ejecutar `refresh`.** El usuario tiene un script externo que ya actualiza Plex tras renombrar: no ofrezcas escaneos por iniciativa propia, ni siquiera tras un renombrado.
@@ -144,6 +155,7 @@ La respuesta va dentro de `MediaContainer`. Los elementos están en `Metadata` (
 | Opción | Comandos | Notas |
 |--------|----------|-------|
 | `<section-id>` | library, refresh | Entero; primer argumento |
+| `<clave> <valor>` | setpref | clave `[A-Za-z0-9]+`, valor `[A-Za-z0-9._-]+` |
 | `<rating-key>` | metadata, children | Entero |
 | `<texto>` | search | Primer argumento; entrecomíllalo |
 | `--limit N`, `-l N` | library, recent (20), ondeck (10), search | Entero >= 0 |

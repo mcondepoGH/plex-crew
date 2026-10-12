@@ -32,6 +32,10 @@ Comandos:
   playlists                           Listas de reproducción
   accounts                            Cuentas de usuario (token de administrador)
   prefs                               Preferencias del servidor (token de administrador)
+  setpref <clave> <valor>             Cambia UNA preferencia del servidor (modifica estado);
+                                      clave [A-Za-z0-9]+, valor [A-Za-z0-9._-]+; los bool van como 1/0.
+                                      Lee el valor actual, aplica, relee y muestra 'clave: antes -> después';
+                                      sale con 1 si el valor final no coincide
   refresh <section-id>                Lanza un escaneo de la biblioteca (modifica estado);
                                       imprime lo que responda Plex y después una línea JSON fija
 
@@ -62,7 +66,7 @@ curl_quote() {
   printf '"%s"' "$s"
 }
 
-# Única función de acceso a la API (siempre GET). Uso: plex_get <ruta[?consulta]>
+# Única función de acceso a la API (GET; PUT si PLEX_METHOD=PUT). Uso: plex_get <ruta[?consulta]>
 # Imprime el cuerpo tal cual; no comprueba el código HTTP. Sale con 1 si curl falla.
 # URL y cabeceras (con el token) viajan por stdin: no aparecen en ps.
 plex_get() {
@@ -72,6 +76,7 @@ plex_get() {
   [[ "$path" == *"?"* ]] && sep="&"
 
   conf="globoff"$'\n'
+  [[ "${PLEX_METHOD:-GET}" == "PUT" ]] && conf+='request = "PUT"'$'\n'
   conf+="url = $(curl_quote "${BASE_URL}${path}${sep}X-Plex-Token=${PLEX_TOKEN}")"$'\n'
   conf+='header = "Accept: application/json"'$'\n'
   conf+="header = $(curl_quote "X-Plex-Token: ${PLEX_TOKEN}")"$'\n'
@@ -180,6 +185,39 @@ case "$cmd" in
     [[ -n "$key" ]] || usage_error "falta rating-key" "$U"
     need_int "$key" "$U"
     plex_get "/library/metadata/$key/children"
+    ;;
+
+  setpref)
+    U="setpref <clave> <valor>"
+    key="${1:-}"
+    val="${2:-}"
+    [[ -n "$key" ]] || usage_error "falta clave" "$U"
+    [[ -n "$val" ]] || usage_error "falta valor" "$U"
+    [[ "$key" =~ ^[A-Za-z0-9]+$ ]] || usage_error "clave no válida (solo [A-Za-z0-9]+)" "$U"
+    [[ "$val" =~ ^[A-Za-z0-9._-]+$ ]] || usage_error "valor no válido (solo [A-Za-z0-9._-]+)" "$U"
+    command -v jq >/dev/null 2>&1 || { echo "ERROR: se necesita jq" >&2; exit 1; }
+
+    # Valor de una preferencia (bool como true/false); vacío si no existe o la respuesta no es JSON
+    pref_value() {
+      plex_get "/:/prefs" | jq -r --arg k "$key" \
+        '[.MediaContainer.Setting[]? | select(.id==$k)][0] | if .==null then "" else (.value | tostring) end' 2>/dev/null || true
+    }
+
+    # Estado no JSON de /:/prefs (p. ej. 401) o clave inexistente: no se toca nada
+    before="$(plex_get "/:/prefs" | jq -r --arg k "$key" 'if ([.MediaContainer.Setting[]? | select(.id==$k)] | length) > 0 then "ok" else "" end' 2>/dev/null || true)"
+    [[ "$before" == "ok" ]] || { echo "ERROR: la preferencia '$key' no existe o no se pudo leer (¿token de administrador?)" >&2; exit 1; }
+    before="$(pref_value)"
+
+    PLEX_METHOD=PUT plex_get "/:/prefs?${key}=${val}" >/dev/null
+
+    after="$(pref_value)"
+    echo "$key: $before -> $after"
+    want="$val"
+    [[ "$after" == "true" ]] && after_n="1" || after_n="$after"
+    [[ "$after" == "false" ]] && after_n="0"
+    [[ "$want" == "true" ]] && want="1"
+    [[ "$want" == "false" ]] && want="0"
+    [[ "$after_n" == "$want" ]] || { echo "ERROR: el valor final ('$after') no coincide con el pedido ('$val')" >&2; exit 1; }
     ;;
 
   refresh)
