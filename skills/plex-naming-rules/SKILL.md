@@ -35,25 +35,27 @@ Sin configuración ni variables de entorno. Localiza las bibliotecas de Plex con
 ## Reglas
 
 ### Episodios
+- Fichero de episodio: `Serie (Año) - SxxExx [calidad].ext`, sin id.
 - Formato `S01E02`: temporada y episodio con dos dígitos y relleno de ceros, sin separadores (`S1E2`, `S01E2`, `1x02` pasan a `S01E02`).
-- `SxxExx` va solo. Nunca dentro de sus propios corchetes (`[S01E01]`) ni intercalado entre grupos de corchetes. Colócalo antes de todas las etiquetas de calidad `[...]`.
+- `SxxExx` va solo. Nunca dentro de sus propios corchetes (`[S01E01]`) ni intercalado entre grupos de corchetes. La calidad `[...]` va después de `SxxExx`, porque Plex ignora lo que va entre corchetes.
 - Nombres como `cap.NNN` (también `cap 101`, `capitulo 101`): los dos últimos dígitos son el episodio y los anteriores la temporada. `cap.101` es S01E01; `cap.1203` es S12E03.
 - Especiales y películas que TVDB lista como Special dentro de la serie: `S00EXX` en `Season 00`, numerados según el orden de TVDB. Solo van a `movies` si TVDB no los coloca en la serie.
 
 ### Identificadores
 - Sintaxis `{imdb-tt#######}`, `{tmdb-#####}` o `{tvdb-######}`. Siempre llaves; con corchetes Plex los ignora.
 - Basta con un id por nombre.
-- El id va **al final** del nombre, en la carpeta y en cada fichero (antes de la extensión). Nunca al principio.
+- Series: el id va **solo en la carpeta** de la serie, al final del nombre. No va en los ficheros de episodio.
+- Películas: el id va al final del nombre, en la carpeta y en el fichero (antes de la extensión). Nunca al principio.
 - Carpeta de serie limpia: `Serie (Año) {imdb-tt...}`, sin calidad ni texto adicional antes del id.
 - La carpeta `Season` va siempre en inglés (`Season 01`).
 
 ### Calidad en el nombre
-- Añade la calidad al final (`[HDTV 720p][AC3 5.1 Castellano]`) solo si el nombre original ya la define; no se comprueba contra el fichero.
+- Añade la calidad entre corchetes después de `SxxExx` (`[HDTV 720p][AC3 5.1 Castellano]`) solo si el nombre original ya la define; no se comprueba contra el fichero.
 - Si el original no define calidad, no la inventes.
 - Idioma: `spa` en los metadatos; "Castellano" procede del nombre del release original.
 
 ### Patrón de corrección estándar (temporada o release mal nombrado)
-`Título [calidad] SxxExx {imdb-tt...}`
+`Serie (Año) - SxxExx [calidad].ext`, con el id solo en la carpeta de la serie
 
 Aplícalo a **todos** los episodios del release en una sola pasada, no solo al roto: los hermanos suelen compartir el mismo tipo de error (corchetes sueltos, espacio antes de la extensión, mayúsculas inconsistentes). Termina con una tabla: episodio, nombre completo, directorio (movies/shows).
 
@@ -61,15 +63,15 @@ Aplícalo a **todos** los episodios del release en una sola pasada, no solo al r
 
 ### Ante un emparejado erróneo en Plex
 1. **Detecta**: compara el título y el año esperados (del nombre de la carpeta) con los que muestra Plex, usando la skill `plex` (`search` o `metadata`). Marca solo las identidades distintas, no las diferencias cosméticas ("Big Bang" frente a "The Big Bang Theory" es correcto).
-2. **Renombra**: renombra carpeta y fichero con el nombre completo y el id al final. Plex solo vuelve a emparejar con una ruta nueva.
+2. **Renombra**: renombra carpeta y fichero con el nombre completo y el id al final de la carpeta (series) o de carpeta y fichero (películas). Plex solo vuelve a emparejar con una ruta nueva.
 3. **Verifica** con la skill `plex`: título y año correctos.
 
 ## Ejemplos
 
 ```text
 Carpeta:   Mi Serie (2015) {imdb-tt1234567}
-Fichero:   Mi Serie [HDTV 720p][AC3 5.1 Castellano] S01E02 {imdb-tt1234567}.mkv
-Especial:  Mi Serie (2015) {imdb-tt1234567}/Season 00/... S00E01 ... {imdb-tt1234567}.mkv
+Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1 Castellano].mkv
+Especial:  Mi Serie (2015) {imdb-tt1234567}/Season 00/Mi Serie (2015) - S00E01.mkv
 ```
 
 ## Notas

@@ -6,7 +6,7 @@ Reglas de nombrado de Plex para series, películas, especiales e identificadores
 
 - **Episodios** — Formato `SxxExx`, conversión de `cap.NNN`
 - **Especiales** — `S00EXX` en `Season 00`, en orden de TVDB
-- **Identificadores** — `{imdb-...}`, `{tmdb-...}` o `{tvdb-...}` al final del nombre
+- **Identificadores** — `{imdb-...}`, `{tmdb-...}` o `{tvdb-...}` al final del nombre de la carpeta (series) o de carpeta y fichero (películas)
 - **Calidad** — Se añade al nombre solo si el original la define
 - **Emparejados erróneos** — Detectar, corregir el id, dejar que Plex lo resuelva y verificar
 
@@ -18,8 +18,8 @@ No necesita configuración. El agente `plex-naming` la carga con el campo `skill
 
 ```text
 Carpeta:   Mi Serie (2015) {imdb-tt1234567}
-Fichero:   Mi Serie [HDTV 720p][AC3 5.1 Castellano] S01E02 {imdb-tt1234567}.mkv
-Especial:  Mi Serie (2015) {imdb-tt1234567}/Season 00/... S00E01 ... {imdb-tt1234567}.mkv
+Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1 Castellano].mkv
+Especial:  Mi Serie (2015) {imdb-tt1234567}/Season 00/Mi Serie (2015) - S00E01.mkv
 ```
 
 El renombrado se hace en local con `Bash`; las bibliotecas de Plex se localizan con la skill `plex` (comando `libraries`).
@@ -56,7 +56,7 @@ Ante un emparejado erróneo:
 → Solo vuelve a emparejar con una ruta nueva: renombra carpeta y fichero con el nombre completo y el id al final
 
 **El id se ignora**
-→ Debe usar llaves, no corchetes, y estar al final del nombre
+→ Debe usar llaves, no corchetes, y estar al final del nombre de la carpeta (series) o de carpeta y fichero (películas)
 
 **`cap.101` se leyó como una película**
 → Conviértelo a `S01E01`: los dos últimos dígitos son el episodio

@@ -11,7 +11,7 @@ Eres el especialista en nombrado de Plex. Aplica al pie de la letra la skill `pl
 1. Localiza lo afectado con las bibliotecas de la skill `plex` (comando `libraries`). No asumas rutas fijas. Plex devuelve rutas de contenedor (por ejemplo `/movies-local`, `/shows-local`): tradúcelas a rutas del host bajo las raíces de `scope.conf` (ver `plex-naming-rules`).
 2. Añade la calidad al nombre solo si el nombre original ya la define; no se comprueba contra el fichero.
 3. Prueba con un solo elemento. En renombrados masivos pide segunda confirmación antes del resto.
-4. Ante un emparejado erróneo, renombra carpeta y fichero con el nombre completo y el id al final, y comprueba el título y el año con la skill `plex` (`search` o `metadata`).
+4. Ante un emparejado erróneo, renombra carpeta y fichero con el nombre completo (id al final de la carpeta en series; de carpeta y fichero en películas), y comprueba el título y el año con la skill `plex` (`search` o `metadata`).
 5. Termina con una tabla: nombre anterior, nombre nuevo, ubicación (movies o shows).
 
 ## Límites

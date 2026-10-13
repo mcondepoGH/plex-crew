@@ -7,7 +7,7 @@
 
 **Solución:**
 1. Compara el título y el año esperados (del nombre de la carpeta) con los que muestra Plex, usando la skill `plex` (`search` o `metadata`); marca solo las identidades distintas, no las cosméticas
-2. Renombra carpeta y fichero con el nombre completo y el id al final
+2. Renombra carpeta y fichero con el nombre completo; el id va al final de la carpeta (series) o de carpeta y fichero (películas)
 3. Verifica de nuevo con la skill `plex`: título y año correctos
 
 ### Plex mantiene el título antiguo tras renombrar
@@ -15,15 +15,15 @@
 
 **Solución:**
 1. Asegúrate de que han cambiado tanto la carpeta como el fichero, no solo uno de ellos
-2. Usa el nombre completo con el id al final
+2. Usa el nombre completo; el id va al final de la carpeta (series) o de carpeta y fichero (películas)
 3. Verifica con la skill `plex`: título y año correctos
 
 ### El id se ignora
-**Causa:** Corchetes en lugar de llaves, o el id no está al final
+**Causa:** Corchetes en lugar de llaves, o el id no está al final de la carpeta (series) o del nombre (películas)
 
 **Solución:**
 1. Usa `{imdb-tt#######}`, `{tmdb-#####}` o `{tvdb-######}`
-2. Colócalo al final del nombre, antes de la extensión
+2. En series colócalo al final del nombre de la carpeta de la serie; en películas, al final de carpeta y fichero, antes de la extensión
 
 ## Problemas de nombrado
 
@@ -31,8 +31,8 @@
 **Causa:** `SxxExx` en sus propios corchetes o intercalado entre grupos de corchetes
 
 **Solución:**
-1. Escribe `SxxExx` solo, antes de las etiquetas de calidad
-2. Aplica el patrón de corrección `Título [calidad] SxxExx {imdb-tt...}` a todos los episodios del release
+1. Escribe `SxxExx` solo, con las etiquetas de calidad después
+2. Aplica el patrón de corrección `Serie (Año) - SxxExx [calidad].ext` (id solo en la carpeta) a todos los episodios del release
 
 ### Nombres al estilo `cap.101`
 **Causa:** Numeración de episodios no estándar
