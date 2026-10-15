@@ -46,7 +46,7 @@ Sin configuración ni variables de entorno. Localiza las bibliotecas de Plex con
 - Basta con un id por nombre.
 - Series: el id va **solo en la carpeta** de la serie, al final del nombre. No va en los ficheros de episodio.
 - Películas: el id va al final del nombre, en la carpeta y en el fichero (antes de la extensión). Nunca al principio.
-- Carpeta de serie limpia: `Serie (Año) {imdb-tt...}`, sin calidad ni texto adicional antes del id.
+- Carpeta de serie: `Serie (Año) {imdb-tt...}`. Puede llevar idioma y calidad en corchetes entre el año y el id: `Serie (Año) [Castellano][1080p] {tvdb-######}`. Cada etiqueta solo se añade si TODOS los archivos de la serie comparten ese mismo idioma / esa misma calidad; si difieren, se omite (puede ir una y no la otra, p. ej. calidad sí e idioma no). El id sigue al final, con llaves.
 - La carpeta `Season` va siempre en inglés (`Season 01`).
 
 ### Calidad en el nombre
