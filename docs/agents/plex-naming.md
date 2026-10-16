@@ -22,10 +22,10 @@ Límites:
 
 - Renombrar carpetas y ficheros de series y películas según `plex-naming-rules`:
   - `SxxExx`
-  - ids `{imdb-...}` (solo IMDb, nunca TMDB ni TVDB; solo en la carpeta padre, nunca en ficheros)
+  - ids `{imdb-...}` (solo IMDb, nunca TMDB ni TVDB; series: solo en la carpeta; películas: en carpeta y fichero)
   - calidad
   - especiales `S00Exx`
-- Detectar y corregir emparejados erróneos renombrando carpeta y fichero con el nombre completo y el id solo al final de la carpeta padre, y comprobando el título y el año con la skill `plex` (`search` o `metadata`).
+- Detectar y corregir emparejados erróneos renombrando carpeta y fichero con el nombre completo y el id al final (series: solo en la carpeta; películas: carpeta y fichero), y comprobando el título y el año con la skill `plex` (`search` o `metadata`).
 - Localizar las bibliotecas locales con la skill `plex` (comando `libraries`).
 - Añadir la calidad al nombre solo si el nombre original ya la define; no se comprueba contra el fichero.
 - Probar con un solo elemento y pedir segunda confirmación antes del resto en renombrados masivos.

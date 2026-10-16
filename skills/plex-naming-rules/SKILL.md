@@ -45,7 +45,7 @@ Sin configuración ni variables de entorno. Localiza las bibliotecas de Plex con
 - El id del nombre es SIEMPRE el de IMDb, con la sintaxis `{imdb-tt#######}`. Nunca `{tmdb-...}` ni `{tvdb-...}` (decisión del usuario, 2026-10-16). Siempre llaves; con corchetes Plex los ignora.
 - Un solo id por nombre.
 - Si la obra no tiene id de IMDb conocido, averígualo antes de renombrar (Guid de Plex con `metadata`, lookup de Sonarr/Radarr, `external_ids` de TMDB) o pregunta al usuario. Nunca pongas otro tipo de id en el nombre como alternativa. Los ids de TMDB y TVDB solo sirven para buscar o emparejar, no para escribirlos en el nombre.
-- **Regla (2026-10-16, decisión del usuario): el id `{imdb-tt#######}` va SOLO en el nombre de la carpeta padre (carpeta de serie o carpeta de película) y NUNCA en los nombres de los ficheros de dentro (episodios, ficheros de película, subtítulos, etc.).** Vale igual para series y películas.
+- **Regla (2026-10-16, decisión del usuario): el id `{imdb-tt#######}` va en la carpeta y, según el tipo, también en el fichero: SERIES, solo en la carpeta de la serie y NUNCA en los ficheros (episodios, subtítulos, etc.); PELÍCULAS, en la carpeta de la película Y TAMBIÉN en el fichero (y en sus ficheros hermanos, como subtítulos, si los hay).**
 - El id va al FINAL del nombre de la carpeta, nunca al principio.
 - Carpeta de serie: `Serie (Año) {imdb-tt...}`. Puede llevar idioma y calidad en corchetes entre el año y el id: `Serie (Año) [Castellano][1080p] {imdb-tt#######}`. Cada etiqueta solo se añade si TODOS los archivos de la serie comparten ese mismo idioma / esa misma calidad; si difieren, se omite (puede ir una y no la otra, p. ej. calidad sí e idioma no). El id sigue al final, con llaves.
 - La carpeta `Season` va siempre en inglés (`Season 01`).
@@ -64,7 +64,7 @@ Aplícalo a **todos** los episodios del release en una sola pasada, no solo al r
 
 ### Ante un emparejado erróneo en Plex
 1. **Detecta**: compara el título y el año esperados (del nombre de la carpeta) con los que muestra Plex, usando la skill `plex` (`search` o `metadata`). Marca solo las identidades distintas, no las diferencias cosméticas ("Big Bang" frente a "The Big Bang Theory" es correcto).
-2. **Renombra**: renombra carpeta y fichero con el nombre completo; el id de IMDb va solo al final de la carpeta padre, no en el fichero. Plex solo vuelve a emparejar con una ruta nueva.
+2. **Renombra**: renombra carpeta y fichero con el nombre completo; el id de IMDb va al final de la carpeta (series) o de carpeta y fichero (películas). Plex solo vuelve a emparejar con una ruta nueva.
 3. **Verifica** con la skill `plex`: título y año correctos.
 
 ## Ejemplos
@@ -72,7 +72,7 @@ Aplícalo a **todos** los episodios del release en una sola pasada, no solo al r
 ```text
 Carpeta:   Mi Serie (2015) {imdb-tt1234567}
 Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1 Castellano].mkv
-Película:  Mi Película (2010) {imdb-tt7654321}/Mi Película (2010).mkv
+Película:  Mi Película (2010) {imdb-tt7654321}/Mi Película (2010) {imdb-tt7654321}.mkv
 Especial:  Mi Serie (2015) {imdb-tt1234567}/Season 00/Mi Serie (2015) - S00E01.mkv
 ```
 

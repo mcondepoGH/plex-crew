@@ -7,7 +7,7 @@
 
 **Solución:**
 1. Compara el título y el año esperados (del nombre de la carpeta) con los que muestra Plex, usando la skill `plex` (`search` o `metadata`); marca solo las identidades distintas, no las cosméticas
-2. Renombra carpeta y fichero con el nombre completo; el id va solo al final de la carpeta padre, no en el fichero
+2. Renombra carpeta y fichero con el nombre completo; el id va al final de la carpeta (series) o de carpeta y fichero (películas)
 3. Verifica de nuevo con la skill `plex`: título y año correctos
 
 ### Plex mantiene el título antiguo tras renombrar
@@ -15,7 +15,7 @@
 
 **Solución:**
 1. Asegúrate de que han cambiado tanto la carpeta como el fichero, no solo uno de ellos
-2. Usa el nombre completo; el id va solo al final de la carpeta padre, no en el fichero
+2. Usa el nombre completo; el id va al final de la carpeta (series) o de carpeta y fichero (películas)
 3. Verifica con la skill `plex`: título y año correctos
 
 ### El id se ignora
@@ -23,7 +23,7 @@
 
 **Solución:**
 1. Usa solo `{imdb-tt#######}`; si la obra no tiene id de IMDb conocido, averígualo (Guid de Plex, lookup de Sonarr/Radarr, `external_ids` de TMDB) o pregunta, y no pongas otro tipo de id
-2. Colócalo solo al final del nombre de la carpeta padre (serie o película), nunca en los ficheros
+2. Colócalo al final del nombre: series, solo en la carpeta (nunca en los ficheros); películas, en la carpeta y en el fichero
 
 ## Problemas de nombrado
 
