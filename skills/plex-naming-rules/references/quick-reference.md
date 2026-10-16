@@ -8,8 +8,8 @@ Reglas y patrones de nombre de un vistazo.
 | `SxxExx` solo | Nunca en sus propios corchetes (`[S01E01]`) ni entre grupos de corchetes; la calidad `[...]` va después | Todo episodio |
 | `cap.NNN` | Los dos últimos dígitos son el episodio, el resto la temporada (`cap.101` es S01E01, `cap.1203` es S12E03); también `cap 101` y `capitulo 101` | Nombres con "cap" |
 | Especiales | `S00EXX` en `Season 00`, orden de TVDB; a `movies` solo si TVDB no los coloca en la serie | Especiales y películas "Special" de TVDB |
-| Sintaxis del id | `{imdb-tt#######}`, `{tmdb-#####}` o `{tvdb-######}`, siempre llaves; basta con un id | Series: id solo en la carpeta; películas: en carpeta y fichero |
-| Id al final | Series: solo en la carpeta de la serie, al final; no en los episodios. Películas: al final de carpeta y fichero (antes de la extensión) | Carpetas y ficheros |
+| Sintaxis del id | solo `{imdb-tt#######}` (nunca `{tmdb-...}` ni `{tvdb-...}`), siempre llaves; si no hay id de IMDb, averiguarlo o preguntar | Series y películas: id solo en la carpeta padre |
+| Id al final | Solo en la carpeta padre (serie o película), al final del nombre; nunca en ficheros (episodios, películas, subtítulos) | Carpetas y ficheros |
 | Carpeta de serie | `Serie (Año) {imdb-tt...}`; la carpeta de temporada va en inglés (`Season 01`) | Series |
 | Calidad en el nombre | Después de `SxxExx` (`[HDTV 720p][AC3 5.1 Castellano]`) solo si el nombre original la define; nunca inventada | Al renombrar |
 | Patrón de corrección | `Serie (Año) - SxxExx [calidad].ext` (id solo en la carpeta) en todos los episodios del release en una sola pasada, tabla final | Temporada o release mal nombrado |
