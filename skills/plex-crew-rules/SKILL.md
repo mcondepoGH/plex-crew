@@ -21,6 +21,7 @@ Esta skill fija las reglas transversales del proyecto:
 - Manejo de secretos
 - Tareas programadas
 - Carpetas que se ignoran
+- Log de progreso en tareas largas
 
 ## Configuración
 
@@ -47,6 +48,13 @@ No uses `schedule` ni `RemoteTrigger` para tareas que necesiten la red local: se
 
 ### Carpetas ignoradas
 Ignora cualquier carpeta `.@*` (por ejemplo `.@__thumb`): son caché del NAS. No las listes, no las renombres ni las incluyas en los resultados.
+
+### Log de progreso en tareas largas
+Para que se vea desde fuera por dónde va un agente, el plugin lleva un log automático. No tienes que escribirlo ni purgarlo.
+- Log automático: unos hooks del plugin (`PostToolUse` y `PostToolUseFailure`) anotan cada acción de `Bash`, `Edit`, `Write` y `NotebookEdit` de cualquier agente en `~/.claude/plex-crew/logs/<AAAA-MM-DD>-auto.log`, una línea por acción: `HH:MM:SS (Europe/Madrid) | agente o main | herramienta | comando o ruta | OK|FALLO`. Los secretos se redactan solos (`***`). Está fuera del repositorio.
+- Retención: un hook de `SessionStart` borra al arrancar la sesión los `*.log` de más de 7 días de esa carpeta. Los agentes no purgan nada.
+- Opcional, línea de hito: en una tarea larga puedes añadir una línea de hito (fase terminada, resumen final) a `~/.claude/plex-crew/logs/<AAAA-MM-DD>-<tarea-corta>.log`, con `HH:MM:SS (Europe/Madrid) | fase | elemento | OK|FALLO|SALTADO|PARADO | nota`, sin secretos. Hazlo solo si puedes con tus herramientas y sin esquivar ningún hook. Si no puedes (por ejemplo, el hook de ámbito bloquea la escritura a `plex-naming`), no pasa nada: sigue sin el hito y no lo evites.
+- El orquestador da al usuario la ruta del log automático del día para que haga `tail -f`.
 
 ## Flujo de trabajo
 
@@ -75,3 +83,5 @@ Para la referencia local detallada, consulta:
 - No imprimas credenciales ni el contenido del `.env`
 - No programes con `schedule` ni `RemoteTrigger` nada que necesite la red local
 - No toques las carpetas `.@*`
+- No escribas secretos en los logs ni los uses para esquivar un hook
+- No autolimpies backups: solo se borran cuando el usuario lo pida, con doble confirmación

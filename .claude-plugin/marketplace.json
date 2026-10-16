@@ -10,7 +10,7 @@
     {
       "name": "plex-crew",
       "source": "./",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "category": "media",
       "description": "Orquestador y subagentes para operar un stack Plex (Radarr, Sonarr, Prowlarr...)"
     }

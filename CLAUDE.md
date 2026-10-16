@@ -12,7 +12,7 @@ Un plugin instalado no carga este `CLAUDE.md` como contexto: es solo la guía pa
 ## Estructura
 - `agents/`: `orchestrator` (sesión principal), `plex-naming`, `arr-acquisition`.
 - `skills/`: reglas curadas (`plex-crew-rules`, `plex-naming-rules`, `arr-language-filters`) y skills de servicios del stack. `_lib/` contiene las librerías de shell compartidas (`load-env.sh`, `arr-api.sh`) y no es una skill.
-- `hooks/`: `confirm-destructive.js` (bloquea comandos destructivos sin marcador de confirmación) y `enforce-agent-scope.js` (limita las rutas de escritura del agente `plex-naming`, detectado por `agent_type`, según `scope.conf`, ver `scope.conf.example`).
+- `hooks/`: `confirm-destructive.js` (PreToolUse: bloquea comandos destructivos sin marcador de confirmación) y `enforce-agent-scope.js` (PreToolUse: limita las rutas de escritura del agente `plex-naming`, detectado por `agent_type`, según `scope.conf`, ver `scope.conf.example`); `log-action.js` (PostToolUse/PostToolUseFailure: añade una línea por acción, con secretos redactados, a `~/.claude/plex-crew/logs/<fecha>-auto.log`) y `purge-logs.js` (SessionStart: borra los `*.log` de más de 7 días de esa carpeta). Los dos últimos nunca bloquean (siempre exit 0).
 
 ## Arranque
 Al instalar el plugin, la sesión principal arranca como el orquestador (`"agent": "orchestrator"` en `settings.json`; hooks registrados en `hooks/hooks.json`). Para probarlo sin instalar: `claude --plugin-dir .`.
