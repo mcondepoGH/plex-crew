@@ -7,7 +7,7 @@
 
 **Solución:**
 1. Compara el título y el año esperados (del nombre de la carpeta) con los que muestra Plex, usando la skill `plex` (`search` o `metadata`); marca solo las identidades distintas, no las cosméticas
-2. Renombra carpeta y fichero con el nombre completo; el id de TMDB va al final de carpeta y fichero solo en películas (series sin id)
+2. Renombra carpeta y fichero con el nombre completo; el id de TMDB va tras el año, en carpeta y fichero, solo en películas (series sin id)
 3. Verifica de nuevo con la skill `plex`: título y año correctos
 
 ### Plex mantiene el título antiguo tras renombrar
@@ -15,15 +15,15 @@
 
 **Solución:**
 1. Asegúrate de que han cambiado tanto la carpeta como el fichero, no solo uno de ellos
-2. Usa el nombre completo; el id de TMDB va al final de carpeta y fichero solo en películas (series sin id)
+2. Usa el nombre completo; el id de TMDB va tras el año, en carpeta y fichero, solo en películas (series sin id)
 3. Verifica con la skill `plex`: título y año correctos
 
 ### El id se ignora
-**Causa:** Corchetes en lugar de llaves, o, en películas, el id no está al final del nombre
+**Causa:** Corchetes en lugar de llaves, o, en películas, el id no está justo tras el año
 
 **Solución:**
 1. Usa solo `{tmdb-#######}` y solo en películas; si la película no tiene id de TMDB conocido, consúltalo (Guid `tmdb://` de Plex, lookup de Radarr/Seerr) o pregunta, y no pongas otro tipo de id
-2. Colócalo al final del nombre, en la carpeta y en el fichero de la película. Las series no llevan id: ante un emparejado dudoso usa `match_release`, `set_external_id` y rematch
+2. Colócalo justo tras el año, en la carpeta y en el fichero de la película. Las series no llevan id: ante un emparejado dudoso usa `match_release`, `set_external_id` y rematch
 
 ## Problemas de nombrado
 
@@ -32,7 +32,7 @@
 
 **Solución:**
 1. Escribe `SxxExx` solo, con las etiquetas de calidad después
-2. Aplica el patrón de corrección `Serie (Año) - SxxExx [calidad].ext` (sin id) a todos los episodios del release
+2. Aplica el patrón de corrección `Serie (Año) - SxxExx [calidad].ext` (sin id y sin etiqueta de idioma: en series el idioma va solo en la carpeta) a todos los episodios del release
 
 ### Nombres al estilo `cap.101`
 **Causa:** Numeración de episodios no estándar

@@ -6,8 +6,9 @@ Reglas de nombrado de Plex para series, películas, especiales e identificadores
 
 - **Episodios** — Formato `SxxExx`, conversión de `cap.NNN`
 - **Especiales** — `S00EXX` en `Season 00`, en orden de TVDB
-- **Identificadores** — solo `{tmdb-#######}` (nunca IMDb ni TVDB), al final del nombre; series: sin id; películas: en la carpeta y en el fichero
+- **Identificadores** — solo `{tmdb-#######}` (nunca IMDb ni TVDB); series: sin id; películas: justo tras el año, en la carpeta y en el fichero
 - **Calidad** — Se añade al nombre solo si el original la define
+- **Formatos** — Episodios (`SxxExx - Título [etiquetas][GRUPO]`, idioma solo en la carpeta de serie) y películas (`Título (Año) {tmdb-#######} [etiquetas][grupo] {edition-Nombre}`), orientativos: solo con datos verificables
 - **Emparejados erróneos** — Detectar, corregir el id, dejar que Plex lo resuelva y verificar
 
 ## Configuración
@@ -17,9 +18,10 @@ No necesita configuración. El agente `plex-naming` la carga con el campo `skill
 ## Ejemplos de uso
 
 ```text
-Carpeta:   Mi Serie (2015)
-Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1 Castellano].mkv
-Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456}.mkv
+Carpeta:   Mi Serie (2015) [Castellano]
+Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1].mkv
+Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Castellano].mkv
+Edición:   Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Castellano] {edition-Director's Cut}.mkv
 Especial:  Mi Serie (2015)/Season 00/Mi Serie (2015) - S00E01.mkv
 ```
 
@@ -48,16 +50,16 @@ La referencia detallada está en el directorio `references/`:
 Ante un emparejado erróneo:
 
 1. **Detecta** comparando el título y el año esperados (del nombre de la carpeta) con los que muestra Plex, usando la skill `plex` (`search` o `metadata`)
-2. **Renombra** carpeta y fichero con el nombre completo y el id al final (series: solo en la carpeta; películas: carpeta y fichero); Plex solo vuelve a emparejar con una ruta nueva
+2. **Renombra** carpeta y fichero con el nombre completo (series: sin id; películas: id tras el año, en carpeta y fichero); Plex solo vuelve a emparejar con una ruta nueva
 3. **Verifica** con la skill `plex`: título y año correctos
 
 ## Resolución de problemas
 
 **Plex mantiene el título antiguo**
-→ Solo vuelve a emparejar con una ruta nueva: renombra carpeta y fichero con el nombre completo y el id al final (series: solo en la carpeta; películas: carpeta y fichero)
+→ Solo vuelve a emparejar con una ruta nueva: renombra carpeta y fichero con el nombre completo (series: sin id; películas: id tras el año, en carpeta y fichero)
 
 **El id se ignora**
-→ Debe usar llaves, no corchetes, y estar al final del nombre; series: solo en la carpeta, nunca en los ficheros; películas: en la carpeta y en el fichero
+→ Debe usar llaves, no corchetes, y ir justo tras el año; series: sin id; películas: en la carpeta y en el fichero
 
 **`cap.101` se leyó como una película**
 → Conviértelo a `S01E01`: los dos últimos dígitos son el episodio

@@ -1,7 +1,7 @@
 {
   "name": "plex-crew",
   "displayName": "Plex Crew",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Orquestador y subagentes para operar un stack Plex (Radarr, Sonarr, Prowlarr...)",
   "author": {
     "name": "mcondepoGH"

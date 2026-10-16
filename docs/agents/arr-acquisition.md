@@ -1,6 +1,6 @@
 # Adquisición de contenido (`arr-acquisition`)
 
-Especialista en buscar, añadir y auditar contenido con Radarr, Sonarr, Prowlarr, Seerr y cli_debrid, con foco en audio en español.
+Especialista en buscar, añadir y auditar contenido con Radarr, Sonarr, Prowlarr, Seerr, cli_debrid y ruTorrent, con foco en audio en español.
 
 ## Cuándo se usa y qué no hace
 
@@ -10,11 +10,13 @@ Ejemplos:
 - "Busca esta serie en los indexadores."
 - "¿Por qué se descargó esta release en inglés?" (indexador, Custom Format e idioma real).
 - "Pide esta serie en Seerr" o "¿cómo va la cola de cli_debrid?"
+- "Lista los torrents de ruTorrent" o "quita este torrent".
 - "¿Quién está viendo algo ahora?" (Plex/Tautulli).
 
 Límites:
 
 - Quitar series o películas con borrado de ficheros requiere doble confirmación: devuelve la propuesta al orquestador.
+- Quitar torrents de ruTorrent o borrar sus datos requiere doble confirmación: devuelve la propuesta (hash, nombre, ficheros y ruta) al orquestador.
 - No imprime credenciales ni el contenido de `.env`.
 - No repite el arreglo de `search: [q]` de Torrentio (ver `arr-language-filters`).
 - No renombra nombres de Plex.
@@ -26,6 +28,7 @@ Límites:
 - Buscar en indexadores y gestionar Prowlarr.
 - Gestionar solicitudes de Seerr.
 - Monitorizar cli_debrid, Plex y Tautulli.
+- Gestionar torrents de ruTorrent: listar, añadir, controlar, crear y quitar (siempre por hash).
 - Auditar un grab: indexador de Prowlarr, Custom Format que coincidió e idioma real. Objetivo: audio en español; un subtitulado no cuenta.
 - Presentar resultados en tablas markdown.
 
@@ -47,6 +50,7 @@ Límites:
 - [`prowlarr`](../../skills/prowlarr/README.md)
 - [`seerr`](../../skills/seerr/README.md)
 - [`cli_debrid`](../../skills/cli_debrid/README.md)
+- [`rutorrent`](../../skills/rutorrent/README.md)
 - [`plex`](../../skills/plex/README.md)
 - [`tautulli`](../../skills/tautulli/README.md)
 
@@ -54,7 +58,7 @@ Límites:
 
 | Salvaguarda | Efecto |
 |---|---|
-| `confirm-destructive` | Deniega comandos `Bash` destructivos (incluido `curl -X DELETE`) salvo con `PLEX_CREW_CONFIRMED=1`, que solo se pone tras la doble confirmación |
+| `confirm-destructive` | Deniega comandos `Bash` destructivos (incluido `curl -X DELETE` y los subcomandos de borrado de `rutorrent.sh`) salvo con `PLEX_CREW_CONFIRMED=1`, que solo se pone tras la doble confirmación |
 | [`enforce-agent-scope`](../../hooks/README.md#enforce-agent-scopejs) | No le afecta (solo restringe a `plex-naming` por `agent_type`) |
 | Doble confirmación | Quitar series o películas con borrado de ficheros, y borrar indexadores, se propone al orquestador antes de ejecutarse |
 

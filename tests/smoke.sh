@@ -203,6 +203,11 @@ if [ -f tests/hooks.sh ]; then
   check "tests/hooks.sh" bash tests/hooks.sh
 fi
 
+# 9. Tests de la skill rutorrent (curl simulado), si existen
+if [ -f tests/rutorrent.sh ]; then
+  check "tests/rutorrent.sh" bash tests/rutorrent.sh
+fi
+
 echo
 echo "Resumen: $PASSED/$TOTAL comprobaciones correctas"
 if [ "${#FAILED_NAMES[@]}" -gt 0 ]; then

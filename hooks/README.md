@@ -51,6 +51,8 @@ Patrones principales:
   - `radarr.sh remove` (con o sin `--delete-files`)
   - `sonarr.sh remove` (con o sin `--delete-files`)
   - `prowlarr-api.sh delete`
+  - los subcomandos de borrado de `rutorrent.sh`
+- ruTorrent a mano: `curl` con `mode=remove` o `mode=removewithdata`, `curl` a `/plugins/erasedata`, `curl` a `/RPC2` con `d.erase`, `execute*` o cuerpo desde `@fichero`/`@-`, `rtxmlrpc` con `d.erase`, `execute*`, `--delete` o `--cull`, y `rtcontrol` con `--delete` o `--cull`.
 
 Marcador `PLEX_CREW_CONFIRMED=1`: si el comando lo lleva como asignación de entorno al inicio (por ejemplo `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`, también tras `;`, `&` o `|`), el hook lo deja pasar. Solo se pone tras la doble confirmación del usuario (dos mensajes distintos, incluso en modo automático). Sin marcador, el subagente no ejecuta el comando y devuelve la propuesta al orquestador, que pide las confirmaciones.
 

@@ -6,7 +6,7 @@ Este documento fija el estándar para crear y revisar skills en `skills/`. Todas
 
 | Tipo | Qué es | Contiene | Ejemplos |
 |------|--------|----------|----------|
-| Servicio | Envuelve un servicio del stack Plex con un script de shell. | `SKILL.md`, `README.md`, `scripts/<skill>.sh` y `references/` | `prowlarr`, `plex`, `tautulli`, `sonarr` y `radarr` (propias, reescritas en sala limpia), `seerr`, `cli_debrid` |
+| Servicio | Envuelve un servicio del stack Plex con un script de shell. | `SKILL.md`, `README.md`, `scripts/<skill>.sh` y `references/` | `prowlarr`, `plex`, `tautulli`, `sonarr` y `radarr` (propias, reescritas en sala limpia), `seerr`, `cli_debrid`, `rutorrent` |
 | Reglas | Documenta reglas curadas que el agente debe aplicar; no ejecuta nada. | `SKILL.md`, `README.md` y `references/` | `plex-crew-rules`, `plex-naming-rules`, `arr-language-filters` |
 
 ## Estructura de directorios

@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 0.4.7.
+Versión 0.4.8.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
@@ -21,6 +21,7 @@ Servicios cubiertos:
 - Prowlarr
 - Seerr
 - cli_debrid
+- ruTorrent
 - Agregarr (nueva en 0.3.0)
 
 Este README es un índice: dice qué existe y dónde está documentado. Los comandos y herramientas de cada pieza viven en su propio README.
@@ -80,6 +81,10 @@ Una fila por variable. Se rellenan solo los servicios que uses.
 | `CLI_DEBRID_URL` | Si usas la skill `cli_debrid` | URL base de cli_debrid |
 | `CLI_DEBRID_USER` | Si usas la skill `cli_debrid` | Usuario de cli_debrid |
 | `CLI_DEBRID_PASSWORD` | Si usas la skill `cli_debrid` | Contraseña de cli_debrid |
+| `RUTORRENT_URL` | Si usas la skill `rutorrent` | URL base de ruTorrent |
+| `RUTORRENT_USER` | Si usas la skill `rutorrent` | Usuario de la autenticación básica |
+| `RUTORRENT_PASSWORD` | Si usas la skill `rutorrent` | Contraseña de la autenticación básica |
+| `RUTORRENT_ALLOWED_DIR` | No (opcional) | Prefijo (ruta del contenedor) permitido para crear torrents y borrar datos |
 | `AGREGARR_URL` | Si usas la skill `agregarr` | URL base de Agregarr (nueva en 0.3.0) |
 | `AGREGARR_API_KEY` | Si usas la skill `agregarr` | Clave de API de Agregarr |
 
@@ -107,6 +112,7 @@ Cada skill tiene su `README.md` con el detalle. Todas son propias, siguen la mis
 | [`radarr`](skills/radarr/README.md) | Servicio | Gestión de películas (reescrita en sala limpia) |
 | [`seerr`](skills/seerr/README.md) | Servicio | Buscar y gestionar solicitudes en Seerr / Overseerr |
 | [`cli_debrid`](skills/cli_debrid/README.md) | Servicio | Estado, cola, descargas y logs de cli_debrid |
+| [`rutorrent`](skills/rutorrent/README.md) | Servicio | Listar, añadir, crear y quitar torrents de ruTorrent |
 | [`agregarr`](skills/agregarr/README.md) | Servicio | Listas y colecciones de Agregarr (nueva en 0.3.0) |
 | [`plex-crew-rules`](skills/plex-crew-rules/README.md) | Reglas | Reglas globales: idioma, hora, doble confirmación, secretos, tareas programadas |
 | [`plex-naming-rules`](skills/plex-naming-rules/README.md) | Reglas | Nombrado de Plex para series, películas, especiales e identificadores |
@@ -122,7 +128,7 @@ Solo el orquestador lanza subagentes; los especialistas devuelven sus propuestas
 |---|---|---|
 | `orchestrator` | Sesión principal: clasifica, delega, pide confirmaciones, gestiona crons y artefactos | [README](docs/agents/orchestrator.md) |
 | `plex-naming` | Renombra series y películas al formato de Plex y corrige emparejados | [README](docs/agents/plex-naming.md) |
-| `arr-acquisition` | Búsqueda, adquisición y auditoría con Radarr, Sonarr, Prowlarr, Seerr y cli_debrid | [README](docs/agents/arr-acquisition.md) |
+| `arr-acquisition` | Búsqueda, adquisición y auditoría con Radarr, Sonarr, Prowlarr, Seerr, cli_debrid y ruTorrent | [README](docs/agents/arr-acquisition.md) |
 
 ## Hooks y seguridad
 

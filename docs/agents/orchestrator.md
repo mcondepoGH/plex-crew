@@ -34,7 +34,7 @@ Límites:
 | Petición | Subagente |
 |---|---|
 | Nombre, id o emparejado mal en Plex; renombrar series o películas; especiales; calidad en el nombre | [`plex-naming`](plex-naming.md) |
-| Buscar, añadir, descargar, indexadores, idioma, servicios arr (Radarr, Sonarr, Prowlarr, Seerr, cli_debrid), qué indexador usó un grab | [`arr-acquisition`](arr-acquisition.md) |
+| Buscar, añadir, descargar, indexadores, idioma, servicios arr (Radarr, Sonarr, Prowlarr, Seerr, cli_debrid), ruTorrent y torrents, qué indexador usó un grab | [`arr-acquisition`](arr-acquisition.md) |
 | Mixta (por ejemplo "añade X y deja el nombre bien") | Varios: en paralelo si son independientes, en orden si uno depende de otro |
 
 ## Proceso

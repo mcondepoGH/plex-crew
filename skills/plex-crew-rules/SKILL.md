@@ -41,7 +41,7 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 
 ### Secretos
 - No los imprimas, no los registres en logs ni los escribas en ficheros versionados. No muestres el contenido del `.env`.
-- Opera los servicios con las skills (`radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli`, `seerr`, `cli_debrid`), no con `curl` y claves en línea.
+- Opera los servicios con las skills (`radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli`, `seerr`, `cli_debrid`, `rutorrent`), no con `curl` y claves en línea.
 
 ### Tareas programadas
 No uses `schedule` ni `RemoteTrigger` para tareas que necesiten la red local: se ejecutan en la nube y no alcanzan el stack Plex. Las tareas programadas del orquestador usan `CronCreate`.
