@@ -8,7 +8,7 @@ Ejemplos:
 
 - "Esta serie sale como otra en Plex."
 - "Normaliza los nombres de la carpeta de esta serie a `SxxExx`."
-- "Añade el id `{imdb-...}` a esta película."
+- "Añade el id `{tmdb-...}` a esta película."
 - "Pon los especiales como `S00Exx`."
 
 Límites:
@@ -22,10 +22,11 @@ Límites:
 
 - Renombrar carpetas y ficheros de series y películas según `plex-naming-rules`:
   - `SxxExx`
-  - ids `{imdb-...}` (solo IMDb, nunca TMDB ni TVDB; series: solo en la carpeta; películas: en carpeta y fichero)
+  - id `{tmdb-...}` (solo TMDB, nunca IMDb ni TVDB; series: sin id; películas: en carpeta y fichero)
   - calidad
   - especiales `S00Exx`
-- Detectar y corregir emparejados erróneos renombrando carpeta y fichero con el nombre completo y el id al final (series: solo en la carpeta; películas: carpeta y fichero), y comprobando el título y el año con la skill `plex` (`search` o `metadata`).
+- Detectar y corregir emparejados erróneos renombrando carpeta y fichero con el nombre completo y, en películas, el id de TMDB al final (carpeta y fichero; las series no llevan id y se corrigen en Plex con `match_release`, `set_external_id` y rematch), y comprobando el título y el año con la skill `plex` (`search` o `metadata`).
+- Usar los formatos de episodio de series de `plex-naming-rules` (individual, multi-episodio, diario y anime) para los ficheros de episodio, y el formato de película (con `{edition-Nombre}` opcional) para los ficheros de película; los conflictos con convenciones previas están pendientes de decisión del usuario.
 - Localizar las bibliotecas locales con la skill `plex` (comando `libraries`).
 - Añadir la calidad al nombre solo si el nombre original ya la define; no se comprueba contra el fichero.
 - Probar con un solo elemento y pedir segunda confirmación antes del resto en renombrados masivos.

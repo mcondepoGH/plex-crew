@@ -6,7 +6,7 @@ Reglas de nombrado de Plex para series, películas, especiales e identificadores
 
 - **Episodios** — Formato `SxxExx`, conversión de `cap.NNN`
 - **Especiales** — `S00EXX` en `Season 00`, en orden de TVDB
-- **Identificadores** — solo `{imdb-tt#######}` (nunca TMDB ni TVDB), al final del nombre; series: solo en la carpeta, nunca en los ficheros; películas: en la carpeta y en el fichero
+- **Identificadores** — solo `{tmdb-#######}` (nunca IMDb ni TVDB), al final del nombre; series: sin id; películas: en la carpeta y en el fichero
 - **Calidad** — Se añade al nombre solo si el original la define
 - **Emparejados erróneos** — Detectar, corregir el id, dejar que Plex lo resuelva y verificar
 
@@ -17,10 +17,10 @@ No necesita configuración. El agente `plex-naming` la carga con el campo `skill
 ## Ejemplos de uso
 
 ```text
-Carpeta:   Mi Serie (2015) {imdb-tt1234567}
+Carpeta:   Mi Serie (2015)
 Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1 Castellano].mkv
-Película:  Mi Película (2010) {imdb-tt7654321}/Mi Película (2010) {imdb-tt7654321}.mkv
-Especial:  Mi Serie (2015) {imdb-tt1234567}/Season 00/Mi Serie (2015) - S00E01.mkv
+Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456}.mkv
+Especial:  Mi Serie (2015)/Season 00/Mi Serie (2015) - S00E01.mkv
 ```
 
 El renombrado se hace en local con `Bash`; las bibliotecas de Plex se localizan con la skill `plex` (comando `libraries`).
