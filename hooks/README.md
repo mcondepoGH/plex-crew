@@ -51,6 +51,7 @@ Patrones principales:
   - `radarr.sh remove` (con o sin `--delete-files`)
   - `sonarr.sh remove` (con o sin `--delete-files`)
   - `prowlarr-api.sh delete`
+  - `plex-api.sh emptytrash`
   - los subcomandos de borrado de `rutorrent.sh`
 - ruTorrent a mano: `curl` con `mode=remove` o `mode=removewithdata`, `curl` a `/plugins/erasedata`, `curl` a `/RPC2` con `d.erase`, `execute*` o cuerpo desde `@fichero`/`@-`, `rtxmlrpc` con `d.erase`, `execute*`, `--delete` o `--cull`, y `rtcontrol` con `--delete` o `--cull`.
 

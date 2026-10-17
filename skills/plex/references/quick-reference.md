@@ -28,6 +28,7 @@ bash "$PLEX" playlists
 bash "$PLEX" accounts
 bash "$PLEX" prefs
 bash "$PLEX" refresh 1   # confirma antes con el usuario
+PLEX_CREW_CONFIRMED=1 bash "$PLEX" emptytrash 1   # DESTRUCTIVO: doble confirmación + marcador
 bash "$PLEX" setpref autoEmptyTrash 1   # confirma antes con el usuario
 ```
 

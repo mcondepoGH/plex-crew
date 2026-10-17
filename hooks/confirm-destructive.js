@@ -53,6 +53,7 @@ const DESTRUCTIVE = [
   // Skills de servicios: subcomandos destructivos (con bash, ruta relativa o absoluta).
   /\b(radarr|sonarr)\.sh["']?\s+["']?remove\b/,
   /\bprowlarr-api\.sh["']?\s+["']?delete\b/,
+  /\bplex-api\.sh["']?\s+["']?emptytrash\b/,
   /\brutorrent\.sh["']?\s+["']?remove(-with-data)?["']?(\s|$)/,
   // ruTorrent / rTorrent a mano: quitar torrents, borrar datos o ejecutar órdenes por RPC.
   /\bcurl\b.*\bmode=remove(withdata)?\b/,

@@ -38,6 +38,9 @@ Comandos:
                                       sale con 1 si el valor final no coincide
   refresh <section-id>                Lanza un escaneo de la biblioteca (modifica estado);
                                       imprime lo que responda Plex y después una línea JSON fija
+  emptytrash <section-id>             DESTRUCTIVO e irreversible: vacía la papelera de la biblioteca
+                                      (PUT /library/sections/<id>/emptyTrash). Imprime el código HTTP;
+                                      sale con 1 si no es 2xx. Exige doble confirmación y PLEX_CREW_CONFIRMED=1
 
 Alias cortos: -l para --limit y -o para --offset.
 USAGE
@@ -67,7 +70,7 @@ curl_quote() {
 }
 
 # Única función de acceso a la API (GET; PUT si PLEX_METHOD=PUT). Uso: plex_get <ruta[?consulta]>
-# Imprime el cuerpo tal cual; no comprueba el código HTTP. Sale con 1 si curl falla.
+# Imprime el cuerpo tal cual; no comprueba el código HTTP (salvo PLEX_ONLY_CODE=1: imprime solo el código). Sale con 1 si curl falla.
 # URL y cabeceras (con el token) viajan por stdin: no aparecen en ps.
 plex_get() {
   command -v curl >/dev/null 2>&1 || { echo "ERROR: se necesita curl" >&2; exit 1; }
@@ -81,7 +84,11 @@ plex_get() {
   conf+='header = "Accept: application/json"'$'\n'
   conf+="header = $(curl_quote "X-Plex-Token: ${PLEX_TOKEN}")"$'\n'
 
-  if ! printf '%s' "$conf" | curl -sS --connect-timeout 10 --max-time 30 --config - 2>/dev/null; then
+  # Con PLEX_ONLY_CODE=1 descarta el cuerpo e imprime solo el código HTTP
+  local extra=()
+  [[ "${PLEX_ONLY_CODE:-0}" == "1" ]] && extra=(-o /dev/null -w '%{http_code}')
+
+  if ! printf '%s' "$conf" | curl -sS --connect-timeout 10 --max-time 30 "${extra[@]}" --config - 2>/dev/null; then
     echo "ERROR: no se pudo contactar con Plex en $BASE_URL" >&2
     exit 1
   fi
@@ -228,6 +235,16 @@ case "$cmd" in
     plex_get "/library/sections/$sid/refresh"
     # Limitación conocida: esta línea sale siempre, sin comprobar la respuesta de Plex
     echo '{"status": "ok", "message": "Library refresh initiated"}'
+    ;;
+
+  emptytrash)
+    U="emptytrash <section-id>"
+    sid="${1:-}"
+    [[ -n "$sid" ]] || usage_error "falta section-id" "$U"
+    need_int "$sid" "$U"
+    code="$(PLEX_METHOD=PUT PLEX_ONLY_CODE=1 plex_get "/library/sections/$sid/emptyTrash")"
+    echo "HTTP $code"
+    [[ "$code" =~ ^2[0-9][0-9]$ ]] || { echo "ERROR: Plex rechazó el vaciado de la papelera de la sección $sid (HTTP $code)" >&2; exit 1; }
     ;;
 
   *)

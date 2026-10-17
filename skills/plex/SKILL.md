@@ -27,8 +27,9 @@ Esta skill consulta la API de Plex Media Server para:
 - Ver las reproducciones en curso, los clientes, las listas y las cuentas
 - Lanzar el escaneo de una biblioteca (`refresh`)
 - Cambiar una preferencia del servidor (`setpref`)
+- Vaciar la papelera de una biblioteca (`emptytrash`, DESTRUCTIVO)
 
-`refresh` y `setpref` son las únicas escrituras; `refresh` dispara un escaneo y `setpref` cambia un ajuste. Ninguna borra nada. Ningún comando es destructivo, así que el hook `confirm-destructive` no aplica. Para ids, rematches y nombres de Plex usa las skills y agentes de nombrado, no esta skill. Ignora las carpetas `.@*` (regla global en `plex-crew-rules`).
+`refresh`, `setpref` y `emptytrash` son las únicas escrituras; `refresh` dispara un escaneo y `setpref` cambia un ajuste. Solo `emptytrash` es destructivo (ver su sección): el hook `confirm-destructive` lo bloquea sin el marcador `PLEX_CREW_CONFIRMED=1`. Para ids, rematches y nombres de Plex usa las skills y agentes de nombrado, no esta skill. Ignora las carpetas `.@*` (regla global en `plex-crew-rules`).
 
 ## Configuración
 
@@ -136,6 +137,16 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" refresh 1
 
 **Salida:** lo que devuelva Plex (normalmente nada) y, siempre, la línea `{"status": "ok", "message": "Library refresh initiated"}`. Esa línea sale aunque Plex haya rechazado la petición; no la tomes como prueba de que el escaneo empezó.
 
+### Vaciar la papelera de una biblioteca
+
+**DESTRUCTIVO e irreversible: borra para siempre los elementos de la papelera de la biblioteca.** Exige doble confirmación del usuario (regla global en `plex-crew-rules`) y el marcador `PLEX_CREW_CONFIRMED=1` en el comando; el hook `confirm-destructive` lo bloquea sin él. Antes, comprueba `autoEmptyTrash` con `prefs` y no lo cambies sin pedirlo. No lo ofrezcas por iniciativa propia.
+
+```bash
+PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" emptytrash 1
+```
+
+**Salida:** una línea `HTTP <código>` (el código real de Plex). Si no es 2xx, imprime `ERROR:` en stderr y sale con 1. Hace `PUT /library/sections/<id>/emptyTrash`. Plex lo procesa de forma asíncrona: espera con `libraries` (campo `refreshing`) antes de dar la tarea por terminada.
+
 ## Flujo de trabajo
 
 1. **"¿Qué hay en Plex?"** → `libraries` y elige el `key` de la biblioteca
@@ -154,7 +165,7 @@ La respuesta va dentro de `MediaContainer`. Los elementos están en `Metadata` (
 
 | Opción | Comandos | Notas |
 |--------|----------|-------|
-| `<section-id>` | library, refresh | Entero; primer argumento |
+| `<section-id>` | library, refresh, emptytrash | Entero; primer argumento |
 | `<clave> <valor>` | setpref | clave `[A-Za-z0-9]+`, valor `[A-Za-z0-9._-]+` |
 | `<rating-key>` | metadata, children | Entero |
 | `<texto>` | search | Primer argumento; entrecomíllalo |

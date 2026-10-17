@@ -124,10 +124,10 @@ fi
 PLX=skills/plex/scripts/plex-api.sh
 if [ -f "$PLX" ]; then
   env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$PLX" help >"$TMP/out" 2>&1
-  for c in info identity libraries library recent ondeck search metadata children sessions clients playlists refresh; do
+  for c in info identity libraries library recent ondeck search metadata children sessions clients playlists refresh emptytrash; do
     if grep -q -- "$c" "$TMP/out"; then ok "$PLX help lista $c"; else fail "$PLX help lista $c"; fi
   done
-  for bad in "library" "library abc" "recent --limit abc" "recent --bogus" "search" "metadata" "metadata abc" "children x" "refresh" "refresh abc" "comando-desconocido-zzz"; do
+  for bad in "library" "library abc" "recent --limit abc" "recent --bogus" "search" "metadata" "metadata abc" "children x" "refresh" "refresh abc" "emptytrash" "emptytrash abc" "comando-desconocido-zzz"; do
     # shellcheck disable=SC2086
     env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$PLX" $bad >"$TMP/out" 2>&1
     rc=$?

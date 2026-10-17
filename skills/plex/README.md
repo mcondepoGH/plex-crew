@@ -9,6 +9,7 @@ Explora Plex Media Server desde la línea de comandos: bibliotecas, búsquedas, 
 - **Reciente** — Lo añadido recientemente y "continuar viendo"
 - **Búsqueda** — Búsqueda global y metadatos de un elemento y sus hijos
 - **Actividad** — Reproducciones en curso, clientes, listas y cuentas
+- **Papelera** — `emptytrash <section-id>` vacía la papelera de una biblioteca: DESTRUCTIVO, irreversible, exige doble confirmación y `PLEX_CREW_CONFIRMED=1`
 - **Escaneo** — Lanza el escaneo de una biblioteca (`refresh`, la única escritura)
 
 Todos los comandos devuelven el JSON de Plex sin reformatear, salvo `refresh`, que añade una línea fija.

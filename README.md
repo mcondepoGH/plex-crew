@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 0.4.8.
+Versión 0.4.9.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
