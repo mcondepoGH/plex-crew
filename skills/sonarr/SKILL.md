@@ -101,7 +101,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189 5
 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" add 81189 5 --no-search
 ```
 
-**Salida:** en éxito, `✅ Added: Breaking Bad (2008) - 5 seasons` y, si la búsqueda estaba activa, `🔍 Search started` (código 0). Si TVDB no tiene la serie: `❌ Show not found with TVDB ID: <id>` (código 1). Si Sonarr no devuelve `id`: `❌ Failed to add show` y, en otra línea, su mensaje (código 0).
+**Salida:** en éxito, `✅ Added: Breaking Bad (2008) - 5 seasons` y, si la búsqueda estaba activa, `🔍 Search started` (código 0). Si TVDB no tiene la serie: `❌ Show not found with TVDB ID: <id>` (código 1). Si Sonarr responde con un HTTP que no es 2xx (serie ya existente, perfil inexistente), imprime por stderr `ERROR: POST /series respondió HTTP <código>: <mensaje>` y termina con 1; si responde 2xx sin `id`: `❌ Failed to add show` y, en otra línea, su mensaje (código 1).
 
 `add` toma la primera carpeta raíz, monitoriza todos los episodios (`monitor: all`) y crea carpeta por temporada. `--no-search` desactiva la búsqueda y se reconoce en cualquier posición, pero el id va siempre primero y el perfil, de haberlo, segundo: en `add 81189 --no-search 5` el `5` se ignora y se usa el perfil por defecto.
 
@@ -114,7 +114,7 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.s
 PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" remove 81189 --delete-files
 ```
 
-**Salida:** `🗑️ Removed: Breaking Bad (2008) (files kept)` o, con la opción, `🗑️ Removed: Breaking Bad (2008) + deleted files` (código 0). Si la serie no está en la biblioteca: `❌ Show not found in library` (código 1). La opción solo se reconoce como segundo argumento.
+**Salida:** `🗑️ Removed: Breaking Bad (2008) (files kept)` o, con la opción, `🗑️ Removed: Breaking Bad (2008) + deleted files` (código 0, solo con HTTP 2xx; si no, `ERROR: DELETE /series/<id>... respondió HTTP <código>: <mensaje>` por stderr y código 1). Si la serie no está en la biblioteca: `❌ Show not found in library` (código 1). La opción solo se reconoce como segundo argumento.
 
 ## Flujo de trabajo
 
@@ -142,13 +142,11 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.s
 
 ### Limitaciones conocidas
 
-- `add` no comprueba el código HTTP de la alta: si Sonarr la rechaza (serie ya existente, perfil inexistente), imprime `❌ Failed to add show` con código 0.
 - `add` usa siempre la primera carpeta raíz de `/rootfolder`, `monitor: all` y carpeta por temporada; no se pueden elegir carpeta, tipo de serie ni monitorización.
 - El perfil por defecto no se valida contra `/qualityprofile`; si no existe, Sonarr rechaza la alta.
-- `remove` no comprueba el código HTTP del borrado: imprime `🗑️ Removed` aunque Sonarr lo rechace. Verifica con `exists`.
 - `exists` compara el cuerpo con `[]` exacto, de modo que una respuesta de error (por ejemplo HTTP 401) cuenta como `exists` y la línea de datos falla o sale vacía. Tampoco indica el estado de la serie.
 - `search` muestra solo 10 resultados, sin sinopsis ni slug; `search-json` devuelve todos.
-- `search` y `status` usan la librería compartida: sin límite de conexión propio y con la clave en la línea de comandos de curl (visible en `ps`). El resto de comandos la pasa por stdin.
+- Todos los comandos pasan la clave a curl por stdin (`--config -`), sin que aparezca en `ps`, y con `--connect-timeout` de 10 s (`ARR_CONNECT_TIMEOUT`).
 - La barra final de `SONARR_URL` no se quita y da `//api/v3`.
 - No hay comandos de episodios, calendario, cola, historial, logs, refresh ni búsqueda de episodios.
 

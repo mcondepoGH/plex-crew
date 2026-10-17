@@ -16,7 +16,7 @@ Gracias a `load_service_credentials`, las variables ya exportadas en el entorno 
 
 ## arr-api.sh
 
-Cinco funciones `curl -s` para APIs estilo Arr. El script que la carga debe definir antes `API` (URL base de la API, p. ej. `http://localhost:7878/api/v3`) y `AUTH` (cabecera completa, p. ej. `X-Api-Key: ...`).
+Cinco funciones `curl` para APIs estilo Arr. URL, cabecera `AUTH` y cuerpo viajan por stdin (`--config -`), así que la clave no aparece en `ps`; llevan `--connect-timeout` (`ARR_CONNECT_TIMEOUT`, 10 s) y `--max-time` (`ARR_MAX_TIME`, 25 s). El script que la carga debe definir antes `API` (URL base de la API, p. ej. `http://localhost:7878/api/v3`) y `AUTH` (cabecera completa, p. ej. `X-Api-Key: ...`).
 
 | Función | Petición |
 |---------|----------|

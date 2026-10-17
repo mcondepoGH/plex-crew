@@ -170,7 +170,8 @@ cmd_add() {
        }
      }' <<<"$show")"
 
-  resp="$(http POST /series "$body")"
+  arr_call POST /series "$body" || exit 1
+  resp="$ARR_BODY"
   id="$(jq -r 'if type == "object" then (.id // empty) else empty end' <<<"$resp" 2>/dev/null || true)"
   if [[ -n "$id" ]]; then
     jq -r '"✅ Added: \(.title) (\(.year)) - \(.statistics.seasonCount // "?") seasons"' <<<"$resp"
@@ -181,6 +182,7 @@ cmd_add() {
     echo "❌ Failed to add show"
     jq -r 'if type == "object" and .message then .message else tostring end' <<<"$resp" 2>/dev/null \
       || printf '%s\n' "$resp"
+    exit 1
   fi
 }
 
@@ -201,7 +203,7 @@ cmd_remove() {
   title="$(jq -r '.[0].title' <<<"$body")"
   year="$(jq -r '.[0].year' <<<"$body")"
 
-  http DELETE "/series/$id?deleteFiles=$delete" >/dev/null
+  arr_call DELETE "/series/$id?deleteFiles=$delete" || exit 1
   if [[ "$delete" == true ]]; then
     echo "🗑️ Removed: $title ($year) + deleted files"
   else

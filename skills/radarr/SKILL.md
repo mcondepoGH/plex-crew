@@ -103,7 +103,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add 603 5
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add 603 5 --no-search
 ```
 
-**Salida:** en éxito, `✅ Added: The Matrix (1999)` y, si la búsqueda estaba activa, `🔍 Search started` (código 0). Si Radarr no devuelve `id`: `❌ Failed to add movie` y, en otra línea, su mensaje o la respuesta completa (código 0, ver limitaciones).
+**Salida:** en éxito, `✅ Added: The Matrix (1999)` y, si la búsqueda estaba activa, `🔍 Search started` (código 0). Si Radarr no devuelve `id`: `❌ Failed to add movie` y, en otra línea, su mensaje o la respuesta completa (código 1). Si Radarr responde con un HTTP que no es 2xx (película ya existente, perfil inexistente), imprime por stderr `ERROR: POST /movie respondió HTTP <código>: <mensaje>` y termina con 1.
 
 `add` toma la primera carpeta raíz y deja la película monitorizada. `--no-search` desactiva la búsqueda y se reconoce en cualquier posición, pero el id va siempre primero y el perfil, de haberlo, segundo: en `add 603 --no-search 5` el `5` se ignora y se usa el perfil por defecto.
 
@@ -116,7 +116,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection 2344
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" add-collection 2344 "The Matrix" --no-search
 ```
 
-**Salida**, en este orden: `🔍 Finding movies in collection...`; `📦 Found 3 movies in collection`; una línea por película (`✅ The Matrix (1999)`, `⏭️  The Matrix Reloaded (2003) - already in library` con dos espacios tras el emoji, o `❌ <título> (<año>) - <mensaje>` si Radarr la rechaza); una línea en blanco; `📊 Added: 2 | Skipped: 1`; `🔍 Search started for new movies` (solo con búsqueda activa y alguna añadida); y `👁️ Collection monitored (new releases auto-added)` si la colección queda monitorizada. Termina con código 0 aunque fallen películas sueltas.
+**Salida**, en este orden: `🔍 Finding movies in collection...`; `📦 Found 3 movies in collection`; una línea por película (`✅ The Matrix (1999)`, `⏭️  The Matrix Reloaded (2003) - already in library` con dos espacios tras el emoji, o `❌ <título> (<año>) - <mensaje>` si Radarr la rechaza); una línea en blanco; `📊 Added: 2 | Skipped: 1`; `🔍 Search started for new movies` (solo con búsqueda activa y alguna añadida); y `👁️ Collection monitored (new releases auto-added)` si la colección queda monitorizada. Si Radarr rechaza alguna película (HTTP no 2xx), además imprime por stderr `ERROR: POST /movie respondió HTTP <código>: <mensaje>`, sigue con las demás y termina con código 1; sin fallos, 0.
 
 El `idColeccionTmdb` es el de `collection.tmdbId` (no el de la película); `collection-info` lo muestra. El término de búsqueda solo se usa si la colección no figura aún en Radarr: si figura, se usa su título sin el sufijo ` Collection`. Sin colección conocida ni término, imprime `❌ Could not determine collection name. Please provide search term.` y el uso (código 1). Si no encuentra películas de esa colección: `❌ No movies found for collection <id>` (código 1).
 
@@ -129,7 +129,7 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.s
 PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" remove 603 --delete-files
 ```
 
-**Salida:** `🗑️ Removed: The Matrix (1999) (files kept)` o, con la opción, `🗑️ Removed: The Matrix (1999) + deleted files` (código 0). Si la película no está en la biblioteca: `❌ Movie not found in library` (código 1). La opción solo se reconoce como segundo argumento.
+**Salida:** `🗑️ Removed: The Matrix (1999) (files kept)` o, con la opción, `🗑️ Removed: The Matrix (1999) + deleted files` (código 0, solo con HTTP 2xx; si no, `ERROR: DELETE /movie/<id>... respondió HTTP <código>: <mensaje>` por stderr y código 1). Si la película no está en la biblioteca: `❌ Movie not found in library` (código 1). La opción solo se reconoce como segundo argumento.
 
 ### Detalles de una colección
 
@@ -188,16 +188,16 @@ Opciones, en cualquier orden:
 
 ### Limitaciones conocidas
 
-- `add` y `add-collection` no comprueban el código HTTP de la alta: si Radarr la rechaza (película ya existente, perfil inexistente), imprimen `❌ ...` pero terminan con código 0. `add` no avisa de que la película ya existía; comprueba antes con `exists`.
+- `add` no avisa de que la película ya existía; comprueba antes con `exists`.
 - `add` no comprueba que el lookup devolvió una película válida: con un `tmdbId` inexistente envía igualmente el alta y sale `❌ Failed to add movie`.
 - `add` y `add-collection` usan siempre la primera carpeta raíz de `/rootfolder` y `monitored: true`; no se pueden elegir carpeta, disponibilidad mínima ni etiquetas. `add` no valida el perfil contra `/qualityprofile`; `add-collection` ignora `RADARR_DEFAULT_QUALITY_PROFILE` y usa el primer perfil de la lista.
 - `add-collection`: si la colección ya figura en Radarr, se ignora el término dado. En `add-collection 2344 --no-search` el `--no-search` se toma también como término (solo importa si la colección no figura en Radarr: la búsqueda fallará con `❌ No movies found ...`). Las películas salen del lookup de Radarr con ese término, así que una colección grande se limita a lo que devuelva. Siempre activa `searchOnAdd` al monitorizar la colección, aun con `--no-search`, y si ese paso falla no hay mensaje.
-- `remove` no comprueba el código HTTP del borrado: imprime `🗑️ Removed` aunque Radarr lo rechace. Verifica con `exists`. No marca la exclusión de importación.
+- `remove` no marca la exclusión de importación.
 - `exists` compara el cuerpo con `[]` exacto, de modo que una respuesta de error (por ejemplo HTTP 401) cuenta como `exists` y la línea de datos falla o sale vacía; `config` con una respuesta de error falla con un error de jq.
 - `search` imprime todos los resultados del lookup, sin sinopsis; `search-json` devuelve el JSON completo.
 - `logs`: el enmascarado solo cubre pares `clave=valor` con las seis claves indicadas (no JSON, cabeceras ni `Bearer`); `--grep` compara con el texto sin enmascarar, solo ve las `min(N*20, 1000)` entradas más recientes y la comparación sin mayúsculas es solo ASCII; solo se muestra la primera línea de cada mensaje.
 - Las llamadas directas no distinguen la causa del fallo de curl (el mensaje es único); solo `search`, `status` y `logs` informan del código HTTP.
-- `search`, `status` y `logs` usan la librería compartida: la clave queda en la línea de comandos de curl (visible en `ps`). El resto la pasa por stdin.
+- Todos los comandos pasan la clave a curl por stdin (`--config -`), sin que aparezca en `ps`, y con `--connect-timeout` de 10 s (`ARR_CONNECT_TIMEOUT`).
 - La barra final de `RADARR_URL` no se quita y da `//api/v3`.
 - No hay comandos de calendario, cola, historial, importación, refresh ni búsqueda de releases.
 

@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|mcp__zurg__.*",
         "hooks": [
           {
             "type": "command",
@@ -12,7 +12,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "matcher": "Edit|Write|NotebookEdit|Bash|mcp__zurg__.*",
         "hooks": [
           {
             "type": "command",
@@ -20,11 +20,21 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/zurg-mount.js\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "matcher": "Bash|Edit|Write|NotebookEdit|mcp__zurg__.*",
         "hooks": [
           {
             "type": "command",
@@ -36,7 +46,7 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "matcher": "Bash|Edit|Write|NotebookEdit|mcp__zurg__.*",
         "hooks": [
           {
             "type": "command",

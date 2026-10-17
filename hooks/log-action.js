@@ -1,8 +1,9 @@
-// PostToolUse / PostToolUseFailure (Bash|Edit|Write|NotebookEdit): añade una línea por
+// PostToolUse / PostToolUseFailure (Bash|Edit|Write|NotebookEdit|mcp__zurg__*): añade una línea por
 // acción de cualquier agente (hilo principal y subagentes) a
 //   ~/.claude/plex-crew/logs/<AAAA-MM-DD>-auto.log
 // Formato: HH:MM:SS (Europe/Madrid) | <agent_type|main> | <herramienta> | <detalle> | OK|FALLO
-//   - detalle: comando Bash o ruta (file_path / notebook_path), una línea, máx. 300 caracteres.
+//   - detalle: comando Bash, ruta (file_path / notebook_path) o, en tools mcp__zurg__*, el input en JSON;
+//     una línea, máx. 300 caracteres. La columna herramienta lleva el nombre completo de la tool.
 //   - OK/FALLO sale del evento (doc oficial: PostToolUse = la herramienta tuvo éxito,
 //     PostToolUseFailure = falló), no de tool_response, cuya forma no está documentada
 //     de forma estable para todas las herramientas.
@@ -12,6 +13,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+
+const zurg = require('./zurg-tools');
 
 const MAX = 300;
 
@@ -41,9 +44,21 @@ function madrid(now) {
   return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}:${p.second}` };
 }
 
+// Para zurg_config_set y similares: {"key":"<nombre secreto>","value":"..."} -> value redactado.
+const SECRET_NAME = /token|secret|password|passwd|pwd|api[_-]?key|apikey|authorization/i;
+function maskPairs(v) {
+  if (Array.isArray(v)) return v.map(maskPairs);
+  if (!v || typeof v !== 'object') return v;
+  const o = {};
+  const named = ['key', 'name', 'field', 'setting'].some(k => typeof v[k] === 'string' && SECRET_NAME.test(v[k]));
+  for (const [k, x] of Object.entries(v)) o[k] = named && /^(value|val|new_value)$/i.test(k) ? '***' : maskPairs(x);
+  return o;
+}
+
 function summarize(tool, input) {
   let d = '';
   if (tool === 'Bash') d = input.command || '';
+  else if (zurg.isZurg(tool)) d = JSON.stringify(maskPairs(input));
   else d = input.file_path || input.notebook_path || '';
   d = redact(String(d)).replace(/\s+/g, ' ').trim();
   return d.length > MAX ? d.slice(0, MAX - 1) + '…' : d;
@@ -55,7 +70,7 @@ process.stdin.on('end', () => {
   try {
     const p = JSON.parse(raw);
     const tool = String(p.tool_name || '');
-    if (!['Bash', 'Edit', 'Write', 'NotebookEdit'].includes(tool)) return;
+    if (!zurg.isZurg(tool) && !['Bash', 'Edit', 'Write', 'NotebookEdit'].includes(tool)) return;
     const input = p.tool_input && typeof p.tool_input === 'object' ? p.tool_input : {};
     const agent = String(p.agent_type || 'main').replace(/[\s|]+/g, '_');
     const result = p.hook_event_name === 'PostToolUseFailure' ? 'FALLO' : 'OK';

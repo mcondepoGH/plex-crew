@@ -182,7 +182,8 @@ cmd_add() {
        addOptions: { searchForMovie: $search }
      }' <<<"$lookup")"
 
-  resp="$(http POST /movie "$body")"
+  arr_call POST /movie "$body" || exit 1
+  resp="$ARR_BODY"
   id="$(jq -r 'if type == "object" then (.id // empty) else empty end' <<<"$resp" 2>/dev/null || true)"
   if [[ -n "$id" ]]; then
     jq -r '"✅ Added: \(.title) (\(.year))"' <<<"$resp"
@@ -193,13 +194,14 @@ cmd_add() {
     echo "❌ Failed to add movie"
     jq -r 'if type == "object" and .message then .message else tostring end' <<<"$resp" 2>/dev/null \
       || printf '%s\n' "$resp"
+    exit 1
   fi
 }
 
 cmd_add_collection() {
   local cid="${1:-}" term="${2:-}" search=true arg
   local colls coll movies count roots root_path profiles profile
-  local movie label tid existing body resp added=0 skipped=0 msg iid cdata cresp
+  local movie label tid existing body resp added=0 skipped=0 failed=0 msg iid cdata cresp
   local use="add-collection <collectionTmdbId> [searchTerm] [--no-search]"
 
   for arg in "$@"; do
@@ -253,13 +255,15 @@ cmd_add_collection() {
          monitored: true,
          addOptions: { searchForMovie: $search }
        }' <<<"$movie")"
-    resp="$(http POST /movie "$body")"
+    arr_call POST /movie "$body" || true
+    resp="$ARR_BODY"
     if [[ -n "$(jq -r 'if type == "object" then (.id // empty) else empty end' <<<"$resp" 2>/dev/null || true)" ]]; then
       echo "✅ $label"
       added=$((added + 1))
     else
       msg="$(jq -r '(if type == "object" then .message else null end) // "failed"' <<<"$resp" 2>/dev/null || true)"
       echo "❌ $label - ${msg:-failed}"
+      failed=$((failed + 1))
     fi
   done < <(jq -c '.[]' <<<"$movies")
 
@@ -278,6 +282,10 @@ cmd_add_collection() {
     if [[ "$(jq -r 'if type == "object" then (.monitored == true) else false end' <<<"$cresp" 2>/dev/null || true)" == true ]]; then
       echo "👁️ Collection monitored (new releases auto-added)"
     fi
+  fi
+
+  if [[ "$failed" -gt 0 ]]; then
+    exit 1
   fi
 }
 
@@ -299,7 +307,7 @@ cmd_remove() {
   title="$(jq -r '.[0].title' <<<"$body")"
   year="$(jq -r '.[0].year' <<<"$body")"
 
-  http DELETE "/movie/$id?deleteFiles=$delete" >/dev/null
+  arr_call DELETE "/movie/$id?deleteFiles=$delete" || exit 1
   if [[ "$delete" == true ]]; then
     echo "🗑️ Removed: $title ($year) + deleted files"
   else

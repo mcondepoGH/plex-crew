@@ -1,4 +1,4 @@
-// PreToolUse (Bash): BLOQUEA (deny) los comandos destructivos reales, salvo que
+// PreToolUse (Bash y mcp__zurg__*): BLOQUEA (deny) los comandos destructivos reales, salvo que
 // lleven el marcador `PLEX_CREW_CONFIRMED=1` como asignación de entorno al inicio
 // del MISMO segmento (separado por ; & | o salto de línea) que casa el patrón
 // destructivo (p. ej. `PLEX_CREW_CONFIRMED=1 rm -rf /ruta`). El texto entrecomillado
@@ -21,6 +21,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+
+const zurg = require('./zurg-tools');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..');
 
@@ -446,6 +448,18 @@ process.stdin.on('end', () => {
   let cwd = '';
   try {
     const payload = JSON.parse(raw);
+    if (zurg.isZurg(payload.tool_name)) {
+      // Tools MCP de zurg: se clasifican por nombre (ver zurg-tools.js).
+      const k = zurg.kind(payload.tool_name);
+      if (k !== 'other' || zurg.hasMarker(payload.tool_input)) process.exit(0);
+      deny(
+        `Tool MCP de zurg bloqueada (${payload.tool_name}): no es de solo lectura ni de renombrado, o su nombre no está clasificado (fallo cerrado). ` +
+          'Regla del stack: doble confirmación del usuario en dos mensajes distintos. Si ya la hay, reintenta la misma tool poniendo el texto `PLEX_CREW_CONFIRMED=1` ' +
+          'en algún campo de texto libre de sus argumentos (por ejemplo un campo de nota, motivo o comentario, si el esquema lo tiene). ' +
+          'Si el esquema no tiene ningún campo de texto libre, no se puede confirmar desde aquí: devuelve la propuesta al orquestador. ' +
+          'No pongas el marcador sin doble confirmación real.'
+      );
+    }
     cmd = (payload.tool_input && payload.tool_input.command) || '';
     cwd = payload.cwd || '';
   } catch {

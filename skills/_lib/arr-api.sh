@@ -9,21 +9,56 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 fi
 
 ARR_MAX_TIME="${ARR_MAX_TIME:-25}"
+ARR_CONNECT_TIMEOUT="${ARR_CONNECT_TIMEOUT:-10}"
+
+# Entrecomilla un valor para una línea de configuración de curl.
+_arr_quote() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '"%s"' "$s"
+}
+
+# Ejecuta curl con URL, cabecera de clave y cuerpo por stdin (--config -): la
+# clave no aparece en los argumentos (ps). Uso: _arr_curl <MÉTODO> <ruta> <json|""> [opciones de curl...]
+_arr_curl() {
+    local method="$1" path="$2" body="$3" conf rc=0 xt=0
+    shift 3
+    if [[ $- == *x* ]]; then
+        xt=1
+        set +x
+    fi
+    conf="url = $(_arr_quote "$API$path")"$'\n'
+    conf+="request = $(_arr_quote "$method")"$'\n'
+    conf+="header = $(_arr_quote "$AUTH")"$'\n'
+    if [[ -n "$body" ]]; then
+        conf+='header = "Content-Type: application/json"'$'\n'
+        conf+="data-raw = $(_arr_quote "$body")"$'\n'
+    fi
+    printf '%s' "$conf" | curl --connect-timeout "$ARR_CONNECT_TIMEOUT" --max-time "$ARR_MAX_TIME" "$@" --config - || rc=$?
+    if [[ $xt -eq 1 ]]; then
+        set -x
+    fi
+    return "$rc"
+}
 
 arr_get() {
-    curl -s --max-time "$ARR_MAX_TIME" -H "$AUTH" "$API$1"
+    _arr_curl GET "$1" "" -s
 }
 
 arr_post() {
-    curl -s --max-time "$ARR_MAX_TIME" -X POST -H "$AUTH" -H "Content-Type: application/json" -d "$2" "$API$1"
+    _arr_curl POST "$1" "$2" -s
 }
 
 arr_put() {
-    curl -s --max-time "$ARR_MAX_TIME" -X PUT -H "$AUTH" -H "Content-Type: application/json" -d "$2" "$API$1"
+    _arr_curl PUT "$1" "$2" -s
 }
 
 arr_delete() {
-    curl -s --max-time "$ARR_MAX_TIME" -X DELETE -H "$AUTH" "$API$1"
+    _arr_curl DELETE "$1" "" -s
 }
 
 # Petición que comprueba el código HTTP (para escrituras y lecturas críticas).
@@ -33,14 +68,10 @@ arr_delete() {
 # y devuelve 1. Llámala sin $(...) para conservar ARR_BODY y ARR_CODE.
 arr_call() {
     local method="$1" path="$2" body="${3:-}" out msg
-    local args=(-sS --max-time "$ARR_MAX_TIME" -w $'\n%{http_code}' -X "$method" -H "$AUTH")
-    if [[ -n "$body" ]]; then
-        args+=(-H "Content-Type: application/json" -d "$body")
-    fi
     ARR_BODY=""
     ARR_CODE="000"
     local rc=0
-    out=$(curl "${args[@]}" "$API$path") || rc=$?
+    out=$(_arr_curl "$method" "$path" "$body" -sS -w $'\n%{http_code}') || rc=$?
     if [[ $rc -ne 0 ]]; then
         if [[ $rc -eq 28 ]]; then
             echo "ERROR: timeout tras ${ARR_MAX_TIME}s llamando a $path" >&2
