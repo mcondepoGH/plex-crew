@@ -18,7 +18,7 @@ Cuerpo `application/x-www-form-urlencoded` con `mode=<modo>`, `hash=<HASH>` (rep
 
 | Modo | Uso en el script | Efecto |
 |---|---|---|
-| `list` | `list`, `info` | Lista de torrents. Formato JSON no documentado: `{"t":{"HASH":[campos...]}}`; el resumen usa los índices 4 (nombre), 5 (tamaño), 8 (hecho) y 15 (etiqueta, no verificado) |
+| `list` | `list`, `info` | Lista de torrents. Formato JSON no documentado: `{"t":{"HASH":[campos...]}}`; el resumen usa los índices 4 (nombre), 5 (tamaño), 8 (bytes hechos) y 14 (etiqueta); ruta de guardado en 25, todo confirmado en vivo. `info` devuelve la fila como array JSON posicional, sin claves |
 | `fls` | `files`, `remove-with-data` | Ficheros del torrent |
 | `getsavepath` | `remove-with-data` | Ruta de guardado (ruta del contenedor; formato no verificado) |
 | `start` / `stop` | `start`, `stop` | Inicia o para |

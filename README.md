@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 0.4.9.
+Versión 0.4.10.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
 
@@ -82,8 +82,8 @@ Una fila por variable. Se rellenan solo los servicios que uses.
 | `CLI_DEBRID_USER` | Si usas la skill `cli_debrid` | Usuario de cli_debrid |
 | `CLI_DEBRID_PASSWORD` | Si usas la skill `cli_debrid` | Contraseña de cli_debrid |
 | `RUTORRENT_URL` | Si usas la skill `rutorrent` | URL base de ruTorrent |
-| `RUTORRENT_USER` | Si usas la skill `rutorrent` | Usuario de la autenticación básica |
-| `RUTORRENT_PASSWORD` | Si usas la skill `rutorrent` | Contraseña de la autenticación básica |
+| `RUTORRENT_USER` | No (opcional) | Usuario de la autenticación básica, solo si ruTorrent la tiene |
+| `RUTORRENT_PASSWORD` | No (opcional) | Contraseña de la autenticación básica |
 | `RUTORRENT_ALLOWED_DIR` | No (opcional) | Prefijo (ruta del contenedor) permitido para crear torrents y borrar datos |
 | `AGREGARR_URL` | Si usas la skill `agregarr` | URL base de Agregarr (nueva en 0.3.0) |
 | `AGREGARR_API_KEY` | Si usas la skill `agregarr` | Clave de API de Agregarr |

@@ -3,7 +3,7 @@
 ## Problemas de autenticación
 
 ### "ruTorrent respondió HTTP 401"
-**Causa:** usuario o contraseña incorrectos en la autenticación básica de nginx
+**Causa:** ruTorrent tiene autenticación básica de nginx y faltan o son incorrectos `RUTORRENT_USER`/`RUTORRENT_PASSWORD` (son opcionales si no la tiene)
 
 **Solución:**
 1. Abre la interfaz web con las mismas credenciales
@@ -11,7 +11,7 @@
 3. Evita espacios finales; los caracteres `"` y `\` se escapan solos
 
 ### "faltan variables en el .env"
-**Causa:** falta alguna de `RUTORRENT_URL`, `RUTORRENT_USER` o `RUTORRENT_PASSWORD`
+**Causa:** falta `RUTORRENT_URL` (única variable obligatoria)
 
 **Solución:**
 1. Comprueba que existe `~/.claude/plex-crew/.env`
@@ -53,7 +53,7 @@
 **Solución:** mira la ruta con `info` y `files`; no se borra nada hasta que se pueda validar.
 
 ### La tabla de `list` sale con columnas incorrectas
-**Causa:** los índices del resumen no están verificados en vivo
+**Causa:** el formato de fila cambió; índices confirmados en vivo: 4 nombre, 5 tamaño, 8 bytes hechos, 14 etiqueta, 25 ruta de guardado
 
 **Solución:** usa `list --raw` y ajusta el script con el formato real.
 

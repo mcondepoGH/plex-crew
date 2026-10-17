@@ -20,7 +20,7 @@ printf 'ARGV %s\nCFG %s\n' "$args" "$cfg" >>"$FAKE_LOG"
 body='{}'
 code=200
 case "$args" in
-  *mode=list*) body='{"t":{"0123456789ABCDEF0123456789ABCDEF01234567":["1","0","1","1","Pelicula X","1000","10","10","1000","0","0","0","0","0","16384","seed","0","0","0","0","0"]}}' ;;
+  *mode=list*) body='{"t":{"0123456789ABCDEF0123456789ABCDEF01234567":["1","0","1","1","Pelicula X","1000","10","10","1000","0","0","0","0","0","seed","0","0","0","0","0","0"]}}' ;;
   *mode=getsavepath*) body="${FAKE_SAVEPATH-\"/data/downloads/seed/x\"}" ;;
   *mode=fls*) body='[["a.mkv",1000]]' ;;
   *diskspace*) body='{"free":1,"total":2}' ;;
@@ -61,15 +61,23 @@ run "comando desconocido" 1 "comando desconocido" -- zzz
 run "info sin hash" 1 "falta el hash" -- info
 run "info hash corto" 1 "no es un hash válido" -- info abc
 run "start hash inválido" 1 "no es un hash válido" -- start "$H;rm"
-run "sin variables ni .env" 1 "no existe" HOME="$T/nada" RUTORRENT_USER= -- list
-mkdir -p "$T/h2/.claude/plex-crew"; printf "RUTORRENT_URL=http://x\n" >"$T/h2/.claude/plex-crew/.env"
-run "faltan variables" 1 "faltan variables" HOME="$T/h2" RUTORRENT_USER= -- list
+run "sin variables ni .env" 1 "no existe" HOME="$T/nada" RUTORRENT_URL= -- list
+mkdir -p "$T/h2/.claude/plex-crew"; printf "RUTORRENT_USER=u\n" >"$T/h2/.claude/plex-crew/.env"
+run "faltan variables" 1 "faltan variables" HOME="$T/h2" RUTORRENT_URL= -- list
 
 # --- lectura
 run "list" 0 "Pelicula X" -- list
 calls_have "list usa httprpc" "/plugins/httprpc/action.php"
 calls_have "list: URL sin barra doble" "http://rt.test:8080/plugins"
 calls_have "auth por config" 'user = "usr:p\"w\\d"'
+# sin USER/PASSWORD: funciona y no se pasa auth
+run "sin credenciales" 0 "Pelicula X" RUTORRENT_USER= RUTORRENT_PASSWORD= -- list
+calls_lack "sin auth: no -K -" "-K -"
+calls_lack "sin auth: no user" "user ="
+calls_have "sin auth: llama a httprpc" "/plugins/httprpc/action.php"
+# con credenciales: auth con -K -
+run "con credenciales" 0 "Pelicula X" -- list
+calls_have "con auth: -K -" "-K -"
 N=$((N + 1)); if grep '^ARGV' "$LOG" | grep -qF -e 'usr' -e 'p"w'; then FAIL=$((FAIL + 1)); echo "FALLA: credenciales en argv"; fi
 run "list --raw" 0 '"t"' -- list --raw
 run "info" 0 "Pelicula X" -- info "${H,,}"

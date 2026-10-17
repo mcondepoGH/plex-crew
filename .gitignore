@@ -51,3 +51,6 @@ dist/
 
 # ── Montajes locales (montajes locales, no versionar) ──
 /mnt
+
+# ── Config local de hooks ──
+scope.conf

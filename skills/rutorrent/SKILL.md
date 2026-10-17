@@ -30,23 +30,24 @@ Las operaciones incluyen lectura, escritura y borrado. **Quitar un torrent (`rem
 
 ## Configuración
 
-Añade las credenciales a `~/.claude/plex-crew/.env`. ruTorrent no tiene clave de API: se usa la autenticación básica de nginx (`HTTP_AUTH=true` en la imagen `mondedie/rutorrent`).
+Añade las variables a `~/.claude/plex-crew/.env`. ruTorrent no tiene clave de API: solo la URL es obligatoria; usuario y contraseña (autenticación básica de nginx, `HTTP_AUTH=true` en `mondedie/rutorrent`) son opcionales y solo hacen falta si tu ruTorrent la tiene activada.
 
 ```bash
-RUTORRENT_URL="http://localhost:8080"
-RUTORRENT_USER="admin"
-RUTORRENT_PASSWORD="your-password"
+RUTORRENT_URL="http://<ip-del-QNAP>:8080"
+# Opcionales: solo si ruTorrent tiene autenticación básica.
+# RUTORRENT_USER="admin"
+# RUTORRENT_PASSWORD="your-password"
 # Opcional: prefijo (ruta del contenedor) permitido para crear torrents y borrar datos.
-# RUTORRENT_ALLOWED_DIR="/data/downloads/seed"
+# RUTORRENT_ALLOWED_DIR="/data/downloads"
 ```
 
-- `RUTORRENT_URL`: URL base de ruTorrent (sin barra final y sin prefijo de URL salvo que lo uses)
-- `RUTORRENT_USER` y `RUTORRENT_PASSWORD`: usuario y contraseña de la autenticación básica
+- `RUTORRENT_URL`: obligatoria; URL base de ruTorrent (sin barra final y sin prefijo de URL salvo que lo uses)
+- `RUTORRENT_USER` y `RUTORRENT_PASSWORD`: opcionales si el host no pide autenticación; autenticación básica. Sin usuario no se envía autenticación
 - `RUTORRENT_ALLOWED_DIR`: opcional; si existe, `create` y `remove-with-data` solo aceptan rutas bajo ese prefijo
 
 ## Ejecución del script
 
-El script está en `${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh`. Llámalo con su ruta absoluta para no alterar el directorio de trabajo de la sesión. Las credenciales se pasan a `curl` por stdin: nunca aparecen en argv ni en la salida.
+El script está en `${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh`. Llámalo con su ruta absoluta para no alterar el directorio de trabajo de la sesión. Si hay credenciales, se pasan a `curl` por stdin: nunca aparecen en argv ni en la salida.
 
 ## Rutas: contenedor frente a host
 
@@ -56,7 +57,7 @@ Las rutas que devuelve y acepta ruTorrent son las **del contenedor** (por ejempl
 
 `list` imprime una tabla TSV (hash, nombre, tamaño, hecho, etiqueta); `list --raw` y el resto imprimen el JSON de ruTorrent tal cual. Sin comando muestra la ayuda (código 0); un comando desconocido la muestra y termina con 1. Un argumento ausente, un hash que no sean 40 caracteres hexadecimales o una ruta rechazada imprime `ERROR:` y termina con 1. Un HTTP no 2xx, un 401 o un fallo de conexión imprime `ERROR:` en stderr y termina con 1.
 
-El formato de `mode=list` no está documentado oficialmente: los índices que usa el resumen (nombre, tamaño, hecho, etiqueta) **no están verificados en vivo**. Si la tabla sale rara, usa `list --raw`.
+El formato de `mode=list` no está documentado oficialmente. Índices confirmados en vivo: 4 nombre, 5 tamaño, 8 bytes hechos, 14 etiqueta, 25 ruta de guardado. Si la tabla sale rara, usa `list --raw`. `info` devuelve la fila del torrent como array JSON posicional, sin claves (mismos índices).
 
 ### Consultar
 
@@ -120,7 +121,7 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutor
 - No se usa `/RPC2` (XML-RPC por SCGI): sin autenticación permitiría `execute2` y ejecutar órdenes en el servidor; ver `references/troubleshooting.md`
 - Si ruTorrent no responde, considera la skill inaccesible e infórmalo
 - Requiere `curl` y `jq`
-- No verificado en vivo: formato de `list`, `getsavepath`, `setlabel` y `diskspace`
+- No verificado en vivo: `getsavepath`, `setlabel` y `diskspace`
 
 ## Referencia
 

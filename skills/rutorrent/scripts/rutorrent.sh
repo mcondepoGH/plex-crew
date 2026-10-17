@@ -1,7 +1,7 @@
 #!/bin/bash
 # Envoltorio de la API web de ruTorrent (plugin httprpc, addtorrent, create, _task).
-# Autenticación: basic auth de nginx. Las credenciales se pasan a curl por stdin (-K -),
-# nunca en argv ni en la salida.
+# Autenticación opcional: basic auth de nginx solo si hay RUTORRENT_USER. Las credenciales se
+# pasan a curl por stdin (-K -), nunca en argv ni en la salida. Sin usuario no se envía auth.
 # No usa `set -e`: cada error se comprueba y se trata de forma explícita.
 set -uo pipefail
 umask 077
@@ -40,8 +40,8 @@ Destructivos (el hook confirm-destructive exige doble confirmación y PLEX_CREW_
                                Quita el torrent Y BORRA sus datos (muestra antes info, files y ruta)
 
 Siempre se opera por HASH (40 hex). Las rutas son las que ve el contenedor de ruTorrent.
-Variables: RUTORRENT_URL, RUTORRENT_USER, RUTORRENT_PASSWORD (obligatorias);
-RUTORRENT_ALLOWED_DIR (opcional: prefijo permitido para crear y borrar datos).
+Variables: RUTORRENT_URL (obligatoria); RUTORRENT_USER y RUTORRENT_PASSWORD (opcionales:
+solo si ruTorrent tiene autenticación básica); RUTORRENT_ALLOWED_DIR (opcional: prefijo permitido para crear y borrar datos).
 USAGE
 }
 
@@ -57,10 +57,10 @@ need_env() {
   [[ -n "$BASE" ]] && return 0
   # shellcheck source=/dev/null
   source "$_LOAD_ENV" || die "no se encuentra load-env.sh"
-  if [[ -z "${RUTORRENT_URL:-}" || -z "${RUTORRENT_USER:-}" || -z "${RUTORRENT_PASSWORD:-}" ]]; then
+  if [[ -z "${RUTORRENT_URL:-}" ]]; then
     load_env_file || exit 1
   fi
-  validate_env_vars "RUTORRENT_URL" "RUTORRENT_USER" "RUTORRENT_PASSWORD" || exit 1
+  validate_env_vars "RUTORRENT_URL" || exit 1
   BASE="${RUTORRENT_URL%/}"
 }
 
@@ -68,7 +68,7 @@ need_jq() { command -v jq >/dev/null 2>&1 || die "se necesita jq"; }
 
 # Configuración de curl con la autenticación, por stdin. Escapa \ y " del formato de -K.
 auth_config() {
-  local u="$RUTORRENT_USER" p="$RUTORRENT_PASSWORD"
+  local u="${RUTORRENT_USER:-}" p="${RUTORRENT_PASSWORD:-}"
   u="${u//\\/\\\\}"; u="${u//\"/\\\"}"
   p="${p//\\/\\\\}"; p="${p//\"/\\\"}"
   printf 'user = "%s:%s"\n' "$u" "$p"
@@ -80,7 +80,11 @@ rt_call() {
   local path="$1" out code rc
   shift
   need_env
-  out=$(auth_config | "$CURL" -sS --max-time "$MAX_TIME" -K - -w $'\n%{http_code}' "$@" "$BASE$path" 2>/dev/null)
+  if [[ -n "${RUTORRENT_USER:-}" ]]; then
+    out=$(auth_config | "$CURL" -sS --max-time "$MAX_TIME" -K - -w $'\n%{http_code}' "$@" "$BASE$path" 2>/dev/null)
+  else
+    out=$("$CURL" -sS --max-time "$MAX_TIME" -w $'\n%{http_code}' "$@" "$BASE$path" 2>/dev/null </dev/null)
+  fi
   rc=$?
   if [[ $rc -ne 0 ]]; then
     if [[ $rc -eq 28 ]]; then
@@ -90,14 +94,16 @@ rt_call() {
   fi
   code="${out##*$'\n'}"
   if [[ "$code" == "401" ]]; then
-    die "ruTorrent respondió HTTP 401 en $path; revisa RUTORRENT_USER y RUTORRENT_PASSWORD"
+    die "ruTorrent respondió HTTP 401 en $path; ruTorrent exige autenticación: define RUTORRENT_USER y RUTORRENT_PASSWORD"
   fi
   if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
     die "$path respondió HTTP $code"
   fi
   out="${out%$'\n'*}"
   # Por si el servidor reflejara la contraseña, nunca se imprime tal cual.
-  out="${out//"$RUTORRENT_PASSWORD"/***}"
+  if [[ -n "${RUTORRENT_PASSWORD:-}" ]]; then
+    out="${out//"$RUTORRENT_PASSWORD"/***}"
+  fi
   printf '%s\n' "$out"
 }
 
@@ -199,10 +205,10 @@ cmd_list() {
     return 0
   fi
   need_jq
-  # Índices de mode=list (no verificado en vivo): 4 nombre, 5 tamaño, 8 hecho, 15 etiqueta.
+  # Índices de mode=list (confirmados en vivo): 4 nombre, 5 tamaño, 8 bytes hechos, 14 etiqueta (d.custom1), 25 ruta de guardado.
   printf '%s' "$body" | jq -r '
     (.t // {}) | to_entries[]
-    | [.key, (.value[4] // ""), (.value[5] // 0), (.value[8] // 0), ((.value[15] // "") | tostring | @uri)]
+    | [.key, (.value[4] // ""), (.value[5] // 0), (.value[8] // 0), ((.value[14] // "") | tostring | @uri)]
     | @tsv' 2>/dev/null || die "no se pudo interpretar la respuesta de list (usa --raw)"
 }
 

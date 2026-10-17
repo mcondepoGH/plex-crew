@@ -3,10 +3,11 @@
 ## Configuración
 
 ```bash
-RUTORRENT_URL="http://localhost:8080"
-RUTORRENT_USER="admin"
-RUTORRENT_PASSWORD="your-password"
-# RUTORRENT_ALLOWED_DIR="/data/downloads/seed"
+RUTORRENT_URL="http://<ip-del-QNAP>:8080"
+# Opcionales, solo con autenticación básica:
+# RUTORRENT_USER="admin"
+# RUTORRENT_PASSWORD="your-password"
+# RUTORRENT_ALLOWED_DIR="/data/downloads"
 ```
 
 ## Comandos del script
@@ -38,6 +39,6 @@ Base: `bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh"`
 El hook deniega sin marcador las que quitan o borran. No pongas credenciales en la línea de comandos.
 
 ```bash
-# Con las credenciales en un fichero de configuración de curl (-K)
+# Sin autenticación: quita -K. Con ella, las credenciales en un fichero de configuración de curl (-K)
 curl -sS -K ~/.claude/plex-crew/curl-rutorrent.conf --data-urlencode mode=list "$RUTORRENT_URL/plugins/httprpc/action.php"
 ```
