@@ -182,7 +182,7 @@ case "$cmd" in
     [[ -n "${OPT[user]:-}" ]] && args+=("user=${OPT[user]}")
     [[ -n "${OPT[section_id]:-}" ]] && args+=("section_id=${OPT[section_id]}")
     [[ -n "${OPT[media_type]:-}" ]] && args+=("media_type=${OPT[media_type]}")
-    [[ -n "${OPT[days]:-}" ]] && args+=("start_date=$(days_ago "${OPT[days]}")")
+    [[ -n "${OPT[days]:-}" ]] && args+=("start_date=$(date -d "${OPT[days]} days ago" +%F)")
     [[ -n "${OPT[search]:-}" ]] && args+=("search=${OPT[search]}")
     api_get get_history "${args[@]}"
     ;;

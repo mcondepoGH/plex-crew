@@ -70,7 +70,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" libraries
 bash "${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh" library 1
 ```
 
-**Salida:** `libraries` devuelve las bibliotecas en `Directory` (`key`, `title`, `type`, ubicaciones); `key` es el `section-id`. `library` devuelve el contenido de esa biblioteca en `Metadata`, sin límite por defecto (puede ser enorme). `--limit` y `--offset` están rotos, ver Limitaciones conocidas.
+**Salida:** `libraries` devuelve las bibliotecas en `Directory` (`key`, `title`, `type`, ubicaciones); `key` es el `section-id`. `library` devuelve el contenido de esa biblioteca en `Metadata`, sin límite por defecto (puede ser enorme).
 
 ### Reciente y continuar viendo
 
@@ -170,7 +170,7 @@ La respuesta va dentro de `MediaContainer`. Los elementos están en `Metadata` (
 | `<rating-key>` | metadata, children | Entero |
 | `<texto>` | search | Primer argumento; entrecomíllalo |
 | `--limit N`, `-l N` | library, recent (20), ondeck (10), search | Entero >= 0 |
-| `--offset N`, `-o N` | library | Entero >= 0; roto |
+| `--offset N`, `-o N` | library | Entero >= 0 |
 
 ## Notas
 
@@ -182,7 +182,6 @@ La respuesta va dentro de `MediaContainer`. Los elementos están en `Metadata` (
 
 - No se comprueba el código HTTP: un 401 o un 404 imprime el cuerpo de Plex (texto o HTML, no JSON) y termina con 0. Si la salida no es JSON, sospecha del token o de la ruta.
 - `refresh` imprime siempre la línea de "iniciado".
-- `library --limit` y `--offset` generan una ruta mal formada (`/library/sections/<id>/all&X-Plex-Container-Size=<N>?X-Plex-Token=...`): la paginación no se aplica y Plex puede responder 404. Filtra con `jq` o usa `recent`.
 - `help` también exige credenciales cargadas.
 - `search` y `library` toman el primer argumento como posicional aunque empiece por `-`: `search --limit 5` busca el texto `--limit` y falla por la opción `5`.
 - Los argumentos sobrantes se ignoran en silencio en los comandos sin opciones y en `metadata`, `children` y `refresh`.

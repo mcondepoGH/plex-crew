@@ -83,6 +83,10 @@ plex_get() {
   conf+="url = $(curl_quote "${BASE_URL}${path}${sep}X-Plex-Token=${PLEX_TOKEN}")"$'\n'
   conf+='header = "Accept: application/json"'$'\n'
   conf+="header = $(curl_quote "X-Plex-Token: ${PLEX_TOKEN}")"$'\n'
+  # Paginación: Plex solo la acepta como cabecera (PAGE_SIZE/PAGE_START los fijan library, recent y ondeck)
+  [[ -n "${PAGE_SIZE:-}" ]] && conf+="header = $(curl_quote "X-Plex-Container-Size: ${PAGE_SIZE}")"$'\n'
+  # Plex ignora el tamaño si falta el inicio: por defecto 0
+  [[ -n "${PAGE_SIZE:-}" || -n "${PAGE_START:-}" ]] && conf+="header = $(curl_quote "X-Plex-Container-Start: ${PAGE_START:-0}")"$'\n'
 
   # Con PLEX_ONLY_CODE=1 descarta el cuerpo e imprime solo el código HTTP
   local extra=()
@@ -148,21 +152,17 @@ case "$cmd" in
     shift
     need_int "$sid" "$U"
     read_opts 1 "$U" "$@"
-    extra=""
-    [[ -n "$LIMIT" ]] && extra+="&X-Plex-Container-Size=$LIMIT"
-    [[ -n "$OFFSET" ]] && extra+="&X-Plex-Container-Start=$OFFSET"
-    # Limitación conocida: el trozo va sin "?" y la paginación no funciona
-    plex_get "/library/sections/$sid/all$extra"
+    PAGE_SIZE="$LIMIT" PAGE_START="$OFFSET" plex_get "/library/sections/$sid/all"
     ;;
 
   recent)
     read_opts 0 "recent [--limit N]" "$@"
-    plex_get "/library/recentlyAdded?X-Plex-Container-Size=${LIMIT:-20}"
+    PAGE_SIZE="${LIMIT:-20}" plex_get "/library/recentlyAdded"
     ;;
 
   ondeck)
     read_opts 0 "ondeck [--limit N]" "$@"
-    plex_get "/library/onDeck?X-Plex-Container-Size=${LIMIT:-10}"
+    PAGE_SIZE="${LIMIT:-10}" plex_get "/library/onDeck"
     ;;
 
   search)
