@@ -23,6 +23,7 @@ const os = require('os');
 const path = require('path');
 
 const zurg = require('./zurg-tools');
+const { expandScopeLine } = require('./zurg-mounts');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..');
 
@@ -40,6 +41,7 @@ function mediaRoots() {
   return lines
     .map(l => l.trim())
     .filter(l => l && !l.startsWith('#'))
+    .flatMap(l => expandScopeLine(l) || [l]) // marcador @zurg[/subruta]; mal formado o sin montaje: se ignora
     .map(l => norm(l.startsWith('~') ? path.join(os.homedir(), l.slice(1)) : l));
 }
 

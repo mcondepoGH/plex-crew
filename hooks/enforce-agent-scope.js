@@ -6,7 +6,8 @@
 // Rutas permitidas, en este orden de lectura:
 //   1. Fichero indicado en $PLEX_CREW_CONFIG, o si no existe la variable,
 //      ~/.claude/plex-crew/scope.conf (una ruta absoluta por línea; se ignoran
-//      líneas vacías y comentarios con #; se expande ~).
+//      líneas vacías y comentarios con #; se expande ~; `@zurg` o `@zurg/<subruta>` se
+//      sustituye por cada montaje de zurg detectado, ver zurg-mounts.js).
 //   2. Argumentos de línea de comandos opcionales: se añaden como rutas extra.
 // Si no hay ninguna ruta, se deniega todo con instrucciones para configurarlo.
 //
@@ -21,6 +22,7 @@ const os = require('os');
 const path = require('path');
 
 const zurg = require('./zurg-tools');
+const { expandScopeLine } = require('./zurg-mounts');
 
 const HOME = os.homedir();
 
@@ -54,7 +56,9 @@ function loadAllowed() {
     for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
       const l = line.trim();
       if (!l || l.startsWith('#')) continue;
-      list.push(l);
+      const ex = expandScopeLine(l); // marcador @zurg[/subruta]; null si es una ruta normal
+      if (ex) list.push(...ex);
+      else if (ex === null) list.push(l);
     }
   } catch {
     // fichero ausente o ilegible: se considera vacío

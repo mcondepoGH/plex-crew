@@ -411,6 +411,7 @@ PL="$T/plug"
 mkdir -p "$PL/hooks" "$PL/skills/plex/scripts" "$PL/skills/_lib"
 cp "$SCOPE" "$PL/hooks/enforce-agent-scope.js"
 cp "$HOOKS/zurg-tools.js" "$PL/hooks/zurg-tools.js"
+cp "$HOOKS/zurg-mounts.js" "$PL/hooks/zurg-mounts.js"
 cp "$HOOKS/shell-parse.js" "$PL/hooks/shell-parse.js"
 printf '#!/bin/sh\ntrue\n' >"$PL/skills/plex/scripts/plex-api.sh"
 printf 'true\n' >"$PL/skills/_lib/load-env.sh"
@@ -622,6 +623,67 @@ z deny "PLEX_CREW_ZURG_MOUNTS con dos rutas (primera)" "" "touch $O/z/x"
 z deny "PLEX_CREW_ZURG_MOUNTS con dos rutas (segunda)" "" "touch $ZB/zurg/x"
 rc2 "$ZMOUNT" "zurg-mount: entrada vacía" ""
 rc2 "$ZMOUNT" "zurg-mount: entrada basura" "no es json"
+unset PLEX_CREW_MOUNTINFO PLEX_CREW_ZURG_MOUNTS
+
+# =====================================================================
+# Marcador @zurg en scope.conf (enforce-agent-scope.js y confirm-destructive.js)
+# Montaje A autodetectado ($ZA, con movies/ y __magic__/), montaje B por lista ($ZB/zurg), $ZN anidado en A.
+ZN="$ZA/zurg"; mkdir -p "$ZN/movies" "$ZN/shows" "$ZA/shows" "$ZB/zurg/shows" "$ZB/shows" "$ZB/movies"
+printf '%s\n' \
+  "31 30 0:50 / $ZA rw,nosuid - fuse.rclone zurg: rw,user_id=0" \
+  "34 31 0:53 / $ZN rw,nosuid - fuse.rclone zurg{abc}: rw" >"$T/mountinfo2"
+ZC="$T/zat.conf"
+# zs EXPECT NOMBRE CONF CMD  (plex-naming, cwd=$O)
+zs() { check "$SCOPE" "$3" "$1" "scope@zurg: $2" "$(json Bash "$O" plex-naming "$4")" "${5:-}"; }
+
+# 1) mountinfo falso: @zurg/movies -> $ZA/movies y $ZN/movies (anidado, tal cual lo detecta la lógica)
+printf '# marcador\n@zurg/movies\n' >"$ZC"
+export PLEX_CREW_MOUNTINFO="$T/mountinfo2" PLEX_CREW_ZURG_MOUNTS=""
+zs pasa "mountinfo: mv dentro de zurg/movies" "$ZC" "mv $ZA/movies/peli.mkv $ZA/movies/peli2.mkv"
+zs pasa "mountinfo: mv en montaje anidado" "$ZC" "mv $ZN/movies/a $ZN/movies/b"
+zs deny "mountinfo: mv hacia fuera de movies" "$ZC" "mv $ZA/movies/peli.mkv $ZA/peli.mkv"
+zs deny "mountinfo: shows no abierto" "$ZC" "mv $ZA/shows/a $ZA/shows/b"
+zs deny "mountinfo: __magic__ no abierto" "$ZC" "mv $ZA/movies/peli.mkv $ZA/__magic__/peli.mkv"
+zs deny "mountinfo: anidado, shows no abierto" "$ZC" "mv $ZN/shows/a $ZN/shows/b"
+zs deny "mountinfo: raíz del montaje no abierta" "$ZC" "mv $ZA/x $ZA/y"
+zs deny "mountinfo: ruta ajena" "$ZC" "mv $O/a $O/b"
+# 2) lista por env (sin mountinfo)
+export PLEX_CREW_MOUNTINFO="$T/no-existe" PLEX_CREW_ZURG_MOUNTS="$ZB/zurg"
+zs pasa "lista: mv dentro de zurg/movies" "$ZC" "mv $ZB/zurg/movies/b.mkv $ZB/zurg/movies/c.mkv"
+zs deny "lista: shows no abierto" "$ZC" "mv $ZB/zurg/shows/a $ZB/zurg/shows/b"
+zs deny "lista: __magic__ no abierto" "$ZC" "mv $ZB/zurg/movies/b.mkv $ZB/zurg/__magic__/b.mkv"
+# 3) lista que apunta al bind (la subruta no existe bajo el montaje): se descarta, no abre nada
+export PLEX_CREW_ZURG_MOUNTS="$ZB"
+zs pasa "lista: expansión existente ($ZB/movies)" "$ZC" "mv $ZB/movies/a $ZB/movies/b"
+zs deny "lista: no se abre zurg/movies por el bind" "$ZC" "mv $ZB/zurg/movies/b.mkv $ZB/zurg/movies/c.mkv"
+# 4) sin montaje: @zurg no abre nada
+export PLEX_CREW_ZURG_MOUNTS=""
+zs deny "sin montaje: @zurg/movies no abre nada" "$ZC" "mv $ZB/movies/a $ZB/movies/b"
+zs deny "sin montaje: ni siquiera dentro de la ruta literal @zurg/movies" "$ZC" "mv $O/a $O/b"
+check "$SCOPE" "$ZC" deny "scope@zurg: sin montaje y sin otras rutas, Write denegado" "$(json Write "$O" plex-naming "$ZA/movies/x")" "No hay rutas permitidas"
+# 5) varias expansiones (autodetectado + lista) y mezcla con rutas absolutas
+printf '@zurg/movies\n@zurg/shows\n%s\n' "$R" >"$ZC"
+export PLEX_CREW_MOUNTINFO="$T/mountinfo2" PLEX_CREW_ZURG_MOUNTS="$ZB/zurg"
+zs pasa "varias: movies autodetectado" "$ZC" "mv $ZA/movies/peli.mkv $ZA/movies/p.mkv"
+zs pasa "varias: shows autodetectado" "$ZC" "mv $ZA/shows/a $ZA/shows/b"
+zs pasa "varias: movies de la lista" "$ZC" "mv $ZB/zurg/movies/b.mkv $ZB/zurg/movies/c.mkv"
+zs pasa "varias: shows de la lista" "$ZC" "mv $ZB/zurg/shows/a $ZB/zurg/shows/b"
+zs pasa "varias: ruta absoluta sin cambios" "$ZC" "mv $R/ok.sh $R/ok2.sh"
+zs deny "varias: ruta absoluta ajena sigue denegada" "$ZC" "mv $O/a $O/b"
+zs deny "varias: __magic__ cerrado" "$ZC" "mv $ZA/shows/a $ZA/__magic__/a"
+# 6) líneas mal formadas: se ignoran sin romper las demás
+printf '@zurg/../movies\n@zurg/mov*\n@zurg/$HOME\n@zurg//..\n/abs/@zurg/movies\n@zurgx/movies\n%s\n' "$R" >"$ZC"
+zs deny "mal formada: @zurg/../movies no abre el padre" "$ZC" "mv $T/x $T/y"
+zs deny "mal formada: no abre movies" "$ZC" "mv $ZA/movies/peli.mkv $ZA/movies/q.mkv"
+zs pasa "mal formada: las demás líneas siguen" "$ZC" "mv $R/ok.sh $R/ok3.sh"
+# 7) @zurg desnudo = todo el montaje (documentado); no se mezcla con otros marcadores
+printf '@zurg\n' >"$ZC"
+zs pasa "@zurg desnudo abre el montaje" "$ZC" "mv $ZA/movies/peli.mkv $ZA/peli.mkv"
+# 8) confirm-destructive: rm bajo la expansión se vigila (sin marcador deniega)
+CD() { check "$CONFIRM" "$ZC" "$1" "confirm@zurg: $2" "$(json Bash "$O" "" "$3")"; }
+printf '@zurg/movies\n' >"$ZC"
+CD deny "rm en zurg/movies vigilado" "rm $ZA/movies/peli.mkv"
+CD pasa "rm fuera no vigilado" "rm $O/fuera.txt"
 unset PLEX_CREW_MOUNTINFO PLEX_CREW_ZURG_MOUNTS
 
 # =====================================================================

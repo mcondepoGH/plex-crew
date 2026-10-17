@@ -2,13 +2,7 @@
 // nunca se crean carpetas ni ficheros. Aplica a TODOS los agentes y a la sesión principal.
 // Sin override: PLEX_CREW_CONFIRMED=1 no lo salta. Única excepción: rutas bajo `__magic__`.
 //
-// Qué es un "montaje de zurg" (se suman ambas fuentes):
-//   1. Autodetección con /proc/self/mountinfo (o el fichero de $PLEX_CREW_MOUNTINFO, para pruebas):
-//      mount FUSE (fstype `fuse*`) cuya fuente u opciones mencionan rclone o zurg.
-//   2. Lista configurable de rutas: $PLEX_CREW_ZURG_MOUNTS (separadas por `:`) y
-//      ~/.claude/plex-crew/zurg-mounts.conf (una ruta por línea, # comentarios). Si no hay ni
-//      variable ni entradas en el fichero, valor por defecto: /workspace/mnt/zurg-mnt.
-//      Con la variable definida pero vacía no hay lista (solo autodetección).
+// Qué es un "montaje de zurg" (autodetección FUSE + lista configurable): ver zurg-mounts.js.
 //
 // Bloquea (destino en zurg): mkdir, touch, tee, truncate, cp, install, ln, rsync, sed -i, dd of=,
 // curl/wget -o/-O, redirecciones > y >>, mv desde fuera del montaje, e inline de python/node/perl/ruby
@@ -16,80 +10,12 @@
 // Permite: lecturas y mv/rename dentro del mismo montaje. Los borrados los cubre confirm-destructive.js.
 // Como el resto de hooks, es una red de seguridad contra errores, no un sandbox.
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 
 const { parse, skipWrappers, affectedPaths, downloadTargets, INTERPRETERS } = require('./shell-parse');
 
-const HOME = os.homedir();
-const DEFAULT_MOUNTS = ['/workspace/mnt/zurg-mnt'];
+const { HOME, expandHome, real, inside, DETECTED, ROOTS } = require('./zurg-mounts');
 
-const expandHome = p => (p === '~' ? HOME : p.startsWith('~/') ? path.join(HOME, p.slice(2)) : p);
-
-// Resuelve symlinks y `..` del tramo existente más profundo; el resto se añade tal cual.
-function real(p) {
-  const rest = [];
-  let cur = path.resolve(p);
-  while (!fs.existsSync(cur)) {
-    const parent = path.dirname(cur);
-    if (parent === cur) return path.resolve(p);
-    rest.unshift(path.basename(cur));
-    cur = parent;
-  }
-  try {
-    return path.join(fs.realpathSync(cur), ...rest);
-  } catch {
-    return path.resolve(p);
-  }
-}
-
-const inside = (p, root) => p === root || p.startsWith(root === '/' ? '/' : root + '/');
-
-// ---------- Montajes de zurg ----------
-
-const unescapeMi = s => s.replace(/\\([0-7]{3})/g, (_m, o) => String.fromCharCode(parseInt(o, 8)));
-
-function detectedMounts() {
-  const file = process.env.PLEX_CREW_MOUNTINFO || '/proc/self/mountinfo';
-  const roots = [];
-  let txt = '';
-  try {
-    txt = fs.readFileSync(file, 'utf8');
-  } catch {
-    return roots; // sin mountinfo: solo la lista configurable
-  }
-  for (const line of txt.split('\n')) {
-    const i = line.indexOf(' - ');
-    if (i === -1) continue;
-    const pre = line.slice(0, i).split(' ');
-    const post = line.slice(i + 3).split(' ');
-    if (pre.length < 5 || post.length < 2) continue;
-    const fstype = post[0];
-    if (!/^fuse/i.test(fstype)) continue;
-    if (!/rclone|zurg/i.test(`${fstype} ${post.slice(1).join(' ')}`)) continue;
-    roots.push(path.resolve(unescapeMi(pre[4])));
-  }
-  return roots;
-}
-
-function configuredMounts() {
-  const list = [];
-  const env = process.env.PLEX_CREW_ZURG_MOUNTS;
-  if (env !== undefined) list.push(...env.split(':').map(s => s.trim()).filter(Boolean));
-  try {
-    for (const line of fs.readFileSync(path.join(HOME, '.claude', 'plex-crew', 'zurg-mounts.conf'), 'utf8').split(/\r?\n/)) {
-      const l = line.trim();
-      if (l && !l.startsWith('#')) list.push(l);
-    }
-  } catch {
-    // sin fichero
-  }
-  if (env === undefined && list.length === 0) list.push(...DEFAULT_MOUNTS);
-  return list.map(p => real(expandHome(p)));
-}
-
-const DETECTED = new Set(detectedMounts().map(real));
-const ROOTS = [...new Set([...configuredMounts(), ...DETECTED])];
 // Texto que delata una ruta hacia zurg aunque no se pueda resolver (variables sin expandir).
 const HINTS = ROOTS.map(r => r.toLowerCase());
 const hinted = t => /zurg/i.test(t) || HINTS.some(h => t.toLowerCase().includes(h));

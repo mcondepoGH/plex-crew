@@ -15,6 +15,8 @@
 #
 # Formato: una ruta absoluta por línea. Las líneas vacías y las que empiezan por # se ignoran.
 # Se admite ~ al principio de la ruta. Cada ruta incluye todo lo que cuelga de ella.
+# Marcador @zurg: `@zurg/<subruta>` (solo como primer componente) se sustituye por cada montaje de
+# zurg detectado y solo cuenta si la carpeta existe. Si no hay montaje, no abre nada.
 #
 # Notas:
 #  - `mv` dentro de estas raíces está permitido a propósito (es la operación de renombrado).
@@ -27,3 +29,7 @@
 /workspace/mnt/plex-stack/plex/multimedia/shows
 /workspace/mnt/plex-stack/plex/multimedia/animes
 /workspace/mnt/plex-stack/plex/multimedia/music
+
+# Zurg (RealDebrid): movies y shows de cada montaje detectado. No abre __magic__, __all__, etc.
+@zurg/movies
+@zurg/shows

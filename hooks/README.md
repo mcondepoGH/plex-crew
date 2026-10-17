@@ -140,7 +140,7 @@ Lee `$PLEX_CREW_CONFIG` o, si no está definida, `~/.claude/plex-crew/scope.conf
 
 Formato: una ruta absoluta por línea, `#` para comentarios (y se ignoran las líneas vacías); cada ruta incluye todo lo que cuelga de ella.
 
-Recomendación para zurg: lista solo `.../zurg/movies` y `.../zurg/shows`, no la raíz de zurg; la raíz abriría `__all__`, `__magic__`, `__realdebrid__` y el resto de carpetas virtuales.
+Recomendación para zurg: usa el marcador `@zurg/movies` y `@zurg/shows` (ver abajo) o lista `.../zurg/movies` y `.../zurg/shows` a mano; no la raíz de zurg, que abriría `__all__`, `__magic__`, `__realdebrid__` y el resto de carpetas virtuales.
 
 Limitación: este hook solo limita las rutas; no impide `mkdir` ni `touch` dentro de las rutas permitidas. Dentro de un montaje de zurg lo impone `zurg-mount.js` (sección siguiente), para todos los agentes.
 
@@ -159,6 +159,17 @@ cp scope.conf.example ~/.claude/plex-crew/scope.conf
 ```
 
 `PLEX_CREW_CONFIG` se define en el entorno de la shell, no en el `.env`.
+
+#### Marcador `@zurg`
+
+Una línea `@zurg/<subruta>` (p. ej. `@zurg/movies`) se sustituye por `<montaje>/<subruta>` para cada montaje de zurg detectado, con la misma detección que `zurg-mount.js` (módulo compartido `hooks/zurg-mounts.js`): mounts FUSE de `/proc/self/mountinfo` cuya fuente u opciones mencionan `rclone` o `zurg`, más la lista `$PLEX_CREW_ZURG_MOUNTS` / `~/.claude/plex-crew/zurg-mounts.conf` (o el defecto `/workspace/mnt/zurg-mnt`). Lo leen `enforce-agent-scope.js` y `confirm-destructive.js`. Reglas:
+
+- `@zurg` solo vale como primer componente: `@zurg` o `@zurg/<subruta>`. La subruta son nombres planos (letras, cifras, `_ . @ + -`); `..`, `~`, variables, comodines u otros caracteres hacen que la línea se ignore (el resto del fichero sigue valiendo). `/abs/@zurg/x` o `@zurgx/y` no son el marcador (se tratan como rutas normales).
+- Cada expansión solo cuenta si existe ya como directorio; si no, se descarta. Por eso, en este contenedor, el montaje por defecto (el bind `/workspace/mnt/zurg-mnt`, donde `movies` no cuelga directamente) no abre nada, y `@zurg/movies` resuelve a `/workspace/mnt/zurg-mnt/zurg/movies`. Con montajes anidados (`.../zurg` y `.../zurg/zurg`) se expande a cada uno si la carpeta existe en él.
+- Sin ningún montaje que resuelva, la línea no abre nada (fallo cerrado).
+- `movies` y `shows` son los nombres por defecto de zurg para sus carpetas de contenido. Si los cambiaste en la configuración de zurg, escribe tus nombres (`@zurg/<tu-nombre>`) o la ruta absoluta.
+- Solo se abre lo que escribes: `@zurg/movies` no da acceso a `__magic__`, `__all__`, `__realdebrid__` ni a `shows`. Evita `@zurg` a secas: abre la raíz entera del montaje (y del bind por defecto).
+- Las rutas absolutas siguen funcionando igual y se pueden mezclar con el marcador.
 
 La ruta por defecto cuelga de `~/.claude` y no de `~/.config` porque en el contenedor del stack `~/.claude` está montado desde un volumen (`./claude-code/config`) y persiste entre reinicios, mientras que `~/.config` no.
 
