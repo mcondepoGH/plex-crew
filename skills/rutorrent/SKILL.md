@@ -33,7 +33,7 @@ Las operaciones incluyen lectura, escritura y borrado. **Quitar un torrent (`rem
 Añade las variables a `~/.claude/plex-crew/.env`. ruTorrent no tiene clave de API: solo la URL es obligatoria; usuario y contraseña (autenticación básica de nginx, `HTTP_AUTH=true` en `mondedie/rutorrent`) son opcionales y solo hacen falta si tu ruTorrent la tiene activada.
 
 ```bash
-RUTORRENT_URL="http://<ip-del-QNAP>:8080"
+RUTORRENT_URL="http://<ip-del-servidor>:8080"
 # Opcionales: solo si ruTorrent tiene autenticación básica.
 # RUTORRENT_USER="admin"
 # RUTORRENT_PASSWORD="your-password"
@@ -51,7 +51,7 @@ El script está en `${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh`
 
 ## Rutas: contenedor frente a host
 
-Las rutas que devuelve y acepta ruTorrent son las **del contenedor** (por ejemplo `/data/downloads/seed/X`), que no coinciden con las del host (por ejemplo `${STACK_LOCATION}/plex/multimedia/...`). Antes de comparar o tocar ficheros en el host, traduce la ruta con el montaje del volumen del contenedor. La skill no toca ficheros del host: solo habla con la API.
+Las rutas que devuelve y acepta ruTorrent son las **del contenedor** (por ejemplo `/data/downloads/seed/X`), que no coinciden con las del host (por ejemplo `<ruta-del-host>/...`). Antes de comparar o tocar ficheros en el host, traduce la ruta con el montaje del volumen del contenedor. La skill no toca ficheros del host: solo habla con la API.
 
 ## Comandos
 

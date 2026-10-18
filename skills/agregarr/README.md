@@ -42,7 +42,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh" status
 
 ### Cómo invocar el script
 
-En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /workspace/skills/agregarr/scripts/agregarr.sh status`.
+En los `SKILL.md` el script se llama con `${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh`. Fuera de una sesión de Claude Code esa variable no existe: usa la ruta real del plugin, por ejemplo `bash /ruta/al/plugin/skills/agregarr/scripts/agregarr.sh status`.
 
 ## Ejemplos de uso
 

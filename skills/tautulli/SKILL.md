@@ -49,7 +49,7 @@ El script está en `${CLAUDE_PLUGIN_ROOT}/skills/tautulli/scripts/tautulli-api.s
 
 Todos los comandos devuelven JSON: el cuerpo completo que responde Tautulli, con el envoltorio `response.result`, `response.message` y `response.data`. Ninguno imprime texto; filtra con `jq '.response.data...'`. Sin comando se muestra la ayuda (código de salida 0); un comando desconocido la muestra por stderr y termina con 1. Una opción desconocida, una opción sin valor, un número no válido (`--days`, `--limit`, `--section-id` y `--rating-key` exigen enteros; `--days` y `--limit`, al menos 1) o un argumento obligatorio ausente imprime el uso y termina con 1. Un fallo de red, una respuesta HTTP no 2xx o un `result` distinto de `success` imprime `ERROR:` en stderr y termina con 1.
 
-Las opciones van en cualquier orden. Con `--days N` en `history`, `user-stats` y `recent` se calcula la marca de tiempo Unix de hace N días; en el resto, N se envía como `time_range` en días. Las fechas se interpretan en la hora del servidor; el usuario trabaja en Europe/Madrid (regla global en `plex-crew-rules`).
+Las opciones van en cualquier orden. Con `--days N` en `history`, `user-stats` y `recent` se calcula la marca de tiempo Unix de hace N días; en el resto, N se envía como `time_range` en días. Las fechas se interpretan en la hora del servidor; las horas del usuario son las de la máquina donde corre el plugin (regla global en `plex-crew-rules`).
 
 ### Servidor y actividad
 

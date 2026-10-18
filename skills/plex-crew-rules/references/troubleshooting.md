@@ -30,9 +30,9 @@
 ## Errores habituales
 
 ### Preguntar al usuario la zona horaria
-**Causa:** Olvidar que las horas son Europe/Madrid
+**Causa:** Olvidar que las horas son las de la máquina donde corre el plugin
 
-**Solución:** Usa Europe/Madrid y no preguntes.
+**Solución:** Usa la zona horaria del sistema y no preguntes.
 
 ### Una tarea programada no alcanza el stack Plex
 **Causa:** Se creó con `schedule` o `RemoteTrigger`, que se ejecutan en la nube

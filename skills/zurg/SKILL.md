@@ -46,7 +46,7 @@ Nombre por confirmar: `server_info`, `library_status`, `library_directories`, `p
 
 ## Reglas duras
 
-- En `zurg-mnt` solo se renombra. Nunca se crean carpetas ni ficheros, ni copias, ni symlinks, ni estructura `Serie/Season 01/`. Esa estructura solo aplica a `plex/multimedia/shows`.
+- En el montaje de zurg solo se renombra. Nunca se crean carpetas ni ficheros, ni copias, ni symlinks, ni estructura `Serie/Season 01/`. Esa estructura solo aplica a la biblioteca local de series.
 - Renombrar está permitido: el montaje no es de solo lectura.
 - Ignora las carpetas `.@*` (por ejemplo `.@__thumb`).
 - Con patrón `SxxExx` en el nombre, zurg reclasifica el release a `shows` por sí solo. No es instantáneo: requiere una pasada de zurg. No muevas nada a mano entre `movies` y `shows`.
@@ -85,7 +85,7 @@ Ninguna tool de zurg fuerza a Plex a reemparejar: los escaneos solo detectan fic
 
 ## Avisos operativos
 
-- Zurg se actualiza y reinicia hacia las 12:00 Europe/Madrid. Las tools fallan con "Unable to connect. Is the computer able to access the url?". No es un incidente: espera unos minutos y reintenta, sin escalar. Si sigue fallando pasadas las 12:15 aproximadamente, trátalo como fallo real.
+- Zurg se actualiza y reinicia hacia las 12:00 de la hora local de la máquina donde corre el plugin. Las tools fallan con "Unable to connect. Is the computer able to access the url?". No es un incidente: espera unos minutos y reintenta, sin escalar. Si sigue fallando pasadas las 12:15 aproximadamente, trátalo como fallo real.
 - `autoEmptyTrash` de Plex está desactivado a propósito (rclone es externo y un fallo del montaje con la papelera automática podría vaciar contenido). La papelera se vacía a mano con el comando `emptytrash` de la skill `plex`, que es destructivo y exige doble confirmación. `zurg_plex_guard` puede fallar mientras haya una sesión de reproducción activa: es normal.
 - Nunca imprimas el token de zurg ni el contenido del `.env`.
 - El rescan de Plex tras renombrar lo gestiona un script externo del usuario: no ofrezcas escaneos tras renombrar.

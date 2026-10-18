@@ -31,7 +31,7 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 
 ### Idioma y hora
 - Responde siempre en español.
-- Las horas que menciona el usuario son Europe/Madrid (Sevilla). No preguntes la zona horaria.
+- Las horas que menciona el usuario sin zona se interpretan en la hora local de la máquina donde corre el plugin (zona horaria del sistema). No preguntes la zona horaria.
 
 ### Doble confirmación y marcador
 - Toda operación destructiva exige dos mensajes distintos del usuario, incluso en modo automático. Una sola respuesta no basta.
@@ -47,13 +47,13 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 No uses `schedule` ni `RemoteTrigger` para tareas que necesiten la red local: se ejecutan en la nube y no alcanzan el stack Plex. Las tareas programadas del orquestador usan `CronCreate`.
 
 ### Carpetas ignoradas
-Ignora cualquier carpeta `.@*` (por ejemplo `.@__thumb`): son caché del NAS. No las listes, no las renombres ni las incluyas en los resultados.
+Ignora cualquier carpeta `.@*` (por ejemplo `.@__thumb`): son caché del NAS. No las listes, no las renombres ni las incluyas en los resultados. Un hook (`protected-paths.js`) lo hace cumplir, también con `@Recycle`, `@Recently-Snapshot` y otras carpetas de sistema del NAS, y no hay confirmación que lo salte.
 
 ### Log de progreso en tareas largas
 Para que se vea desde fuera por dónde va un agente, el plugin lleva un log automático. No tienes que escribirlo ni purgarlo.
-- Log automático: unos hooks del plugin (`PostToolUse` y `PostToolUseFailure`) anotan cada acción de `Bash`, `Edit`, `Write` y `NotebookEdit` de cualquier agente en `~/.claude/plex-crew/logs/<AAAA-MM-DD>-auto.log`, una línea por acción: `HH:MM:SS (Europe/Madrid) | agente o main | herramienta | comando o ruta | OK|FALLO`. Los secretos se redactan solos (`***`). Está fuera del repositorio.
+- Log automático: unos hooks del plugin (`PostToolUse` y `PostToolUseFailure`) anotan cada acción de `Bash`, `Edit`, `Write` y `NotebookEdit` de cualquier agente en `~/.claude/plex-crew/logs/<AAAA-MM-DD>-auto.log`, una línea por acción: `HH:MM:SS (<zona de la máquina>) | agente o main | herramienta | comando o ruta | OK|FALLO`. Los secretos se redactan solos (`***`). Está fuera del repositorio.
 - Retención: un hook de `SessionStart` borra al arrancar la sesión los `*.log` de más de 7 días de esa carpeta. Los agentes no purgan nada.
-- Opcional, línea de hito: en una tarea larga puedes añadir una línea de hito (fase terminada, resumen final) a `~/.claude/plex-crew/logs/<AAAA-MM-DD>-<tarea-corta>.log`, con `HH:MM:SS (Europe/Madrid) | fase | elemento | OK|FALLO|SALTADO|PARADO | nota`, sin secretos. Hazlo solo si puedes con tus herramientas y sin esquivar ningún hook. Si no puedes (por ejemplo, el hook de ámbito bloquea la escritura a `plex-naming`), no pasa nada: sigue sin el hito y no lo evites.
+- Opcional, línea de hito: en una tarea larga puedes añadir una línea de hito (fase terminada, resumen final) a `~/.claude/plex-crew/logs/<AAAA-MM-DD>-<tarea-corta>.log`, con `HH:MM:SS (<zona de la máquina>) | fase | elemento | OK|FALLO|SALTADO|PARADO | nota`, sin secretos. Hazlo solo si puedes con tus herramientas y sin esquivar ningún hook. Si no puedes (por ejemplo, el hook de ámbito bloquea la escritura a `plex-naming`), no pasa nada: sigue sin el hito y no lo evites.
 - El orquestador da al usuario la ruta del log automático del día para que haga `tail -f`.
 
 ## Flujo de trabajo
@@ -61,7 +61,7 @@ Para que se vea desde fuera por dónde va un agente, el plugin lleva un log auto
 1. **El subagente encuentra algo destructivo** → No lo ejecutes; devuelve la propuesta al orquestador
 2. **Orquestador** → Pide al usuario dos confirmaciones en dos mensajes distintos
 3. **Tras las dos confirmaciones** → Delega la orden de forma explícita; el comando se ejecuta con `PLEX_CREW_CONFIRMED=1`
-4. **El usuario indica una hora** → Es Europe/Madrid; no preguntes
+4. **El usuario indica una hora** → Se interpreta en la hora local de la máquina donde corre el plugin (zona horaria del sistema); no preguntes
 
 ## Notas
 

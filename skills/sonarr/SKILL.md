@@ -138,7 +138,7 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.s
 
 - Nunca imprimas `SONARR_API_KEY` ni uses `curl` con la clave en línea: usa siempre el script.
 - Timeouts: `search` y `status` 25 s (librería compartida); el resto, 10 s de conexión y 30 s en total, sin reintentos.
-- El usuario trabaja en Europe/Madrid (regla global en `plex-crew-rules`).
+- Las horas del usuario son las de la máquina donde corre el plugin (regla global en `plex-crew-rules`).
 
 ### Limitaciones conocidas
 

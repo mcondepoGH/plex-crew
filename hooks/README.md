@@ -1,12 +1,13 @@
 # Hooks
 
-Cinco hooks en Node: tres `PreToolUse` que actúan como red de seguridad ante errores y dos de registro (`PostToolUse`/`PostToolUseFailure` y `SessionStart`). No son un sandbox: no protegen frente a un adversario.
+Siete hooks en Node: cinco `PreToolUse` que actúan como red de seguridad ante errores y dos de registro (`PostToolUse`/`PostToolUseFailure` y `SessionStart`). No son un sandbox: no protegen frente a un adversario.
 
 | Hook | Dónde se registra | Para qué sirve |
 |---|---|---|
 | `confirm-destructive.js` | `hooks/hooks.json` (plugin), sobre `Bash`, para todos los agentes | Bloquea comandos destructivos sin doble confirmación |
 | `enforce-agent-scope.js` | Frontmatter de `agents/plex-naming.md` (solo ese agente) | Limita las rutas donde puede escribir |
 | `zurg-mount.js` | `hooks/hooks.json` (plugin), `PreToolUse` sobre `Bash\|Edit\|Write\|NotebookEdit`, para todos los agentes y la sesión principal | En un montaje de zurg no deja crear ni modificar nada (solo renombrar); excepción `__magic__` |
+| `protected-paths.js` | `hooks/hooks.json` (plugin), `PreToolUse` sobre `Bash\|Read\|Glob\|Grep\|Edit\|Write\|NotebookEdit`, para todos los agentes y la sesión principal | No deja tocar ni leer carpetas de sistema del NAS (`@Recycle`, `@Recently-Snapshot`, `.@*`...); sin override |
 | `log-action.js` | `hooks/hooks.json` (plugin), `PostToolUse` y `PostToolUseFailure` sobre `Bash`, `Edit`, `Write`, `NotebookEdit` y `mcp__zurg__.*` | Registra una línea por acción en el log diario |
 | `purge-logs.js` | `hooks/hooks.json` (plugin), `SessionStart` (`startup` y `resume`) | Borra los logs de más de 7 días |
 
@@ -74,14 +75,14 @@ Regla permanente: en un montaje de zurg solo se renombra lo que ya existe; nunca
 
 Qué detecta como montaje de zurg (se suman las dos fuentes). La ruta se resuelve con symlinks y `..`; si no existe, se sube hasta el ancestro existente más cercano.
 
-- Autodetección con `/proc/self/mountinfo` (o el fichero de `$PLEX_CREW_MOUNTINFO`, para pruebas): mount FUSE (`fuse*`) cuya fuente u opciones mencionan `rclone` o `zurg`. En el contenedor de referencia se ve `fuse.rclone zurg:` en `/workspace/mnt/zurg-mnt/zurg`, pero `/workspace/mnt/zurg-mnt` es un bind ext4 del host y no se ve como FUSE.
-- Lista configurable de rutas: `$PLEX_CREW_ZURG_MOUNTS` (separadas por `:`) y `~/.claude/plex-crew/zurg-mounts.conf` (una ruta por línea, `#` comentarios). Si no hay ninguna de las dos, el valor por defecto es `/workspace/mnt/zurg-mnt` (cubre el bind completo). Con la variable definida pero vacía no hay lista y solo cuenta la autodetección.
+- Autodetección con `/proc/self/mountinfo` (o el fichero de `$PLEX_CREW_MOUNTINFO`, para pruebas): mount FUSE (`fuse*`) cuya fuente u opciones mencionan `rclone` o `zurg`. Ejemplo: `fuse.rclone zurg:` en `/ruta/a/zurg`. Un directorio padre que sea un bind normal del host (p. ej. ext4) no se ve como FUSE y no se detecta solo.
+- Lista configurable de rutas: `$PLEX_CREW_ZURG_MOUNTS` (separadas por `:`) y `~/.claude/plex-crew/zurg-mounts.conf` (una ruta por línea, `#` comentarios). No hay valor por defecto: sin lista configurada, solo cuenta la autodetección FUSE. Ejemplo: `PLEX_CREW_ZURG_MOUNTS=/ruta/a/zurg`. Con la variable definida pero vacía tampoco hay lista.
 
 Qué bloquea cuando el destino está en zurg: `mkdir`, `touch`, `tee`, `truncate`, `cp`, `install`, `ln`, `rsync`, `sed -i`, `dd of=`, `curl`/`wget` con salida a zurg, redirecciones `>` y `>>`, `mv` desde fuera del montaje (o desde otro montaje), y las tools `Write`, `Edit` y `NotebookEdit`. También analiza `bash -c`, `eval` y `$(...)`.
 
 Qué permite: lecturas, `mv`/rename dentro del mismo montaje y cualquier cosa fuera de zurg. Los borrados no los cubre este hook sino `confirm-destructive.js`.
 
-Excepción: rutas bajo la carpeta `__magic__` del montaje (p. ej. `/workspace/mnt/zurg-mnt/zurg/__magic__/...`). Con la lista configurable también vale `<ruta>/<carpeta existente>/__magic__`; un `__magic__` más profundo no cuenta.
+Excepción: rutas bajo la carpeta `__magic__` del montaje (p. ej. `/ruta/a/zurg/__magic__/...`). Con la lista configurable también vale `<ruta>/<carpeta existente>/__magic__`; un `__magic__` más profundo no cuenta.
 
 Límites conocidos:
 
@@ -90,6 +91,25 @@ Límites conocidos:
 - Rutas con variables sin resolver solo se deniegan si su texto menciona `zurg` o una ruta de la lista.
 - Si el directorio de trabajo es desconocido (`cd $X`), las rutas relativas solo se vigilan si el `cd` menciona zurg.
 - No cubre las tools `mcp__zurg__*` (las clasifica `confirm-destructive.js`).
+
+## protected-paths.js
+
+Regla permanente: las carpetas de sistema del NAS (QNAP u otro) no se tocan ni se leen. Se aplica a todos los agentes y a la sesión principal (no mira `agent_type`). Sin override: `PLEX_CREW_CONFIRMED=1` no lo salta. Hace cumplir la regla global de ignorar las carpetas `.@*` (skill `plex-crew-rules`).
+
+Lista por defecto (sin distinguir mayúsculas): `@Recycle`, `@Recently-Snapshot`, `@Transcode`, `@Download`, `@eaDir`, `#recycle`, `#snapshot` y cualquier componente que empiece por `.@` (p. ej. `.@__thumb`).
+
+Ampliar la lista (suma a la de por defecto, no la sustituye):
+
+- `$PLEX_CREW_PROTECTED_NAMES`: nombres separados por `:`.
+- `~/.claude/plex-crew/protected-names.conf`: un nombre por línea, `#` comentarios. Un nombre es un componente de ruta, sin `/`.
+
+Criterio de coincidencia: una ruta está protegida si alguno de sus componentes (separados por `/`) es un nombre protegido. Se mira la ruta tal cual y también resuelta (`..` y enlaces simbólicos, usando el ancestro existente más cercano), así que `x/../@Recycle` y un enlace hacia esas carpetas se detectan. Ejemplo de denegación: `ls /ruta/a/medios/@Recycle`.
+
+- `Bash`: cuenta cada palabra del comando (tras quitar comillas, también el valor de `--opcion=ruta` y `of=ruta`, redirecciones `>` y `<`, `$(...)`, `bash -c` y `eval`) que, vista como ruta, tenga un componente protegido, o sea exactamente el nombre (`ls @Recycle`). Se sigue `cd`, y un directorio de trabajo dentro de una carpeta protegida también deniega. Cualquier verbo vale: `ls`, `cat`, `find <ruta>`, `rm`, `mv`/`cp` desde o hacia ellas, `touch`, etc.
+- `Read` (`file_path`), `Glob` (`path` y `pattern`), `Grep` (`path` y `glob`), `Edit`/`Write` (`file_path`) y `NotebookEdit` (`notebook_path`): se mira solo la ruta.
+- No cuenta: texto suelto con espacios (`echo "ver @Recycle en el README"`), mensajes de `git commit -m`, cuerpos de heredoc, el contenido de `Write`/`Edit` y el `pattern` de `Grep`. Tampoco el marcador `@zurg` del scope ni un fichero llamado `Recycle.txt`.
+
+Límites: un `find /volumen` o un `Glob`/`Grep` recursivo desde una carpeta padre puede recorrer esas carpetas sin nombrarlas y el hook no lo ve; las skills y los agentes deben excluirlas (`-not -path '*/@Recycle/*'`, `--exclude-dir`...). No ve scripts (`bash x.sh`), variables sin resolver ni lo que hagan los programas por dentro. Es una red de seguridad contra errores, no un sandbox.
 
 ## enforce-agent-scope.js
 
@@ -136,7 +156,7 @@ Qué vigila: que toda escritura quede dentro de las rutas permitidas (incluye to
 
 ### Dónde lee el scope enforce-agent-scope.js
 
-Lee `$PLEX_CREW_CONFIG` o, si no está definida, `~/.claude/plex-crew/scope.conf`. Nunca lee un `scope.conf` del repositorio ni de `/workspace`: en la raíz solo está `scope.conf.example` (plantilla) y `scope.conf` está en `.gitignore` desde la 0.4.10, para no subirlo por error. Si el fichero no existe o no tiene rutas, deniega toda escritura a `plex-naming`.
+Lee `$PLEX_CREW_CONFIG` o, si no está definida, `~/.claude/plex-crew/scope.conf`. Nunca lee un `scope.conf` del repositorio: en la raíz solo está `scope.conf.example` (plantilla) y `scope.conf` está en `.gitignore` desde la 0.4.10, para no subirlo por error. Si el fichero no existe o no tiene rutas, deniega toda escritura a `plex-naming`.
 
 Formato: una ruta absoluta por línea, `#` para comentarios (y se ignoran las líneas vacías); cada ruta incluye todo lo que cuelga de ella.
 
@@ -162,23 +182,23 @@ cp scope.conf.example ~/.claude/plex-crew/scope.conf
 
 #### Marcador `@zurg`
 
-Una línea `@zurg/<subruta>` (p. ej. `@zurg/movies`) se sustituye por `<montaje>/<subruta>` para cada montaje de zurg detectado, con la misma detección que `zurg-mount.js` (módulo compartido `hooks/zurg-mounts.js`): mounts FUSE de `/proc/self/mountinfo` cuya fuente u opciones mencionan `rclone` o `zurg`, más la lista `$PLEX_CREW_ZURG_MOUNTS` / `~/.claude/plex-crew/zurg-mounts.conf` (o el defecto `/workspace/mnt/zurg-mnt`). Lo leen `enforce-agent-scope.js` y `confirm-destructive.js`. Reglas:
+Una línea `@zurg/<subruta>` (p. ej. `@zurg/movies`) se sustituye por `<montaje>/<subruta>` para cada montaje de zurg detectado, con la misma detección que `zurg-mount.js` (módulo compartido `hooks/zurg-mounts.js`): mounts FUSE de `/proc/self/mountinfo` cuya fuente u opciones mencionan `rclone` o `zurg`, más la lista `$PLEX_CREW_ZURG_MOUNTS` / `~/.claude/plex-crew/zurg-mounts.conf` (sin valor por defecto: sin lista, solo autodetección). Lo leen `enforce-agent-scope.js` y `confirm-destructive.js`. Reglas:
 
 - `@zurg` solo vale como primer componente: `@zurg` o `@zurg/<subruta>`. La subruta son nombres planos (letras, cifras, `_ . @ + -`); `..`, `~`, variables, comodines u otros caracteres hacen que la línea se ignore (el resto del fichero sigue valiendo). `/abs/@zurg/x` o `@zurgx/y` no son el marcador (se tratan como rutas normales).
-- Cada expansión solo cuenta si existe ya como directorio; si no, se descarta. Por eso, en este contenedor, el montaje por defecto (el bind `/workspace/mnt/zurg-mnt`, donde `movies` no cuelga directamente) no abre nada, y `@zurg/movies` resuelve a `/workspace/mnt/zurg-mnt/zurg/movies`. Con montajes anidados (`.../zurg` y `.../zurg/zurg`) se expande a cada uno si la carpeta existe en él.
+- Cada expansión solo cuenta si existe ya como directorio; si no, se descarta. Por eso, si el montaje configurado es un directorio padre donde `movies` no cuelga directamente (p. ej. `/ruta/a`), `@zurg/movies` no abre nada, mientras que con el montaje real (`/ruta/a/zurg`) resuelve a `/ruta/a/zurg/movies`. Con montajes anidados (`.../zurg` y `.../zurg/zurg`) se expande a cada uno si la carpeta existe en él.
 - Sin ningún montaje que resuelva, la línea no abre nada (fallo cerrado).
 - `movies` y `shows` son los nombres por defecto de zurg para sus carpetas de contenido. Si los cambiaste en la configuración de zurg, escribe tus nombres (`@zurg/<tu-nombre>`) o la ruta absoluta.
-- Solo se abre lo que escribes: `@zurg/movies` no da acceso a `__magic__`, `__all__`, `__realdebrid__` ni a `shows`. Evita `@zurg` a secas: abre la raíz entera del montaje (y del bind por defecto).
+- Solo se abre lo que escribes: `@zurg/movies` no da acceso a `__magic__`, `__all__`, `__realdebrid__` ni a `shows`. Evita `@zurg` a secas: abre la raíz entera del montaje.
 - Las rutas absolutas siguen funcionando igual y se pueden mezclar con el marcador.
 
-La ruta por defecto cuelga de `~/.claude` y no de `~/.config` porque en el contenedor del stack `~/.claude` está montado desde un volumen (`./claude-code/config`) y persiste entre reinicios, mientras que `~/.config` no.
+La ruta por defecto cuelga de `~/.claude` y no de `~/.config` porque en contenedores `~/.claude` suele ser un volumen persistente, mientras que `~/.config` no.
 
 `scope.conf` lo leen **ambos** hooks y los dos fallan cerrados si falta o no tiene rutas:
 
 - `enforce-agent-scope`: deniega toda escritura a `plex-naming`, con un mensaje que explica cómo crearlo.
 - `confirm-destructive`: deniega las operaciones destructivas de fichero, porque sin las raíces de medios no puede decidir qué vigilar.
 
-La plantilla usa un layout genérico (`/workspace/mnt/plex-stack/plex/multimedia/{movies,shows,animes,music}`); sustitúyelo por tus raíces.
+La plantilla usa rutas ficticias (`/ruta/a/plex/{movies,shows,anime,music}`); sustitúyelas por tus raíces.
 
 Comportamiento a tener presente:
 
@@ -199,11 +219,11 @@ No se ha adivinado ningún esquema: los nombres salen de la tabla de `skills/zur
 
 ## Hooks de log
 
-`log-action.js` se registra como `PostToolUse` y `PostToolUseFailure` (matcher `Bash|Edit|Write|NotebookEdit|mcp__zurg__.*`, timeout 5 s) y añade una línea por acción, de cualquier agente (hilo principal incluido), a `~/.claude/plex-crew/logs/<AAAA-MM-DD>-auto.log`. La fecha y la hora son de Europe/Madrid. Formato de línea:
+`log-action.js` se registra como `PostToolUse` y `PostToolUseFailure` (matcher `Bash|Edit|Write|NotebookEdit|mcp__zurg__.*`, timeout 5 s) y añade una línea por acción, de cualquier agente (hilo principal incluido), a `~/.claude/plex-crew/logs/<AAAA-MM-DD>-auto.log`. La fecha y la hora son las locales de la máquina (zona horaria del sistema), y la zona entre paréntesis es la que resuelve la propia máquina. Formato de línea:
 
 ```
-HH:MM:SS (Europe/Madrid) | agente | herramienta | comando | OK
-HH:MM:SS (Europe/Madrid) | agente | herramienta | comando | FALLO
+HH:MM:SS (<zona de la máquina>) | agente | herramienta | comando | OK
+HH:MM:SS (<zona de la máquina>) | agente | herramienta | comando | FALLO
 ```
 
 - `agente`: el `agent_type` (por ejemplo `plex-crew:arr-acquisition`) o `main` para el hilo principal.

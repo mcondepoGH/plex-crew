@@ -33,8 +33,8 @@ Plex (en Docker) ve las carpetas con rutas de contenedor, que no existen en el h
 
 | Ruta de contenedor (Plex) | Ruta del host (ejemplo) |
 |---|---|
-| `/movies-local` | `/workspace/mnt/plex-stack/plex/multimedia/movies` |
-| `/shows-local` | `/workspace/mnt/plex-stack/plex/multimedia/shows` |
+| `/movies-local` | `/ruta/a/plex/movies` (ejemplo) |
+| `/shows-local` | `/ruta/a/plex/shows` (ejemplo) |
 
 Las rutas del host dependen de la instalación: la correspondencia real es la de tus raíces en `scope.conf`. Si una ruta traducida cae fuera de esas raíces, el hook `enforce-agent-scope` la denegará: no la rodees y devuélvelo al orquestador.
 

@@ -5,7 +5,7 @@ Reglas globales de plex-crew que aplican a todos los agentes. No tiene scripts.
 ## Qué hace
 
 - **Idioma** — Responde siempre en español
-- **Zona horaria** — Las horas del usuario son Europe/Madrid
+- **Zona horaria** — Las horas del usuario se interpretan en la hora local de la máquina donde corre el plugin (zona horaria del sistema)
 - **Doble confirmación** — Dos mensajes distintos del usuario antes de cualquier operación destructiva
 - **Marcador** — `PLEX_CREW_CONFIRMED=1` solo después de esa confirmación
 - **Secretos** — Nunca se imprimen, registran ni versionan
@@ -22,7 +22,7 @@ No necesita configuración. Los tres agentes (`orchestrator`, `plex-naming` y `a
 
 Un subagente detecta que hay que borrar una película con sus ficheros: no la borra, devuelve la propuesta al orquestador, que pide dos confirmaciones y después delega la orden con `PLEX_CREW_CONFIRMED=1`.
 
-El usuario pide "a las 22:00": significa las 22:00 Europe/Madrid.
+El usuario pide "a las 22:00": significa las 22:00 en la hora local de la máquina donde corre el plugin (zona horaria del sistema).
 
 ## Referencia de la API
 
@@ -44,7 +44,7 @@ La referencia detallada está en el directorio `references/`:
 → Aún no hay doble confirmación; devuelve la propuesta al orquestador
 
 **Se interpretó mal una hora**
-→ Las horas son Europe/Madrid; no conviertas desde otra zona
+→ Las horas son las de la máquina donde corre el plugin; no conviertas desde otra zona
 
 ## Notas
 

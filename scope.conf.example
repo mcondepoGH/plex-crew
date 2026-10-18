@@ -23,12 +23,12 @@
 #  - El marcador PLEX_CREW_CONFIRMED=1 debe ir al inicio del mismo segmento del comando que
 #    la operación destructiva (el segmento es lo que queda entre ; && || o |).
 #
-# Ejemplo (layout genérico; sustituye por tus rutas reales):
+# Ejemplo (rutas ficticias; sustituye por tus rutas reales):
 
-/workspace/mnt/plex-stack/plex/multimedia/movies
-/workspace/mnt/plex-stack/plex/multimedia/shows
-/workspace/mnt/plex-stack/plex/multimedia/animes
-/workspace/mnt/plex-stack/plex/multimedia/music
+/ruta/a/plex/movies
+/ruta/a/plex/shows
+/ruta/a/plex/anime
+/ruta/a/plex/music
 
 # Zurg (RealDebrid): movies y shows de cada montaje detectado. No abre __magic__, __all__, etc.
 @zurg/movies

@@ -3,9 +3,8 @@
 //   1. Autodetección con /proc/self/mountinfo (o el fichero de $PLEX_CREW_MOUNTINFO, para pruebas):
 //      mount FUSE (fstype `fuse*`) cuya fuente u opciones mencionan rclone o zurg.
 //   2. Lista configurable de rutas: $PLEX_CREW_ZURG_MOUNTS (separadas por `:`) y
-//      ~/.claude/plex-crew/zurg-mounts.conf (una ruta por línea, # comentarios). Si no hay ni
-//      variable ni entradas en el fichero, valor por defecto: /workspace/mnt/zurg-mnt.
-//      Con la variable definida pero vacía no hay lista (solo autodetección).
+//      ~/.claude/plex-crew/zurg-mounts.conf (una ruta por línea, # comentarios). Sin valor por
+//      defecto: sin lista y sin montaje FUSE detectado no se protege ninguna ruta.
 //
 // Además expone expandScopeLine(): resuelve el marcador `@zurg` de scope.conf.
 const fs = require('fs');
@@ -13,7 +12,6 @@ const os = require('os');
 const path = require('path');
 
 const HOME = os.homedir();
-const DEFAULT_MOUNTS = ['/workspace/mnt/zurg-mnt'];
 
 const expandHome = p => (p === '~' ? HOME : p.startsWith('~/') ? path.join(HOME, p.slice(2)) : p);
 
@@ -64,7 +62,7 @@ function detectedMounts() {
 function configuredMounts() {
   const list = [];
   const env = process.env.PLEX_CREW_ZURG_MOUNTS;
-  if (env !== undefined) list.push(...env.split(':').map(s => s.trim()).filter(Boolean));
+  if (env) list.push(...env.split(':').map(s => s.trim()).filter(Boolean));
   try {
     for (const line of fs.readFileSync(path.join(HOME, '.claude', 'plex-crew', 'zurg-mounts.conf'), 'utf8').split(/\r?\n/)) {
       const l = line.trim();
@@ -73,7 +71,6 @@ function configuredMounts() {
   } catch {
     // sin fichero
   }
-  if (env === undefined && list.length === 0) list.push(...DEFAULT_MOUNTS);
   return list.map(p => real(expandHome(p)));
 }
 
@@ -84,9 +81,8 @@ const ROOTS = [...new Set([...configuredMounts(), ...DETECTED])];
 // Devuelve la lista de rutas a las que se expande la línea, o null si la línea no es del marcador
 // (se trata como ruta normal). Una línea del marcador mal formada o sin montaje válido devuelve []
 // (se ignora; fallo cerrado). Cada expansión <montaje>/<subruta> solo cuenta si ya existe como
-// directorio: en la lista por defecto (/workspace/mnt/zurg-mnt) `@zurg/movies` daría
-// /workspace/mnt/zurg-mnt/movies, que no existe en el contenedor (la real es .../zurg/movies), y
-// se descarta. Los montajes anidados se expanden tal cual los detecta la lógica de montajes.
+// directorio: si la lista apunta a /ruta/a/montaje y la carpeta real es /ruta/a/montaje/zurg/movies,
+// `@zurg/movies` daría /ruta/a/montaje/movies, que no existe, y se descarta. Los montajes anidados se expanden tal cual los detecta la lógica de montajes.
 function expandScopeLine(line) {
   const m = /^@zurg(?:\/(.*))?$/.exec(line);
   if (!m) return null;

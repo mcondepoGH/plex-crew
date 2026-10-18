@@ -212,7 +212,7 @@ Para `--category`; admite varias separadas por coma.
 
 - Nunca imprimas `PROWLARR_API_KEY` ni uses `curl` con la clave en línea: usa siempre el script, que pasa la clave y los cuerpos de indexador por stdin de curl para que no salgan en `ps`.
 - Timeouts: 10 s de conexión y 30 s en total por petición (`PROWLARR_MAX_TIME`); `test-all` 120 s (`PROWLARR_TESTALL_MAX_TIME`). Sin reintentos.
-- El usuario trabaja en Europe/Madrid (regla global en `plex-crew-rules`).
+- Las horas del usuario son las de la máquina donde corre el plugin (regla global en `plex-crew-rules`).
 
 ### Limitaciones conocidas
 

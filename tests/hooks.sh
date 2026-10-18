@@ -534,6 +534,21 @@ printf '%s' "$(mj ${Z}server_info "" '{}' | sed 's/}$/,"hook_event_name":"PostTo
 N=$((N + 1))
 if tail -1 "$LD"/*-auto.log | grep -q "mcp__zurg__server_info.*FALLO"; then :; else FAIL=$((FAIL + 1)); printf 'FALLA log FALLO de tool MCP\n'; fi
 
+# log-action: hora y zona son las de la máquina (TZ), sin zona fija
+for TZV in UTC Asia/Tokyo America/Los_Angeles; do
+  TLD="$T/logs-tz-$(printf '%s' "$TZV" | tr '/' '_')"
+  printf '%s' '{"tool_name":"Bash","tool_input":{"command":"ls"},"hook_event_name":"PostToolUse"}' |
+    TZ="$TZV" PLEX_CREW_LOG_DIR="$TLD" HOME="$T/home" node "$LOGHOOK"
+  EXP_DATE="$(TZ="$TZV" node -e 'const d=new Date();const p=n=>String(n).padStart(2,"0");process.stdout.write(d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()))')"
+  N=$((N + 1))
+  TLINE="$(cat "$TLD/$EXP_DATE-auto.log" 2>/dev/null | tail -1)"
+  if printf '%s' "$TLINE" | grep -Eq "^[0-9]{2}:[0-9]{2}:[0-9]{2} \($TZV\) \| main \| Bash \| ls \| OK$"; then
+    [ "$VERBOSE" = 1 ] && echo "ok    [log] hora y zona de la máquina bajo TZ=$TZV"
+  else
+    FAIL=$((FAIL + 1)); printf 'FALLA log bajo TZ=%s (fichero esperado %s-auto.log)\n      línea: %s\n' "$TZV" "$EXP_DATE" "$TLINE"
+  fi
+done
+
 # =====================================================================
 # zurg-mount.js: en un montaje zurg solo se renombra; excepción __magic__
 # Montaje A: autodetectado con un mountinfo falso (fuse.rclone). Montaje B: lista configurable.
@@ -605,19 +620,26 @@ zt pasa "Write bajo __magic__" "" Write "$ZA/__magic__/x.txt"
 zt pasa "Write fuera de zurg" "" Write "$O/x.txt"
 zt pasa "tool Read ignorada" "" Read "$ZA/movies/peli.mkv"
 
-# Configuración: sin env ni fichero rige el valor por defecto; el fichero de la lista se lee de HOME
+# Configuración: sin valor por defecto. Sin lista y sin mountinfo FUSE no se protege nada;
+# el fichero de la lista se lee de HOME.
 unset PLEX_CREW_ZURG_MOUNTS
 export PLEX_CREW_MOUNTINFO="$T/no-existe"
-z deny "defecto /workspace/mnt/zurg-mnt" "" "mkdir /workspace/mnt/zurg-mnt/zurg/nueva"
-z pasa "defecto: __magic__" "" "touch /workspace/mnt/zurg-mnt/zurg/__magic__/x"
-z pasa "defecto: ruta ajena" "" "touch $O/x"
+z pasa "sin configuración: ruta tipo /ruta/a/zurg/movies no es zurg" "" "mkdir -p /ruta/a/zurg/movies/nueva"
+z pasa "sin configuración: ruta ajena" "" "touch $O/x"
+z pasa "sin configuración: ruta con zurg/__magic__" "" "touch $ZB/zurg/x2"
 mkdir -p "$T/home/.claude/plex-crew"
 printf '# lista\n%s\n' "$O" >"$T/home/.claude/plex-crew/zurg-mounts.conf"
 z deny "zurg-mounts.conf añade ruta" "" "touch $O/x"
-z pasa "zurg-mounts.conf: el defecto deja de aplicar" "" "touch /workspace/mnt/zurg-mnt/zurg/x2"
+z pasa "zurg-mounts.conf: solo cuenta lo listado" "" "touch $ZB/zurg/x2"
 rm "$T/home/.claude/plex-crew/zurg-mounts.conf"
 export PLEX_CREW_ZURG_MOUNTS=""
-z pasa "lista vacía y sin mountinfo: nada" "" "touch /workspace/mnt/zurg-mnt/zurg/x2"
+z pasa "lista vacía y sin mountinfo: nada" "" "touch $ZB/zurg/x2"
+export PLEX_CREW_ZURG_MOUNTS="$ZB"
+z deny "PLEX_CREW_ZURG_MOUNTS protege la ruta" "" "touch $ZB/zurg/x2"
+unset PLEX_CREW_ZURG_MOUNTS
+export PLEX_CREW_MOUNTINFO="$ZMI"
+z deny "mountinfo falso sin lista: se protege" "" "touch $ZA/movies/x2"
+export PLEX_CREW_MOUNTINFO="$T/no-existe"
 export PLEX_CREW_ZURG_MOUNTS="$O/z:$ZB"
 z deny "PLEX_CREW_ZURG_MOUNTS con dos rutas (primera)" "" "touch $O/z/x"
 z deny "PLEX_CREW_ZURG_MOUNTS con dos rutas (segunda)" "" "touch $ZB/zurg/x"

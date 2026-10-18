@@ -21,7 +21,7 @@ Solo necesitas la URL. Si tu ruTorrent tiene autenticación básica de nginx (`H
 Añade las variables a `~/.claude/plex-crew/.env`:
 
 ```bash
-RUTORRENT_URL="http://<ip-del-QNAP>:8080"
+RUTORRENT_URL="http://<ip-del-servidor>:8080"
 # Opcionales, solo con autenticación básica:
 # RUTORRENT_USER="admin"
 # RUTORRENT_PASSWORD="<your_password>"

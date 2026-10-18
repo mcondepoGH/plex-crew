@@ -208,6 +208,11 @@ if [ -f tests/rutorrent.sh ]; then
   check "tests/rutorrent.sh" bash tests/rutorrent.sh
 fi
 
+# 10. Tests del hook protected-paths, si existen
+if [ -f tests/protected-paths.sh ]; then
+  check "tests/protected-paths.sh" bash tests/protected-paths.sh
+fi
+
 echo
 echo "Resumen: $PASSED/$TOTAL comprobaciones correctas"
 if [ "${#FAILED_NAMES[@]}" -gt 0 ]; then

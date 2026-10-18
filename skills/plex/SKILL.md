@@ -52,7 +52,7 @@ El script está en `${CLAUDE_PLUGIN_ROOT}/skills/plex/scripts/plex-api.sh`. Llá
 
 Todos los comandos devuelven JSON: el cuerpo que responde Plex, sin reformatear (la excepción es `refresh`). Filtra con `jq`. Sin comando se muestra la ayuda (código de salida 0); un comando desconocido la muestra por stderr y termina con 1. Un argumento obligatorio ausente, una opción desconocida, una opción sin valor o un id, `--limit` u `--offset` no numérico imprime el uso y termina con 1. Si curl no consigue contactar con Plex, imprime `ERROR:` en stderr y termina con 1.
 
-Las opciones tienen alias cortos: `-l` para `--limit` y `-o` para `--offset`. En `library` y `search` el primer argumento es siempre el posicional (id o texto) y las opciones van después. Las fechas de Plex (`addedAt`, `lastViewedAt`) son marcas de tiempo Unix; el usuario trabaja en Europe/Madrid (regla global en `plex-crew-rules`).
+Las opciones tienen alias cortos: `-l` para `--limit` y `-o` para `--offset`. En `library` y `search` el primer argumento es siempre el posicional (id o texto) y las opciones van después. Las fechas de Plex (`addedAt`, `lastViewedAt`) son marcas de tiempo Unix; las horas del usuario son las de la máquina donde corre el plugin (regla global en `plex-crew-rules`).
 
 ### Servidor
 

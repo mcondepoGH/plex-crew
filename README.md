@@ -1,8 +1,8 @@
 # plex-crew
 
-Versión 0.4.13.
+Versión 0.4.14.
 
-Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son Europe/Madrid.
+Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son la hora local de la máquina donde corre el plugin (zona horaria del sistema).
 
 ## Resumen
 
@@ -162,7 +162,7 @@ mkdir -p ~/.claude/plex-crew
 cp scope.conf.example ~/.claude/plex-crew/scope.conf
 ```
 
-Una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`. El ejemplo usa un layout genérico (`/workspace/mnt/plex-stack/plex/multimedia/{movies,shows,animes,music}`): sustitúyelo por tus raíces reales. Para guardarlo en otro sitio, define `PLEX_CREW_CONFIG`.
+Una ruta absoluta por línea; se ignoran las líneas vacías y las que empiezan por `#`. El ejemplo usa rutas ficticias (`/ruta/a/plex/{movies,shows,anime,music}`): sustitúyelas por tus raíces reales. Para guardarlo en otro sitio, define `PLEX_CREW_CONFIG`.
 
 `scope.conf` (o `PLEX_CREW_CONFIG`) lo leen **ambos** hooks y los dos fallan cerrados si falta o está vacío:
 

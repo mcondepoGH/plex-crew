@@ -1,7 +1,7 @@
 // PostToolUse / PostToolUseFailure (Bash|Edit|Write|NotebookEdit|mcp__zurg__*): añade una línea por
 // acción de cualquier agente (hilo principal y subagentes) a
 //   ~/.claude/plex-crew/logs/<AAAA-MM-DD>-auto.log
-// Formato: HH:MM:SS (Europe/Madrid) | <agent_type|main> | <herramienta> | <detalle> | OK|FALLO
+// Formato: HH:MM:SS (<zona horaria de la máquina>) | <agent_type|main> | <herramienta> | <detalle> | OK|FALLO
 //   - detalle: comando Bash, ruta (file_path / notebook_path) o, en tools mcp__zurg__*, el input en JSON;
 //     una línea, máx. 300 caracteres. La columna herramienta lleva el nombre completo de la tool.
 //   - OK/FALLO sale del evento (doc oficial: PostToolUse = la herramienta tuvo éxito,
@@ -35,13 +35,20 @@ function redact(s) {
     .replace(/[A-Za-z0-9+]{40,}={0,2}/g, m => (/[A-Za-z]/.test(m) && /[0-9]/.test(m) ? '***' : m));
 }
 
-function madrid(now) {
-  const f = (opts) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', hourCycle: 'h23', ...opts });
+// Hora local de la máquina (zona del sistema / TZ), sin zona fija.
+function localTime(now) {
+  const f = (opts) => new Intl.DateTimeFormat('en-CA', { hourCycle: 'h23', ...opts });
   const p = Object.fromEntries(
     f({ year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
       .formatToParts(now).map(x => [x.type, x.value])
   );
-  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}:${p.second}` };
+  let zone = '';
+  try { zone = new Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch {}
+  if (!zone) {
+    const o = -now.getTimezoneOffset(), a = Math.abs(o);
+    zone = `UTC${o < 0 ? '-' : '+'}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
+  }
+  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}:${p.second}`, zone };
 }
 
 // Para zurg_config_set y similares: {"key":"<nombre secreto>","value":"..."} -> value redactado.
@@ -74,8 +81,8 @@ process.stdin.on('end', () => {
     const input = p.tool_input && typeof p.tool_input === 'object' ? p.tool_input : {};
     const agent = String(p.agent_type || 'main').replace(/[\s|]+/g, '_');
     const result = p.hook_event_name === 'PostToolUseFailure' ? 'FALLO' : 'OK';
-    const t = madrid(new Date());
-    const line = `${t.time} (Europe/Madrid) | ${agent} | ${tool} | ${summarize(tool, input)} | ${result}\n`;
+    const t = localTime(new Date());
+    const line = `${t.time} (${t.zone}) | ${agent} | ${tool} | ${summarize(tool, input)} | ${result}\n`;
 
     const dir = process.env.PLEX_CREW_LOG_DIR || path.join(os.homedir(), '.claude', 'plex-crew', 'logs');
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });

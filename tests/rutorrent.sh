@@ -112,9 +112,9 @@ calls_have "create private" "private=1"
 run "create relativa" 1 "absoluta" -- create seed/x
 run "create .." 1 "'..'" -- create /data/downloads/seed/../x
 run "create .@" 1 ".@" -- create /data/downloads/.@__thumb/x
-run "create movies" 1 "biblioteca" -- create /data/plex/multimedia/movies/x
-run "create Shows" 1 "biblioteca" -- create /data/plex/multimedia/Shows/x
-run "create movies con flag" 0 "" -- create /data/plex/multimedia/movies/x --allow-library
+run "create movies" 1 "biblioteca" -- create /data/media/movies/x
+run "create Shows" 1 "biblioteca" -- create /data/media/Shows/x
+run "create movies con flag" 0 "" -- create /data/media/movies/x --allow-library
 run "create fuera de ALLOWED" 1 "RUTORRENT_ALLOWED_DIR" RUTORRENT_ALLOWED_DIR=/data/downloads/seed -- create /data/downloads/otra/x
 run "create dentro de ALLOWED" 0 "" RUTORRENT_ALLOWED_DIR=/data/downloads/seed/ -- create /data/downloads/seed/x
 run "create prefijo parecido" 1 "RUTORRENT_ALLOWED_DIR" RUTORRENT_ALLOWED_DIR=/data/downloads/seed -- create /data/downloads/seedx/y
@@ -128,9 +128,9 @@ calls_lack "remove no es removewithdata" "removewithdata"
 run "remove-with-data ok" 0 "ruta de guardado" -- remove-with-data "$H"
 calls_have "removewithdata llamado" "mode=removewithdata"
 run "remove-with-data muestra files" 0 "a.mkv" -- remove-with-data "$H"
-run "remove-with-data en biblioteca" 1 "biblioteca" FAKE_SAVEPATH='"/data/plex/multimedia/movies/x"' -- remove-with-data "$H"
+run "remove-with-data en biblioteca" 1 "biblioteca" FAKE_SAVEPATH='"/data/media/movies/x"' -- remove-with-data "$H"
 calls_lack "no borra en biblioteca" "removewithdata"
-run "remove-with-data con flag" 0 "" FAKE_SAVEPATH='"/data/plex/multimedia/shows/x"' -- remove-with-data "$H" --allow-library
+run "remove-with-data con flag" 0 "" FAKE_SAVEPATH='"/data/media/shows/x"' -- remove-with-data "$H" --allow-library
 run "remove-with-data fuera de ALLOWED" 1 "RUTORRENT_ALLOWED_DIR" RUTORRENT_ALLOWED_DIR=/data/downloads/seed FAKE_SAVEPATH='"/data/otro/x"' -- remove-with-data "$H"
 calls_lack "no borra fuera de ALLOWED" "removewithdata"
 run "remove-with-data ruta vacía" 1 "no se pudo determinar" FAKE_SAVEPATH='""' -- remove-with-data "$H"

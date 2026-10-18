@@ -3,7 +3,7 @@
 ## Configuración
 
 ```bash
-RUTORRENT_URL="http://<ip-del-QNAP>:8080"
+RUTORRENT_URL="http://<ip-del-servidor>:8080"
 # Opcionales, solo con autenticación básica:
 # RUTORRENT_USER="admin"
 # RUTORRENT_PASSWORD="your-password"
@@ -32,7 +32,7 @@ Base: `bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh"`
 
 | Contenedor ruTorrent | Host |
 |---|---|
-| `/data/downloads/...` | Carpeta montada en `/data` (por ejemplo bajo `${STACK_LOCATION}/plex/multimedia/...`); consulta el volumen del contenedor |
+| `/data/downloads/...` | Carpeta montada en `/data` (por ejemplo bajo `<ruta-del-host>/...`); consulta el volumen del contenedor |
 
 ## Peticiones manuales (solo para depurar; prefiere el script)
 
