@@ -23,7 +23,7 @@
 
 **Solución:**
 1. Usa solo `{tmdb-#######}` y solo en películas; si la película no tiene id de TMDB conocido, consúltalo (Guid `tmdb://` de Plex, lookup de Radarr/Seerr) o pregunta, y no pongas otro tipo de id
-2. Colócalo justo tras el año, en la carpeta y en el fichero de la película. Las series no llevan id: ante un emparejado dudoso usa `match_release`, `set_external_id` y rematch
+2. Colócalo justo tras el año, en la carpeta y en el fichero de la película. Las series no llevan id: ante un emparejado dudoso avisa al usuario para que haga el rematch manual en Plex
 
 ## Problemas de nombrado
 

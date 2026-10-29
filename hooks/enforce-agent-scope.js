@@ -1,4 +1,4 @@
-// PreToolUse (Edit|Write|NotebookEdit|Bash|mcp__zurg__*): limita dónde puede escribir el agente plex-naming.
+// PreToolUse (Edit|Write|NotebookEdit|Bash): limita dónde puede escribir el agente plex-naming.
 // Se registra en hooks/hooks.json (plugin) y salta en todas las llamadas; solo actúa si el
 // input trae agent_type `plex-naming` o `<plugin>:plex-naming`. Sin agent_type no decide,
 // salvo que PLEX_CREW_ENFORCE_ALL=1 (pruebas).
@@ -6,8 +6,7 @@
 // Rutas permitidas, en este orden de lectura:
 //   1. Fichero indicado en $PLEX_CREW_CONFIG, o si no existe la variable,
 //      ~/.claude/plex-crew/scope.conf (una ruta absoluta por línea; se ignoran
-//      líneas vacías y comentarios con #; se expande ~; `@zurg` o `@zurg/<subruta>` se
-//      sustituye por cada montaje de zurg detectado, ver zurg-mounts.js).
+//      líneas vacías y comentarios con #; se expande ~).
 //   2. Argumentos de línea de comandos opcionales: se añaden como rutas extra.
 // Si no hay ninguna ruta, se deniega todo con instrucciones para configurarlo.
 //
@@ -21,8 +20,6 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const zurg = require('./zurg-tools');
-const { expandScopeLine } = require('./zurg-mounts');
 
 const HOME = os.homedir();
 
@@ -56,9 +53,7 @@ function loadAllowed() {
     for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
       const l = line.trim();
       if (!l || l.startsWith('#')) continue;
-      const ex = expandScopeLine(l); // marcador @zurg[/subruta]; null si es una ruta normal
-      if (ex) list.push(...ex);
-      else if (ex === null) list.push(l);
+      list.push(l);
     }
   } catch {
     // fichero ausente o ilegible: se considera vacío
@@ -240,11 +235,7 @@ process.stdin.on('end', () => {
 
   const tool = payload.tool_name || '';
   const input = payload.tool_input || {};
-  const isZ = zurg.isZurg(tool);
-  if (!isZ && !['Edit', 'Write', 'NotebookEdit', 'Bash'].includes(tool)) process.exit(0);
-  // Tools MCP de zurg: solo las de renombrado se comprueban contra scope.conf; el resto
-  // las gobierna confirm-destructive.js (lectura pasa; lo demás pide marcador).
-  if (isZ && zurg.kind(tool) !== 'rename') process.exit(0);
+  if (!['Edit', 'Write', 'NotebookEdit', 'Bash'].includes(tool)) process.exit(0);
 
   if (ALLOWED.length === 0) {
     out(
@@ -252,19 +243,6 @@ process.stdin.on('end', () => {
         '(hay una plantilla en scope.conf.example en la raíz del repositorio) con una ruta absoluta por línea, ' +
         'o define la variable PLEX_CREW_CONFIG apuntando a otro fichero.'
     );
-  }
-
-  if (isZ) {
-    const paths = zurg.pathValues(input);
-    if (paths.length === 0) {
-      out(
-        `La tool ${tool} escribe, pero su input no expone ninguna ruta reconocible (campos path, from, to, new_path, directory...), ` +
-          'así que no se puede comprobar contra scope.conf (fallo cerrado). Devuelve la propuesta al orquestador.'
-      );
-    }
-    const bad = paths.map(p => path.resolve(payload.cwd || process.cwd(), expandHome(p))).filter(r => !inScope(r));
-    if (bad.length === 0) process.exit(0);
-    out(`Ruta fuera del alcance de este agente en ${tool}: ${[...new Set(bad)].join(', ')}. Rutas permitidas: ${listaPermitidas()}.`);
   }
 
   if (tool === 'Bash') {

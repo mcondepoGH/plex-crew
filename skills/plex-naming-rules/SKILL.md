@@ -97,7 +97,7 @@ Nota: el artículo "Multiple Editions" de support.plex.tv devolvió 403 al leerl
 - Si una película no tiene id de TMDB conocido, consúltalo (Guid `tmdb://` de Plex con `metadata`, lookup de Radarr o Seerr) o pregunta al usuario. Nunca pongas otro tipo de id como alternativa. En series no hay nada que consultar.
 - En películas el id va justo tras el año, `Título (Año) {tmdb-#######}`, nunca al principio del nombre. En la carpeta es lo último; en el fichero solo le siguen etiquetas verificables, grupo y `{edition-Nombre}`.
 - Carpeta de serie: `Serie (Año)`. Puede llevar idioma y calidad en corchetes tras el año: `Serie (Año) [Castellano][1080p]`. Cada etiqueta solo se añade si TODOS los archivos de la serie comparten ese mismo idioma / esa misma calidad; si difieren, se omite (puede ir una y no la otra, p. ej. calidad sí e idioma no).
-- Riesgo (proyecto): sin id en series, Plex empareja por título y año. Ante un emparejado dudoso usa el flujo de corrección en Plex (`match_release`, `set_external_id`, rematch), que no depende del nombre.
+- Riesgo (proyecto): sin id en series, Plex empareja por título y año. Ante un emparejado dudoso, comprueba el título y el año con la skill `plex` y avisa al usuario: el rematch manual se hace en Plex y no depende del nombre.
 - Alcance: las reglas se aplican a lo que se nombre desde ahora; el renombrado de la biblioteca existente se hace por decisión expresa del usuario, serie a serie.
 - La carpeta `Season` va siempre en inglés (`Season 01`).
 
@@ -115,7 +115,7 @@ Aplícalo a **todos** los episodios del release en una sola pasada, no solo al r
 
 ### Ante un emparejado erróneo en Plex
 1. **Detecta**: compara el título y el año esperados (del nombre de la carpeta) con los que muestra Plex, usando la skill `plex` (`search` o `metadata`). Marca solo las identidades distintas, no las diferencias cosméticas ("Big Bang" frente a "The Big Bang Theory" es correcto).
-2. **Renombra**: renombra carpeta y fichero con el nombre completo; el id de TMDB va tras el año, en carpeta y fichero, solo en películas (series sin id). Plex solo vuelve a emparejar con una ruta nueva. Si el nombre no basta (series sin id), corrige en Plex con `match_release`, `set_external_id` y rematch.
+2. **Renombra**: renombra carpeta y fichero con el nombre completo; el id de TMDB va tras el año, en carpeta y fichero, solo en películas (series sin id). Plex solo vuelve a emparejar con una ruta nueva. Si el nombre no basta (series sin id), avisa al usuario para que haga el rematch manual en Plex.
 3. **Verifica** con la skill `plex`: título y año correctos.
 
 ## Ejemplos

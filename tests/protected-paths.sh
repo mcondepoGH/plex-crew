@@ -8,7 +8,7 @@ HOOK="$HERE/../hooks/protected-paths.js"
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
 
-mkdir -p "$T/home" "$T/media/@Recycle" "$T/media/ok" "$T/media/@zurg/movies"
+mkdir -p "$T/home" "$T/media/@Recycle" "$T/media/ok" "$T/media/@plex/movies"
 ln -s "$T/media/@Recycle" "$T/media/ok/enlace"
 
 N=0
@@ -72,7 +72,7 @@ allow "bash echo con espacios" Bash command 'echo "ver @Recycle en el README"'
 allow "bash commit -m" Bash command 'git commit -m "ver @Recycle en el README"'
 allow "bash commit -m con ruta" Bash command 'git commit -m "no tocar /x/@Recycle/a"'
 allow "bash heredoc" Bash command $'cat <<EOF\n@Recycle y /x/@Recycle/a\nEOF'
-allow "bash @zurg" Bash command "ls @zurg/movies"
+allow "bash @plex" Bash command "ls @plex/movies"
 allow "bash Recycle.txt" Bash command "cat $T/media/ok/Recycle.txt"
 allow "bash comando vacio" Bash command ""
 # --- tools de fichero
@@ -94,7 +94,7 @@ deny "Read symlink" Read file_path "$T/media/ok/enlace/a"
 deny "Write symlink" Write file_path "$T/media/ok/enlace/nuevo.txt"
 allow "Read normal" Read file_path "$T/media/ok/a.txt"
 allow "Read Recycle.txt" Read file_path "$T/media/ok/Recycle.txt"
-allow "Read @zurg" Read file_path "$T/media/@zurg/movies/a.mkv"
+allow "Read @plex" Read file_path "$T/media/@plex/movies/a.mkv"
 allow "Glob normal" Glob pattern "**/*.mkv"
 allow "Grep normal" Grep path "$T/media/ok"
 # contenido de Write/Edit/Grep pattern no cuenta

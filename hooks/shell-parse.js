@@ -1,4 +1,4 @@
-// Análisis conservador de comandos Bash compartido por enforce-agent-scope.js y zurg-mount.js:
+// Análisis conservador de comandos Bash usado por enforce-agent-scope.js:
 // troceo en segmentos/palabras/redirecciones y extracción de rutas afectadas por verbos de escritura.
 const path = require('path');
 
