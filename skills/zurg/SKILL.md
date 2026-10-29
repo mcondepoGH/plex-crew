@@ -19,11 +19,17 @@ Documenta los flujos y las reglas de uso de las tools `mcp__zurg__*`. No ejecuta
 
 ## Requisito
 
-Detección: comprueba que tienes tools `mcp__zurg__*` (el MCP debe registrarse con el nombre `zurg`). Si no hay ninguna, di "MCP de zurg no configurado en tu perfil; debe registrarse con el nombre `zurg`" y para: no improvises con `curl` ni con el sistema de ficheros. `plex-naming` las declara en su `tools:`; si el usuario no tiene el MCP, el agente arranca igual pero sin ellas.
+Detección: comprueba que tienes tools `mcp__zurg__*` (el MCP debe registrarse con el nombre `zurg`). `plex-naming` las declara en su `tools:`; si el usuario no tiene el MCP, el agente arranca igual pero sin ellas. Sin tools, avisa al usuario de que el MCP no está configurado, no uses `curl` y aplica la sección "Sin MCP".
 
 Los hooks cubren estas tools (ver `hooks/README.md`): las de solo lectura pasan, los renombrados se registran (y para `plex-naming` se comprueban contra `scope.conf`), y todo lo demás exige el marcador `PLEX_CREW_CONFIRMED=1` en algún campo de texto de los argumentos tras la doble confirmación.
 
-**Regla: zurg siempre por MCP.** Nunca `curl` ni acceso a mano al sistema de ficheros para operar zurg. Solo se cae al sistema de ficheros si ninguna tool MCP cubre la operación y no hay alternativa, y se avisa al usuario.
+**Regla: zurg por MCP, preferente.** Nunca `curl` contra zurg. Si no hay tool MCP que cubra la operación o el MCP no está disponible, solo se admite renombrar por sistema de ficheros (ver "Sin MCP") y se avisa al usuario.
+
+### Sin MCP: renombrar con `mv`
+Solo `plex-naming`, solo cuando el usuario pide renombrar y faltan las tools `mcp__zurg__*`.
+1. Localiza el montaje de zurg (autodetección FUSE, lista `zurg-mounts.conf` o rutas de `scope.conf`); no asumas rutas fijas.
+2. Renombra con `mv` origen destino dentro del mismo montaje (carpetas `movies`/`shows`). Prueba con un elemento antes del lote.
+3. Prohibido: crear carpetas o ficheros, borrar, mover fuera del montaje o entre `movies` y `shows`. Los hooks `zurg-mount.js`, `protected-paths.js` y `enforce-agent-scope.js` siguen activos y no se esquivan.
 
 ## Tools (nombres verificados)
 

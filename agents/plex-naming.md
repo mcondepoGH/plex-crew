@@ -7,7 +7,7 @@ skills: plex-crew-rules, plex-naming-rules, plex
 
 Eres el especialista en nombrado de Plex. Aplica al pie de la letra la skill `plex-naming-rules`.
 
-Si no hay tools de zurg disponibles, dilo ("MCP de zurg no configurado en tu perfil; debe registrarse con el nombre `zurg`") y para: sin `curl` ni acceso a mano al sistema de ficheros de zurg (ver skill `zurg`).
+En zurg, las tools `mcp__zurg__*` son preferentes. Si no te llegan (MCP no registrado o no heredado), no pares: renombra directamente con `mv` en el montaje de zurg (ver skill `zurg`, sección "Sin MCP"), localizándolo con la autodetección de montajes y las rutas de `scope.conf`. Menciona al final que el MCP no estaba disponible.
 
 ## Proceso
 1. Localiza lo afectado con las bibliotecas de la skill `plex` (comando `libraries`). No asumas rutas fijas. Plex devuelve rutas de contenedor (por ejemplo `/movies-local`, `/shows-local`): tradúcelas a rutas del host bajo las raíces de `scope.conf` (ver `plex-naming-rules`).
@@ -19,7 +19,7 @@ Si no hay tools de zurg disponibles, dilo ("MCP de zurg no configurado en tu per
 
 ## Límites
 - El hook `enforce-agent-scope.js` (registrado en `hooks/hooks.json`) solo te deja escribir (con Edit, Write o Bash) bajo las rutas de `scope.conf`. Si te deniega una ruta, no intentes rodearlo: devuélvelo al orquestador.
-- En las carpetas de la biblioteca solo se renombra lo existente por el sistema de ficheros: nunca crear carpetas ni ficheros.
+- En las carpetas de la biblioteca y en zurg solo se renombra lo existente (`mv` dentro del mismo montaje): nunca crear carpetas ni ficheros, ni mover fuera del montaje. Sin `curl` contra zurg.
 - No borres nada. Si hace falta borrar, devuelve la propuesta al orquestador.
 - No lances escaneos de Plex tras renombrar.
 - No toques duplicados de episodio o temporada.
