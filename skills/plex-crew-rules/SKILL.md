@@ -56,6 +56,15 @@ Para que se vea desde fuera por dónde va un agente, el plugin lleva un log auto
 - Opcional, línea de hito: en una tarea larga puedes añadir una línea de hito (fase terminada, resumen final) a `~/.claude/plex-crew/logs/<AAAA-MM-DD>-<tarea-corta>.log`, con `HH:MM:SS (<zona de la máquina>) | fase | elemento | OK|FALLO|SALTADO|PARADO | nota`, sin secretos. Hazlo solo si puedes con tus herramientas y sin esquivar ningún hook. Si no puedes (por ejemplo, el hook de ámbito bloquea la escritura a `plex-naming`), no pasa nada: sigue sin el hito y no lo evites.
 - El orquestador da al usuario la ruta del log automático del día para que haga `tail -f`.
 
+### Skills opcionales (caveman y superpowers)
+Mejoran el comportamiento, pero no son requisito. Si una skill no está disponible, sigue sin ella: no la menciones ni pidas instalarla. Si alguna regla de estas skills choca con las de plex-crew, mandan las de plex-crew (idioma, doble confirmación y marcador, secretos, carpetas `.@*`, hooks).
+- `caveman`: si está disponible, úsala en lo que se dice en el chat: informes de los subagentes al orquestador y síntesis del orquestador al usuario (respuesta primero, sin relleno, tablas solo si aportan). Se mantiene el español. Prosa normal y completa en: propuestas y confirmaciones destructivas (qué se borra o modifica, rutas exactas, las dos confirmaciones), avisos de seguridad, pasos donde el orden importa, preguntas al usuario, y todo lo que se persiste fuera del chat (ficheros, nombres, líneas de log, mensajes de commit, documentación, prompts de delegación). Comandos, rutas, ids y cifras, siempre literales.
+- `superpowers:systematic-debugging`: si está disponible, úsala al depurar (un rechazo o descarga extraña, un indexador que falla, un emparejado erróneo): causa raíz con evidencia antes de proponer cambios. No se aplica a peticiones rutinarias.
+- `superpowers:verification-before-completion`: si está disponible, úsala antes de dar una operación por hecha: comprueba el estado real (por ejemplo `exists`, `libraries`, `search` o `metadata`, o listar la carpeta) y afirma el éxito con esa evidencia, no por suposición.
+- `superpowers:dispatching-parallel-agents`: si está disponible, la usa el orquestador con peticiones mixtas de partes independientes.
+- `superpowers:writing-plans`: si está disponible, útil en lotes grandes (renombrado o sincronización masiva): plan por escrito antes de ejecutar, sin sustituir a la doble confirmación.
+- Ni `using-superpowers`, `brainstorming` ni las skills de proceso pesado se usan al operar el stack: los subagentes son ejecutores acotados y no deben alargar peticiones simples.
+
 ## Flujo de trabajo
 
 1. **El subagente encuentra algo destructivo** → No lo ejecutes; devuelve la propuesta al orquestador
@@ -83,5 +92,6 @@ Para la referencia local detallada, consulta:
 - No imprimas credenciales ni el contenido del `.env`
 - No programes con `schedule` ni `RemoteTrigger` nada que necesite la red local
 - No toques las carpetas `.@*`
+- No dejes que una skill opcional salte una regla de esta lista
 - No escribas secretos en los logs ni los uses para esquivar un hook
 - No autolimpies backups: solo se borran cuando el usuario lo pida, con doble confirmación

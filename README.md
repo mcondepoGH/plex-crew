@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 1.1.1.
+Versión 1.2.0.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son la hora local de la máquina donde corre el plugin (zona horaria del sistema).
 
@@ -27,6 +27,8 @@ Servicios cubiertos:
 Este README es un índice: dice qué existe y dónde está documentado. Los comandos y herramientas de cada pieza viven en su propio README.
 
 ## Instalación
+
+Skills opcionales: `caveman` (informes y síntesis tersos) y `superpowers` (depuración sistemática, verificación antes de dar algo por hecho, agentes en paralelo) mejoran el comportamiento de los agentes si están instaladas. No son requisito: sin ellas, el plugin funciona igual. Las reglas de plex-crew mandan sobre las suyas (ver `skills/plex-crew-rules`).
 
 Prerrequisitos: Claude Code, `node` (lo usan los hooks), `bash`, `curl` y `jq` (los usan los scripts de las skills). En Windows, Git Bash o WSL.
 
