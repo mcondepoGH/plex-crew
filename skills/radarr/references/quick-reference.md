@@ -26,6 +26,12 @@ bash "$RA" collection-info 2344
 bash "$RA" logs
 bash "$RA" logs 20 --level error --grep "rootfolder"
 bash "$RA" logs --files
+bash "$RA" health
+bash "$RA" queue
+bash "$RA" indexers
+bash "$RA" downloadclients
+bash "$RA" customformats
+bash "$RA" qualityprofiles
 # Modifican estado: confirma con el usuario antes de añadir
 bash "$RA" add 603
 bash "$RA" add 603 5
@@ -64,5 +70,11 @@ curl -s -H "X-Api-Key: $RADARR_API_KEY" "$RADARR_URL/api/v3/system/status" | jq 
 | `add-collection` | `📦 Found 3 movies in collection`, una línea por película y `📊 Added: 2 \| Skipped: 1` |
 | `remove` | `🗑️ Removed: The Matrix (1999) (files kept)` |
 | `logs` | `2026-01-03T10:00:03Z  ERROR  Api  mensaje` |
+| `health` | `Sin avisos de salud`, o `[warning] IndexerStatusCheck: mensaje` |
+| `queue` | `En cola: 2` y `[123] Título del release - downloading/downloading - 45% - restante: 00:10:00 - torrent (cliente)` |
+| `indexers` | `[1] Nombre (Torznab) - torrent - prioridad 25 - rss: true, auto: true, interactiva: true` |
+| `downloadclients` | `[1] Nombre (QBittorrent) - torrent - prioridad 1 - activo: true` |
+| `customformats` | `[1] Audio-ES - 1 condiciones` |
+| `qualityprofiles` | `[7] Español - minFormatScore: 100, cutoffFormatScore: 0` y debajo `    Audio-ES: 100` |
 
 Códigos de salida: 0 correcto; 1 error de uso, película o colección no encontrada, o fallo de conexión.

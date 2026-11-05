@@ -1,6 +1,6 @@
 ---
 name: radarr
-description: Esta skill debe usarse cuando se gestionan películas en Radarr. Úsala cuando el usuario pida "añadir una película", "buscar en Radarr", "encontrar una película", "añadir a Radarr", "eliminar una película", "añadir una colección de películas", "comprobar si una película existe", "biblioteca de Radarr", "logs de Radarr", o mencione la gestión de películas, la integración con TMDB u operaciones de Radarr.
+description: Esta skill debe usarse cuando se gestionan películas en Radarr. Úsala cuando el usuario pida "añadir una película", "buscar en Radarr", "encontrar una película", "añadir a Radarr", "eliminar una película", "añadir una colección de películas", "comprobar si una película existe", "biblioteca de Radarr", "logs de Radarr", "cola de descargas de Radarr", "salud de Radarr", "indexadores de Radarr", o mencione la gestión de películas, la integración con TMDB u operaciones de Radarr.
 ---
 
 # Skill de gestión de películas de Radarr
@@ -27,6 +27,7 @@ Esta skill usa la API v3 de Radarr para:
 - Añadir una película o una colección completa (modifica estado; por defecto lanza la búsqueda y puede iniciar descargas)
 - Quitar una película, con o sin borrado de ficheros (destructivo)
 - Consultar los detalles de una colección y las últimas entradas del log (solo lectura)
+- Consultar salud, cola de descargas, indexadores, clientes de descarga, formatos personalizados y perfiles de calidad con sus puntuaciones (solo lectura; sin claves ni credenciales en la salida)
 
 Los identificadores son de TMDB (`tmdbId`), no de TVDB: `seerr` también usa TMDB; `sonarr` usa TVDB.
 
@@ -158,6 +159,29 @@ Opciones, en cualquier orden:
 
 **Salida:** una línea por entrada, la más antigua primero: `<time>  <LEVEL>  <logger>  <mensaje>` (separadores de dos espacios; `?` si falta time, level o logger; nivel en mayúsculas y de 5 letras como máximo). Del mensaje solo se muestra la primera línea, con los valores de `api_key`, `apikey`, `token`, `passkey`, `password` y `secret` en pares `clave=valor` sustituidos por `***`, y se trunca a 200 caracteres más `...`. Con `--files`: `<lastWriteTime>  <filename>` por fichero. Argumentos no válidos imprimen `ERROR:` (y el uso, salvo en un nivel no válido) por stderr y terminan con 1 antes de llamar a Radarr; si el servicio no expone `/log`, `ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)`.
 
+### Salud, cola, indexadores, clientes de descarga y perfiles
+
+Solo lectura. Ninguno admite argumentos (un argumento sobrante imprime `ERROR:` y el uso por stderr y termina con 1). Nunca imprimen claves de API, contraseñas, tokens ni nombres de usuario: se muestra un resumen por elemento y se descartan los campos sensibles.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" health
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" queue
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" indexers
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" downloadclients
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" customformats
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" qualityprofiles
+```
+
+**Salida:**
+- `health`: `Sin avisos de salud` o una línea `[tipo] origen: mensaje` por aviso.
+- `queue`: `En cola: <total>` (hasta 100 elementos) y una línea por elemento: `[id] título - estado/estadoDescarga - progreso - restante: <tiempo> - protocolo (cliente)`. El progreso es `?` si Sonarr/Radarr aún no conoce el tamaño.
+- `indexers`: `[id] nombre (implementación) - protocolo - prioridad N - rss: ..., auto: ..., interactiva: ...`.
+- `downloadclients`: `[id] nombre (implementación) - protocolo - prioridad N - activo: true`.
+- `customformats`: `[id] nombre - N condiciones`.
+- `qualityprofiles`: `[id] nombre - minFormatScore: N, cutoffFormatScore: N` y, debajo, una línea `    formato: puntuación` por cada formato con puntuación distinta de 0 (`(sin formatos puntuados)` si no hay ninguno).
+
+Si Radarr responde con un HTTP que no es 2xx, imprimen `ERROR: GET <ruta> respondió HTTP <código>` por stderr y terminan con 1.
+
 ## Flujo de trabajo
 
 1. **"Añade X a Radarr"** → `search "X"`, muestra la lista numerada y deja elegir
@@ -178,12 +202,13 @@ Opciones, en cualquier orden:
 | `[término]` | add-collection | Segundo argumento; solo si la colección no está en Radarr |
 | `--no-search` | add, add-collection | En cualquier posición; no lanza la búsqueda |
 | `--delete-files` | remove | Solo como segundo argumento; borra los ficheros del disco |
+| (ninguno) | health, queue, indexers, downloadclients, customformats, qualityprofiles | No admiten argumentos |
 | `[N]`, `--level`, `--grep`, `--files` | logs | Ver el apartado del log |
 
 ## Notas
 
 - Nunca imprimas `RADARR_API_KEY` ni uses `curl` con la clave en línea: usa siempre el script.
-- Timeouts: `search`, `status` y `logs` 25 s (librería compartida); el resto, 10 s de conexión y 30 s en total, sin reintentos.
+- Timeouts: `search`, `status`, `logs` y los comandos de solo lectura `health`, `queue`, `indexers`, `downloadclients`, `customformats` y `qualityprofiles` 25 s (librería compartida); el resto, 10 s de conexión y 30 s en total, sin reintentos.
 - Las horas del usuario son las de la máquina donde corre el plugin (regla global en `plex-crew-rules`).
 
 ### Limitaciones conocidas
@@ -199,7 +224,7 @@ Opciones, en cualquier orden:
 - Las llamadas directas no distinguen la causa del fallo de curl (el mensaje es único); solo `search`, `status` y `logs` informan del código HTTP.
 - Todos los comandos pasan la clave a curl por stdin (`--config -`), sin que aparezca en `ps`, y con `--connect-timeout` de 10 s (`ARR_CONNECT_TIMEOUT`).
 - La barra final de `RADARR_URL` no se quita y da `//api/v3`.
-- No hay comandos de calendario, cola, historial, importación, refresh ni búsqueda de releases.
+- No hay comandos de calendario, historial, importación, refresh ni búsqueda de releases. `queue` muestra hasta 100 elementos, sin paginar.
 
 ## Referencia
 

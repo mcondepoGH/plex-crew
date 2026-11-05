@@ -91,7 +91,7 @@ for f in skills/*/scripts/*.sh; do
 done
 
 # 5b. comando logs (solo lectura): aparece en help y valida el uso sin red
-for f in skills/radarr/scripts/radarr.sh skills/prowlarr/scripts/prowlarr-api.sh; do
+for f in skills/radarr/scripts/radarr.sh skills/sonarr/scripts/sonarr.sh skills/prowlarr/scripts/prowlarr-api.sh; do
   env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$f" help >"$TMP/out" 2>&1
   if grep -q 'logs' "$TMP/out"; then ok "$f help muestra logs"; else fail "$f help muestra logs"; fi
   for bad in "abc" "0" "5000" "--bogus" "--level" "--level zzz" "--grep"; do
@@ -101,7 +101,7 @@ for f in skills/radarr/scripts/radarr.sh skills/prowlarr/scripts/prowlarr-api.sh
     if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$f logs $bad rc 1"; else fail "$f logs $bad rc 1" "rc=$rc"; fi
   done
 done
-for sk in radarr prowlarr; do
+for sk in radarr sonarr prowlarr; do
   if grep -q 'logs' "skills/$sk/SKILL.md"; then ok "skills/$sk/SKILL.md documenta logs"; else fail "skills/$sk/SKILL.md documenta logs"; fi
 done
 
@@ -139,10 +139,10 @@ fi
 SNR=skills/sonarr/scripts/sonarr.sh
 if [ -f "$SNR" ]; then
   env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$SNR" help >"$TMP/out" 2>&1
-  for c in search search-json exists config status add remove; do
+  for c in search search-json exists config status add remove logs health queue indexers downloadclients customformats qualityprofiles; do
     if grep -q -- "$c" "$TMP/out"; then ok "$SNR help lista $c"; else fail "$SNR help lista $c"; fi
   done
-  for bad in "search" "exists" "exists abc" "add" "add abc" "add 1 abc" "remove" "remove abc" "comando-desconocido-zzz"; do
+  for bad in "search" "exists" "exists abc" "add" "add abc" "add 1 abc" "remove" "remove abc" "health x" "queue x" "indexers x" "downloadclients x" "customformats x" "qualityprofiles x" "comando-desconocido-zzz"; do
     # shellcheck disable=SC2086
     env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$SNR" $bad >"$TMP/out" 2>&1
     rc=$?
@@ -154,10 +154,10 @@ fi
 RDR=skills/radarr/scripts/radarr.sh
 if [ -f "$RDR" ]; then
   env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$RDR" help >"$TMP/out" 2>&1
-  for c in search search-json exists config status add add-collection remove collection-info logs; do
+  for c in search search-json exists config status add add-collection remove collection-info logs health queue indexers downloadclients customformats qualityprofiles; do
     if grep -q -- "$c" "$TMP/out"; then ok "$RDR help lista $c"; else fail "$RDR help lista $c"; fi
   done
-  for bad in "search" "exists" "exists abc" "add" "add abc" "add 1 abc" "add-collection" "add-collection abc" "remove" "remove abc" "collection-info" "collection-info abc" "comando-desconocido-zzz"; do
+  for bad in "search" "exists" "exists abc" "add" "add abc" "add 1 abc" "add-collection" "add-collection abc" "remove" "remove abc" "collection-info" "collection-info abc" "health x" "queue x" "indexers x" "downloadclients x" "customformats x" "qualityprofiles x" "comando-desconocido-zzz"; do
     # shellcheck disable=SC2086
     env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$RDR" $bad >"$TMP/out" 2>&1
     rc=$?
@@ -199,6 +199,41 @@ FAKE
     if [ "$rc" -eq 0 ] && grep -qxF "$want" "$TMP/out"; then ok "$AGR logs con $fx"; else fail "$AGR logs con $fx" "rc=$rc $(head -c 200 "$TMP/out" | tr '\n' ' ')"; fi
   done
 fi
+
+# 5i. radarr/sonarr: comandos de solo lectura con curl simulado; los secretos no salen en la salida
+FB="$TMP/fakebin"; mkdir -p "$FB"
+cat >"$FB/curl" <<'FAKE'
+#!/usr/bin/env bash
+cfg="$(cat)"
+case "$cfg" in
+  *"/indexer"*) body='[{"id":1,"name":"Idx","implementation":"Torznab","protocol":"torrent","priority":25,"enableRss":true,"enableAutomaticSearch":true,"enableInteractiveSearch":false,"fields":[{"name":"apiKey","value":"SECRETO-IDX"}]}]' ;;
+  *"/downloadclient"*) body='[{"id":2,"name":"Cli","implementation":"QBittorrent","protocol":"torrent","priority":1,"enable":true,"username":"USUARIO-SECRETO","password":"CLAVE-SECRETA","fields":[{"name":"password","value":"CLAVE-SECRETA"}]}]' ;;
+  *"/health"*) body='[{"type":"warning","source":"IndexerCheck","message":"fallo https://h/x?apikey=SECRETO-MSG&a=1"}]' ;;
+  *"/queue"*) body='{"totalRecords":1,"records":[{"id":9,"title":"Rel token=SECRETO-Q","status":"downloading","trackedDownloadState":"downloading","size":100,"sizeleft":50,"timeleft":"00:10:00","protocol":"torrent","downloadClient":"Cli"}]}' ;;
+  *"/customformat"*) body='[{"id":3,"name":"CF","specifications":[{"name":"a"},{"name":"b"}]}]' ;;
+  *"/qualityprofile"*) body='[{"id":7,"name":"Perfil","minFormatScore":100,"cutoffFormatScore":0,"formatItems":[{"name":"Bueno","score":100},{"name":"Cero","score":0},{"name":"Malo","score":-10000}]}]' ;;
+  *) body='[]' ;;
+esac
+printf '%s\n200' "$body"
+FAKE
+chmod +x "$FB/curl"
+for sk in radarr sonarr; do
+  F="skills/$sk/scripts/$sk.sh"
+  [ -f "$F" ] || continue
+  for pair in "health:IndexerCheck: fallo https://h/x?apikey=***&a=1" "queue:En cola: 1" "queue:[9] Rel token=*** - downloading/downloading - 50% - restante: 00:10:00 - torrent (Cli)" \
+              "indexers:[1] Idx (Torznab) - torrent - prioridad 25 - rss: true, auto: true, interactiva: false" \
+              "downloadclients:[2] Cli (QBittorrent) - torrent - prioridad 1 - activo: true" "customformats:[3] CF - 2 condiciones" \
+              "qualityprofiles:[7] Perfil - minFormatScore: 100, cutoffFormatScore: 0" "qualityprofiles:    Bueno: 100" "qualityprofiles:    Malo: -10000"; do
+    c="${pair%%:*}"; want="${pair#*:}"
+    env -i PATH="$FB:$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$F" "$c" >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 0 ] && grep -qF -- "$want" "$TMP/out" && ! grep -q 'SECRETO\|CLAVE-SECRETA\|USUARIO-SECRETO' "$TMP/out" && ! grep -q 'Cero' "$TMP/out"; then
+      ok "$F $c salida filtrada ($want)"
+    else
+      fail "$F $c salida filtrada ($want)" "rc=$rc $(head -c 200 "$TMP/out" | tr '\n' ' ')"
+    fi
+  done
+done
 
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then

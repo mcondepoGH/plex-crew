@@ -33,6 +33,12 @@ Comandos:
   collection-info <idColeccionTmdb>  Detalles de una colección (JSON)
   logs [N] [--level warn|error|info] [--grep texto] [--files]
                               Últimas N entradas del log (solo lectura, 50 por defecto)
+  health                      Avisos de salud de Radarr (solo lectura)
+  queue                       Cola de descargas (solo lectura)
+  indexers                    Indexadores configurados, sin credenciales (solo lectura)
+  downloadclients             Clientes de descarga, sin credenciales (solo lectura)
+  customformats               Formatos personalizados (solo lectura)
+  qualityprofiles             Perfiles de calidad: minFormatScore, cutoffFormatScore y formatos con puntuación (solo lectura)
 USAGE
 }
 
@@ -401,6 +407,74 @@ cmd_logs() {
   ' <<<"$ARR_BODY"
 }
 
+# Definiciones jq compartidas: enmascarar secretos en texto libre y quitar campos sensibles
+JQ_SAFE='
+  def mask: gsub("(?<k>api_?key|token|passkey|password|secret)=[^& ]*"; "\(.k)=***"; "i");
+  def secretkey: test("api_?key|password|token|username|secret|passkey|authorization|cookie"; "i");
+  def scrub: walk(if type == "object" then with_entries(select(.key | secretkey | not)) else . end);
+'
+
+# Comandos sin argumentos: rechaza cualquier argumento sobrante. Uso: no_args <comando> [args...]
+no_args() {
+  local c="$1"
+  shift
+  [[ $# -eq 0 ]] || usage_error "$c no admite argumentos: $1" "$c"
+}
+
+cmd_health() {
+  no_args health "$@"
+  arr_call GET /health || exit 1
+  if [[ "$(jq 'length' <<<"$ARR_BODY")" == "0" ]]; then
+    echo "Sin avisos de salud"
+    return 0
+  fi
+  jq -r "$JQ_SAFE"'scrub | .[] | "[\(.type // "?")] \(.source // "?"): \((.message // "") | mask)"' <<<"$ARR_BODY"
+}
+
+cmd_queue() {
+  no_args queue "$@"
+  arr_call GET "/queue?page=1&pageSize=100" || exit 1
+  if ! jq -e '(.records | type) == "array"' >/dev/null 2>&1 <<<"$ARR_BODY"; then
+    echo "ERROR: respuesta inesperada de /queue" >&2
+    exit 1
+  fi
+  jq -r "$JQ_SAFE"'scrub | "En cola: \(.totalRecords // (.records | length))",
+    (.records[] | "[\(.id)] \((.title // "?") | mask) - \(.status // "?")/\(.trackedDownloadState // "?")"
+      + " - \(if (.size // 0) > 0 then ((100 * (.size - (.sizeleft // 0)) / .size) | floor | tostring) + "%" else "?" end)"
+      + " - restante: \(.timeleft // "?") - \(.protocol // "?") (\(.downloadClient // "?"))")' <<<"$ARR_BODY"
+}
+
+cmd_indexers() {
+  no_args indexers "$@"
+  arr_call GET /indexer || exit 1
+  jq -r "$JQ_SAFE"'scrub | if length == 0 then "No hay indexadores" else .[]
+    | "[\(.id)] \(.name // "?") (\(.implementation // "?")) - \(.protocol // "?") - prioridad \(.priority // "?")"
+      + " - rss: \(.enableRss // false), auto: \(.enableAutomaticSearch // false), interactiva: \(.enableInteractiveSearch // false)" end' <<<"$ARR_BODY"
+}
+
+cmd_downloadclients() {
+  no_args downloadclients "$@"
+  arr_call GET /downloadclient || exit 1
+  jq -r "$JQ_SAFE"'scrub | if length == 0 then "No hay clientes de descarga" else .[]
+    | "[\(.id)] \(.name // "?") (\(.implementation // "?")) - \(.protocol // "?") - prioridad \(.priority // "?") - activo: \(.enable // false)" end' <<<"$ARR_BODY"
+}
+
+cmd_customformats() {
+  no_args customformats "$@"
+  arr_call GET /customformat || exit 1
+  jq -r "$JQ_SAFE"'scrub | if length == 0 then "No hay formatos personalizados" else .[]
+    | "[\(.id)] \(.name // "?") - \((.specifications // []) | length) condiciones" end' <<<"$ARR_BODY"
+}
+
+cmd_qualityprofiles() {
+  no_args qualityprofiles "$@"
+  arr_call GET /qualityprofile || exit 1
+  jq -r "$JQ_SAFE"'scrub | if length == 0 then "No hay perfiles de calidad" else .[]
+    | "[\(.id)] \(.name // "?") - minFormatScore: \(.minFormatScore // 0), cutoffFormatScore: \(.cutoffFormatScore // 0)",
+      ((.formatItems // []) | map(select((.score // 0) != 0)) | if length == 0 then "    (sin formatos puntuados)" else .[] | "    \(.name // "?"): \(.score)" end)
+    end' <<<"$ARR_BODY"
+}
+
 cmd="${1:-}"
 shift || true
 
@@ -416,6 +490,12 @@ case "$cmd" in
   remove) cmd_remove "$@" ;;
   collection-info) cmd_collection_info "${1:-}" ;;
   logs) cmd_logs "$@" ;;
+  health) cmd_health "$@" ;;
+  queue) cmd_queue "$@" ;;
+  indexers) cmd_indexers "$@" ;;
+  downloadclients) cmd_downloadclients "$@" ;;
+  customformats) cmd_customformats "$@" ;;
+  qualityprofiles) cmd_qualityprofiles "$@" ;;
   *)
     echo "ERROR: comando desconocido: $cmd" >&2
     echo "Usa: radarr.sh help" >&2

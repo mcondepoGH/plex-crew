@@ -24,6 +24,12 @@ Solo se documenta lo que usa el script. Documentación oficial: https://radarr.v
 | `remove <tmdbId> [--delete-files]` | `GET /movie?tmdbId=<N>` y `DELETE /movie/<id>?deleteFiles=<true\|false>` | `id` es el de Radarr, no el de TMDB |
 | `collection-info <id>` | `GET /collection` | Se filtra en el cliente por `tmdbId` |
 | `logs [N] [opciones]` | `GET /log?page=1&pageSize=<P>&sortKey=time&sortDirection=descending[&level=<nivel>]` o `GET /log/file` | Timeout de 25 s |
+| `health` | `GET /health` | Timeout de 25 s; solo lectura |
+| `queue` | `GET /queue?page=1&pageSize=100` | Timeout de 25 s; solo lectura |
+| `indexers` | `GET /indexer` | Se descartan los campos sensibles (`fields`, claves, usuario); solo lectura |
+| `downloadclients` | `GET /downloadclient` | Se descartan los campos sensibles; solo lectura |
+| `customformats` | `GET /customformat` | Solo lectura |
+| `qualityprofiles` | `GET /qualityprofile` | Muestra `minFormatScore`, `cutoffFormatScore` y los `formatItems` con `score` distinto de 0; solo lectura |
 
 ## Campos de respuesta usados
 
@@ -34,10 +40,14 @@ Solo se documenta lo que usa el script. Documentación oficial: https://radarr.v
 | `/movie` | `id`, `title`, `year`, `hasFile` |
 | `/collection` | `id` (interno), `tmdbId`, `title`, `monitored` |
 | `/rootfolder` | `id`, `path` |
-| `/qualityprofile` | `id`, `name` |
+| `/qualityprofile` | `id`, `name` (en `qualityprofiles` también `minFormatScore`, `cutoffFormatScore`, `formatItems[].name`, `formatItems[].score`) |
 | `/system/status` | `version`, `instanceName`, `osName`, `branch` |
 | `/log` | `records[]` con `time`, `level`, `logger`, `message` |
 | `/log/file` | `lastWriteTime`, `filename` |
+| `/health` | `type`, `source`, `message` |
+| `/queue` | `totalRecords`, `records[]` con `id`, `title`, `status`, `trackedDownloadState`, `size`, `sizeleft`, `timeleft`, `protocol`, `downloadClient` |
+| `/indexer`, `/downloadclient` | `id`, `name`, `implementation`, `protocol`, `priority`, `enable`, `enableRss`, `enableAutomaticSearch`, `enableInteractiveSearch` |
+| `/customformat` | `id`, `name`, `specifications` (solo su número) |
 
 ## Cuerpo de `POST /movie`
 

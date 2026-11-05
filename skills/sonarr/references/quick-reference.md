@@ -22,6 +22,15 @@ bash "$SO" search-json "breaking bad"
 bash "$SO" exists 81189
 bash "$SO" config
 bash "$SO" status
+bash "$SO" logs
+bash "$SO" logs 20 --level error --grep "rootfolder"
+bash "$SO" logs --files
+bash "$SO" health
+bash "$SO" queue
+bash "$SO" indexers
+bash "$SO" downloadclients
+bash "$SO" customformats
+bash "$SO" qualityprofiles
 # Modifican estado: confirma con el usuario antes de añadir
 bash "$SO" add 81189
 bash "$SO" add 81189 5
@@ -55,5 +64,12 @@ curl -s -H "X-Api-Key: $SONARR_API_KEY" "$SONARR_URL/api/v3/system/status" | jq 
 | `status` | `Sonarr 4.0.9.2244 - Sonarr (debian, branch main)` |
 | `add` | `✅ Added: Breaking Bad (2008) - 5 seasons` y `🔍 Search started` |
 | `remove` | `🗑️ Removed: Breaking Bad (2008) (files kept)` |
+| `logs` | `2026-01-03T10:00:03Z  ERROR  Api  mensaje` |
+| `health` | `Sin avisos de salud`, o `[warning] IndexerStatusCheck: mensaje` |
+| `queue` | `En cola: 2` y `[123] Título del release - downloading/downloading - 45% - restante: 00:10:00 - torrent (cliente)` |
+| `indexers` | `[1] Nombre (Torznab) - torrent - prioridad 25 - rss: true, auto: true, interactiva: true` |
+| `downloadclients` | `[1] Nombre (QBittorrent) - torrent - prioridad 1 - activo: true` |
+| `customformats` | `[1] Audio-ES - 1 condiciones` |
+| `qualityprofiles` | `[7] Español - minFormatScore: 100, cutoffFormatScore: 0` y debajo `    Audio-ES: 100` |
 
 Códigos de salida: 0 correcto; 1 error de uso, serie no encontrada o fallo de conexión.

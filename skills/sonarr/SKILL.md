@@ -1,6 +1,6 @@
 ---
 name: sonarr
-description: Esta skill debe usarse cuando se gestionan series de TV en Sonarr. Úsala cuando el usuario pida "añadir una serie", "buscar en Sonarr", "encontrar una serie", "añadir a Sonarr", "eliminar una serie", "comprobar si una serie existe", "biblioteca de Sonarr", "buscar en TVDB", o mencione la gestión de series de TV u operaciones de Sonarr.
+description: Esta skill debe usarse cuando se gestionan series de TV en Sonarr. Úsala cuando el usuario pida "añadir una serie", "buscar en Sonarr", "encontrar una serie", "añadir a Sonarr", "eliminar una serie", "comprobar si una serie existe", "biblioteca de Sonarr", "buscar en TVDB", "cola de descargas de Sonarr", "salud de Sonarr", "indexadores de Sonarr", o mencione la gestión de series de TV u operaciones de Sonarr.
 ---
 
 # Skill de gestión de series de Sonarr
@@ -25,6 +25,8 @@ Esta skill usa la API v3 de Sonarr para:
 - Mostrar las carpetas raíz, los perfiles de calidad y el estado de Sonarr
 - Añadir una serie (modifica estado; por defecto lanza la búsqueda de episodios)
 - Quitar una serie, con o sin borrado de ficheros (destructivo)
+- Consultar las últimas entradas del log (solo lectura)
+- Consultar salud, cola de descargas, indexadores, clientes de descarga, formatos personalizados y perfiles de calidad con sus puntuaciones (solo lectura; sin claves ni credenciales en la salida)
 
 Los identificadores son de TVDB (`tvdbId`), no de TMDB: `radarr` y `seerr` usan TMDB.
 
@@ -116,6 +118,71 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.s
 
 **Salida:** `🗑️ Removed: Breaking Bad (2008) (files kept)` o, con la opción, `🗑️ Removed: Breaking Bad (2008) + deleted files` (código 0, solo con HTTP 2xx; si no, `ERROR: DELETE /series/<id>... respondió HTTP <código>: <mensaje>` por stderr y código 1). Si la serie no está en la biblioteca: `❌ Show not found in library` (código 1). La opción solo se reconoce como segundo argumento.
 
+### Consultar el log
+
+Solo lectura.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" logs
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" logs 20 --level error
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" logs 100 --grep "rootfolder"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" logs --files
+```
+
+Opciones, en cualquier orden:
+- `N`: número de entradas, entero de 1 a 1000 (50 por defecto)
+- `--level <nivel>`: `trace`, `debug`, `info`, `warn`, `error` o `fatal` (admite mayúsculas)
+- `--grep <texto>`: solo entradas cuyo mensaje o logger contiene el texto, sin distinguir mayúsculas
+- `--files`: lista los ficheros de log; ignora `--level` y `--grep`
+
+**Salida:** una línea por entrada, la más antigua primero: `<time>  <LEVEL>  <logger>  <mensaje>` (separadores de dos espacios; `?` si falta time, level o logger; nivel en mayúsculas y de 5 letras como máximo). Del mensaje solo se muestra la primera línea, con los valores de `api_key`, `apikey`, `token`, `passkey`, `password` y `secret` en pares `clave=valor` sustituidos por `***`, y se trunca a 200 caracteres más `...`. Con `--files`: `<lastWriteTime>  <filename>` por fichero. Argumentos no válidos imprimen `ERROR:` (y el uso, salvo en un nivel no válido) por stderr y terminan con 1 antes de llamar a Sonarr; si el servicio no expone `/log`, `ERROR: respuesta inesperada de /log (¿el servicio no expone el endpoint?)`.
+
+### Salud, cola, indexadores, clientes de descarga y perfiles
+
+Solo lectura. Ninguno admite argumentos (un argumento sobrante imprime `ERROR:` y el uso por stderr y termina con 1). Nunca imprimen claves de API, contraseñas, tokens ni nombres de usuario: se muestra un resumen por elemento y se descartan los campos sensibles.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" health
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" queue
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" indexers
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" downloadclients
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" customformats
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" qualityprofiles
+```
+
+**Salida:**
+- `health`: `Sin avisos de salud` o una línea `[tipo] origen: mensaje` por aviso.
+- `queue`: `En cola: <total>` (hasta 100 elementos) y una línea por elemento: `[id] título - estado/estadoDescarga - progreso - restante: <tiempo> - protocolo (cliente)`. El progreso es `?` si Sonarr/Sonarr aún no conoce el tamaño.
+- `indexers`: `[id] nombre (implementación) - protocolo - prioridad N - rss: ..., auto: ..., interactiva: ...`.
+- `downloadclients`: `[id] nombre (implementación) - protocolo - prioridad N - activo: true`.
+- `customformats`: `[id] nombre - N condiciones`.
+- `qualityprofiles`: `[id] nombre - minFormatScore: N, cutoffFormatScore: N` y, debajo, una línea `    formato: puntuación` por cada formato con puntuación distinta de 0 (`(sin formatos puntuados)` si no hay ninguno).
+
+Si Sonarr responde con un HTTP que no es 2xx, imprimen `ERROR: GET <ruta> respondió HTTP <código>` por stderr y terminan con 1.
+
+### Salud, cola, indexadores, clientes de descarga y perfiles
+
+Solo lectura. Ninguno admite argumentos (un argumento sobrante imprime `ERROR:` y el uso por stderr y termina con 1). Nunca imprimen claves de API, contraseñas, tokens ni nombres de usuario: se muestra un resumen por elemento y se descartan los campos sensibles.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" health
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" queue
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" indexers
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" downloadclients
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" customformats
+bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.sh" qualityprofiles
+```
+
+**Salida:**
+- `health`: `Sin avisos de salud` o una línea `[tipo] origen: mensaje` por aviso.
+- `queue`: `En cola: <total>` (hasta 100 elementos) y una línea por elemento: `[id] título - estado/estadoDescarga - progreso - restante: <tiempo> - protocolo (cliente)`. El progreso es `?` si Sonarr/Radarr aún no conoce el tamaño.
+- `indexers`: `[id] nombre (implementación) - protocolo - prioridad N - rss: ..., auto: ..., interactiva: ...`.
+- `downloadclients`: `[id] nombre (implementación) - protocolo - prioridad N - activo: true`.
+- `customformats`: `[id] nombre - N condiciones`.
+- `qualityprofiles`: `[id] nombre - minFormatScore: N, cutoffFormatScore: N` y, debajo, una línea `    formato: puntuación` por cada formato con puntuación distinta de 0 (`(sin formatos puntuados)` si no hay ninguno).
+
+Si Sonarr responde con un HTTP que no es 2xx, imprimen `ERROR: GET <ruta> respondió HTTP <código>` por stderr y terminan con 1.
+
 ## Flujo de trabajo
 
 1. **"Añade X a Sonarr"** → `search "X"`, muestra la lista numerada y deja elegir
@@ -133,11 +200,13 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.s
 | `[perfilId]` | add | Entero; segundo argumento; por defecto `SONARR_DEFAULT_QUALITY_PROFILE` o 1 |
 | `--no-search` | add | En cualquier posición; no lanza la búsqueda |
 | `--delete-files` | remove | Solo como segundo argumento; borra los ficheros del disco |
+| `[N]`, `--level`, `--grep`, `--files` | logs | Ver el apartado del log |
+| (ninguno) | health, queue, indexers, downloadclients, customformats, qualityprofiles | No admiten argumentos |
 
 ## Notas
 
 - Nunca imprimas `SONARR_API_KEY` ni uses `curl` con la clave en línea: usa siempre el script.
-- Timeouts: `search` y `status` 25 s (librería compartida); el resto, 10 s de conexión y 30 s en total, sin reintentos.
+- Timeouts: `search`, `status`, `logs` y los comandos de solo lectura `health`, `queue`, `indexers`, `downloadclients`, `customformats` y `qualityprofiles` 25 s (librería compartida); el resto, 10 s de conexión y 30 s en total, sin reintentos.
 - Las horas del usuario son las de la máquina donde corre el plugin (regla global en `plex-crew-rules`).
 
 ### Limitaciones conocidas
@@ -148,7 +217,8 @@ PLEX_CREW_CONFIRMED=1 bash "${CLAUDE_PLUGIN_ROOT}/skills/sonarr/scripts/sonarr.s
 - `search` muestra solo 10 resultados, sin sinopsis ni slug; `search-json` devuelve todos.
 - Todos los comandos pasan la clave a curl por stdin (`--config -`), sin que aparezca en `ps`, y con `--connect-timeout` de 10 s (`ARR_CONNECT_TIMEOUT`).
 - La barra final de `SONARR_URL` no se quita y da `//api/v3`.
-- No hay comandos de episodios, calendario, cola, historial, logs, refresh ni búsqueda de episodios.
+- No hay comandos de episodios, calendario, historial, refresh ni búsqueda de episodios. `queue` muestra hasta 100 elementos, sin paginar.
+- `logs`: el enmascarado solo cubre pares `clave=valor` con las seis claves indicadas (no JSON, cabeceras ni `Bearer`); `--grep` solo ve las `min(N*20, 1000)` entradas más recientes; solo se muestra la primera línea de cada mensaje.
 
 ## Referencia
 

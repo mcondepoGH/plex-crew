@@ -20,6 +20,13 @@ Solo se documenta lo que usa el script. Documentación oficial: https://sonarr.t
 | `status` | `GET /system/status` | Timeout de 25 s |
 | `add <tvdbId> [perfilId] [--no-search]` | `GET /series/lookup?term=tvdb:<N>`, `GET /rootfolder`, `POST /series` | Sin consultar `/qualityprofile` |
 | `remove <tvdbId> [--delete-files]` | `GET /series?tvdbId=<N>` y `DELETE /series/<id>?deleteFiles=<true\|false>` | `id` es el de Sonarr, no el de TVDB |
+| `logs [N] [opciones]` | `GET /log?page=1&pageSize=<P>&sortKey=time&sortDirection=descending[&level=<nivel>]` o `GET /log/file` | Timeout de 25 s |
+| `health` | `GET /health` | Timeout de 25 s; solo lectura |
+| `queue` | `GET /queue?page=1&pageSize=100` | Timeout de 25 s; solo lectura |
+| `indexers` | `GET /indexer` | Se descartan los campos sensibles (`fields`, claves, usuario); solo lectura |
+| `downloadclients` | `GET /downloadclient` | Se descartan los campos sensibles; solo lectura |
+| `customformats` | `GET /customformat` | Solo lectura |
+| `qualityprofiles` | `GET /qualityprofile` | Muestra `minFormatScore`, `cutoffFormatScore` y los `formatItems` con `score` distinto de 0; solo lectura |
 
 ## Campos de respuesta usados
 
@@ -28,8 +35,14 @@ Solo se documenta lo que usa el script. Documentación oficial: https://sonarr.t
 | `/series/lookup` | `title`, `year`, `tvdbId` (y el objeto completo, que `add` reenvía) |
 | `/series` | `id`, `title`, `year`, `statistics.seasonCount` |
 | `/rootfolder` | `id`, `path` |
-| `/qualityprofile` | `id`, `name` |
+| `/qualityprofile` | `id`, `name` (en `qualityprofiles` también `minFormatScore`, `cutoffFormatScore`, `formatItems[].name`, `formatItems[].score`) |
 | `/system/status` | `version`, `instanceName`, `osName`, `branch` |
+| `/log` | `records[]` con `time`, `level`, `logger`, `message` |
+| `/log/file` | `lastWriteTime`, `filename` |
+| `/health` | `type`, `source`, `message` |
+| `/queue` | `totalRecords`, `records[]` con `id`, `title`, `status`, `trackedDownloadState`, `size`, `sizeleft`, `timeleft`, `protocol`, `downloadClient` |
+| `/indexer`, `/downloadclient` | `id`, `name`, `implementation`, `protocol`, `priority`, `enable`, `enableRss`, `enableAutomaticSearch`, `enableInteractiveSearch` |
+| `/customformat` | `id`, `name`, `specifications` (solo su número) |
 
 ## Cuerpo de `POST /series`
 

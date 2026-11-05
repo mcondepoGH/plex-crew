@@ -94,6 +94,19 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --grep "rootfo
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" logs --files
 ```
 
+### Salud, cola, indexadores y perfiles (solo lectura)
+
+Sin claves ni credenciales en la salida.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" health
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" queue
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" indexers
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" downloadclients
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" customformats
+bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" qualityprofiles
+```
+
 ## Referencia de la API
 
 - [Endpoints de la API](references/api-endpoints.md)
