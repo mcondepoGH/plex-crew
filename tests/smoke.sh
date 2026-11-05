@@ -180,6 +180,26 @@ if [ -f "$PRW" ]; then
   done
 fi
 
+# 5h. agregarr logs: acepta {pageInfo, results:[...]} y array plano (curl simulado, sin red)
+AGR=skills/agregarr/scripts/agregarr.sh
+if [ -f "$AGR" ]; then
+  FB="$TMP/fakebin"; mkdir -p "$FB"
+  cat >"$FB/curl" <<'FAKE'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s\n200' "$(cat "$FAKE_BODY")"
+FAKE
+  chmod +x "$FB/curl"
+  printf '%s' '{"pageInfo":{"pages":1,"pageSize":1,"results":1,"page":1},"results":[{"timestamp":"T1","level":"info","label":"L","message":"hola"}]}' >"$TMP/logs-obj.json"
+  printf '%s' '[{"timestamp":"T2","level":"warn","label":"L","message":"adios"}]' >"$TMP/logs-arr.json"
+  for pair in "logs-obj.json:T1 [info] L: hola" "logs-arr.json:T2 [warn] L: adios"; do
+    fx="${pair%%:*}"; want="${pair#*:}"
+    env -i PATH="$FB:$PATH" "${DUMMY_ENV[@]}" FAKE_BODY="$TMP/$fx" timeout 20 bash "$AGR" logs 5 >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 0 ] && grep -qxF "$want" "$TMP/out"; then ok "$AGR logs con $fx"; else fail "$AGR logs con $fx" "rc=$rc $(head -c 200 "$TMP/out" | tr '\n' ' ')"; fi
+  done
+fi
+
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck tests/smoke.sh" shellcheck "$ROOT/tests/smoke.sh"

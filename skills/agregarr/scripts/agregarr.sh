@@ -116,7 +116,7 @@ case "$cmd" in
     path="/settings/logs?take=$n&skip=0"
     [[ -n "$level" ]] && path+="&filter=$level"
     arr_call GET "$path" || exit 1
-    jq -r '.[]? | "\(.timestamp) [\(.level)] \(.label // ""): \(.message)"' <<<"$ARR_BODY"
+    jq -r '(if type == "array" then . else .results end)[]? | "\(.timestamp) [\(.level)] \(.label // ""): \(.message)"' <<<"$ARR_BODY"
     ;;
 
   sync)

@@ -28,7 +28,7 @@ curl -s "$AGREGARR_URL/api/v1/collections" -H "X-Api-Key: $AGREGARR_API_KEY" | j
 
 **GET `/status`** (público, sin clave) — `version`, `commitTag`, `updateAvailable`, `commitsBehind`, `restartRequired`.
 
-**GET `/settings/logs?take=&skip=&filter=`** — array de `{label, level, message, timestamp}`. `filter`: `debug|info|warn|error`.
+**GET `/settings/logs?take=&skip=&filter=`** — `{ "pageInfo": {pages, pageSize, results, page}, "results": [...] }`; cada entrada de `results` trae `label`, `level`, `message`, `timestamp` (y `collectionNames`, `count`, `data`). El script tolera también un array plano. `filter`: `debug|info|warn|error`.
 
 **GET `/settings/jobs`** — array de tareas: `id`, `name`, `type`, `interval`, `cronSchedule`, `nextExecutionTime`, `running`.
 
