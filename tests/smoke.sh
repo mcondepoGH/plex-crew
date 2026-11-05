@@ -200,6 +200,26 @@ FAKE
     rc=$?
     if [ "$rc" -eq 0 ] && grep -qxF "$want" "$TMP/out"; then ok "$AGR logs con $fx"; else fail "$AGR logs con $fx" "rc=$rc $(head -c 200 "$TMP/out" | tr '\n' ' ')"; fi
   done
+  # sintaxis: --level, posicional y errores de uso; el curl simulado guarda la config recibida
+  cat >"$FB/curl" <<'FAKE'
+#!/usr/bin/env bash
+cat >"$FAKE_CFG"
+printf '%s\n200' "$(cat "$FAKE_BODY")"
+FAKE
+  chmod +x "$FB/curl"
+  for args in "--level error" "5 error" "--lines 5 --level ERROR"; do
+    : >"$TMP/cfg"
+    # shellcheck disable=SC2086
+    env -i PATH="$FB:$PATH" "${DUMMY_ENV[@]}" FAKE_BODY="$TMP/logs-obj.json" FAKE_CFG="$TMP/cfg" timeout 20 bash "$AGR" logs $args >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 0 ] && grep -qxF "T1 [info] L: hola" "$TMP/out" && grep -q 'filter=error' "$TMP/cfg"; then ok "$AGR logs $args"; else fail "$AGR logs $args" "rc=$rc $(head -c 200 "$TMP/out" | tr '\n' ' ')"; fi
+  done
+  for args in "--level" "--level x" "--bogus" "5 error extra" "--lines"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$FB:$PATH" "${DUMMY_ENV[@]}" FAKE_BODY="$TMP/logs-obj.json" FAKE_CFG="$TMP/cfg" timeout 20 bash "$AGR" logs $args >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$AGR logs $args rc 1"; else fail "$AGR logs $args rc 1" "rc=$rc"; fi
+  done
 fi
 
 # 5i. radarr/sonarr: comandos de solo lectura con curl simulado; los secretos no salen en la salida

@@ -98,8 +98,9 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh" run-job <jobId>
 ## Parámetros
 
 ### Comando logs
-- `[n]`: número de entradas (por defecto: 50)
-- `[nivel]`: `debug`, `info`, `warn` o `error`
+- `[n]` o `--lines n`: número de entradas (por defecto: 50)
+- `[nivel]` o `--level nivel`: `debug`, `info`, `warn` o `error`
+- Ambas formas valen: `logs 5 error` y `logs --level error --lines 5`. Opción desconocida, valor vacío o nivel no válido: error de uso (código 1)
 
 ### Comando sync-collection
 - `<id>`: id numérico de la colección (empiezan en 10000)

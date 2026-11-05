@@ -17,7 +17,8 @@ Comandos (los marcados JSON devuelven JSON; el resto, texto):
   sync-status                  Estado de la sincronización de colecciones en curso o la última (texto)
   jobs                         Tareas programadas y su próxima ejecución (texto)
   logs [n] [nivel]             Últimas n entradas del log (50 por defecto);
-                               nivel: debug/info/warn/error (texto)
+       [--lines n] [--level nivel]  nivel: debug/info/warn/error (texto); admite la forma
+                               posicional (logs 5 error) y las opciones (logs --level error)
   sync                         Lanzar la sincronización de todas las colecciones (escritura, texto)
   sync-collection <id>         Sincronizar una sola colección (escritura, texto)
   run-job <jobId>              Ejecutar una tarea programada (escritura, texto)
@@ -104,15 +105,42 @@ case "$cmd" in
     ;;
 
   logs)
-    n="${1:-50}"
-    level="${2:-}"
-    require_number "$n" "logs [n] [nivel]"
-    if [[ -n "$level" ]]; then
-      case "$level" in
-        debug|info|warn|error) ;;
-        *) usage_error "nivel no válido: $level (usa debug, info, warn o error)" "logs [n] [nivel]" ;;
+    LOGS_USE="logs [n] [nivel] | logs [--lines n] [--level nivel]"
+    n=50
+    level=""
+    pos=0
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --level)
+          [[ -n "${2:-}" ]] || usage_error "--level requiere un valor" "$LOGS_USE"
+          level="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+          shift 2
+          ;;
+        --lines)
+          [[ -n "${2:-}" ]] || usage_error "--lines requiere un valor" "$LOGS_USE"
+          require_number "$2" "$LOGS_USE"
+          n="$2"
+          shift 2
+          ;;
+        -*)
+          usage_error "opción desconocida para logs: $1" "$LOGS_USE"
+          ;;
+        *)
+          pos=$((pos + 1))
+          case "$pos" in
+            1) require_number "$1" "$LOGS_USE"; n="$1" ;;
+            2) level="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+               [[ -n "$level" ]] || usage_error "nivel vacío" "$LOGS_USE" ;;
+            *) usage_error "argumento sobrante para logs: $1" "$LOGS_USE" ;;
+          esac
+          shift
+          ;;
       esac
-    fi
+    done
+    case "$level" in
+      ""|debug|info|warn|error) ;;
+      *) usage_error "nivel no válido: $level (usa debug, info, warn o error)" "$LOGS_USE" ;;
+    esac
     path="/settings/logs?take=$n&skip=0"
     [[ -n "$level" ]] && path+="&filter=$level"
     arr_call GET "$path" || exit 1

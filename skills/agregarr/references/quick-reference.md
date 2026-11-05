@@ -19,6 +19,8 @@ curl -s "$AGREGARR_URL/api/v1/status" | jq
 
 ### Últimos logs de error
 
+Con el script: `agregarr.sh logs --level error` (o `logs 20 error`). Con curl:
+
 ```bash
 curl -s "$AGREGARR_URL/api/v1/settings/logs?take=20&skip=0&filter=error" \
   -H "X-Api-Key: $AGREGARR_API_KEY" | jq -r '.[] | "\(.timestamp) [\(.level)] \(.label): \(.message)"'

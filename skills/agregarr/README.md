@@ -63,6 +63,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh" sync-status
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh" jobs
 bash "${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh" logs 20 error
+bash "${CLAUDE_PLUGIN_ROOT}/skills/agregarr/scripts/agregarr.sh" logs --level error --lines 20
 ```
 
 ### Sincronizar
