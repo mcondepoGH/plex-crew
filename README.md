@@ -2,7 +2,7 @@
 
 Versión 1.3.0.
 
-Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Todo funciona en español y asume que las horas que menciona el usuario son la hora local de la máquina donde corre el plugin (zona horaria del sistema).
+Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Se asume que las horas que menciona el usuario son la hora local de la máquina donde corre el plugin (zona horaria del sistema).
 
 ## Resumen
 
@@ -119,7 +119,7 @@ Cada skill tiene su `README.md` con el detalle. Todas son propias, siguen la mis
 | [`rutorrent`](skills/rutorrent/README.md) | Servicio | Listar, añadir, crear y quitar torrents de ruTorrent |
 | [`agregarr`](skills/agregarr/README.md) | Servicio | Listas y colecciones de Agregarr (nueva en 0.3.0) |
 | [`dozzle`](skills/dozzle/README.md) | Servicio | Estado y logs de los contenedores a través de Dozzle (solo lectura) |
-| [`plex-crew-rules`](skills/plex-crew-rules/README.md) | Reglas | Reglas globales: idioma, hora, doble confirmación, secretos, tareas programadas |
+| [`plex-crew-rules`](skills/plex-crew-rules/README.md) | Reglas | Reglas globales: hora, doble confirmación, secretos, tareas programadas |
 | [`plex-naming-rules`](skills/plex-naming-rules/README.md) | Reglas | Nombrado de Plex para series, películas, especiales e identificadores |
 | [`arr-language-filters`](skills/arr-language-filters/README.md) | Reglas | Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr, y sus límites |
 

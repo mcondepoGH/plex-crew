@@ -25,7 +25,7 @@ Especial:  Serie (Año)/Season 00/Serie (Año) - S00EXX.ext
 
 ## Formato de episodio de series
 
-Nombres de fichero. Los ejemplos son los originales (referencia de partida, orientativos); el formato final y las reglas definitivas están en `SKILL.md`: idioma `[Idioma]` (no `[JA]`) solo en la carpeta de serie, nunca en el fichero de episodio, grupo entre corchetes al final (`[ZEA]`, no `-RlsGrp`), etiquetas solo si el release las trae, título opcional, fecha solo en diarias, especiales de anime `S00Exx`.
+Nombres de fichero. Los ejemplos son los originales (referencia de partida, orientativos); el formato final y las reglas definitivas están en `SKILL.md`: idioma `[Idioma]` (no `[JA]`) solo en la carpeta de serie, nunca en el fichero de episodio, grupo entre corchetes al final (`[Grupo]`, no `-RlsGrp`), etiquetas solo si el release las trae, título opcional, fecha solo en diarias, especiales de anime `S00Exx`.
 
 | Tipo | Ejemplo |
 |------|---------|
@@ -45,10 +45,10 @@ Nombre de fichero. El ejemplo es el original (referencia de partida, orientativo
 
 | Tipo | Ejemplo |
 |------|---------|
-| Original (referencia) | `The Movie Title (2010) {tmdb-345691} - {edition-Ultimate Extended Edition} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC]-EVOLVE` |
+| Original (referencia) | `The Movie Title (2010) {tmdb-345691} - {edition-Ultimate Extended Edition} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC]-Grupo` |
 | Formato final | `The Movie Title (2010) {tmdb-345691} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC][Idioma][Grupo] {edition-Ultimate Extended Edition}.mkv` |
 
-Id siempre de TMDB, justo tras el año, en carpeta (`Título (Año) {tmdb-#######}`) y en fichero. Edición `{edition-Nombre}` al final, antes de la extensión, solo si existe, sin ` - `. Etiquetas solo con evidencia (`Proper`, `3D`, `Surround Sound`, `Bluray` solo si el release las trae; `[Idioma]` con ffprobe). Grupo entre corchetes, sin `-EVOLVE`; se omite si no se conoce.
+Id siempre de TMDB, justo tras el año, en carpeta (`Título (Año) {tmdb-#######}`) y en fichero. Edición `{edition-Nombre}` al final, antes de la extensión, solo si existe, sin ` - `. Etiquetas solo con evidencia (`Proper`, `3D`, `Surround Sound`, `Bluray` solo si el release las trae; `[Idioma]` con ffprobe). Grupo entre corchetes, sin `-Grupo`; se omite si no se conoce.
 
 ## Rutas de contenedor a rutas del host
 

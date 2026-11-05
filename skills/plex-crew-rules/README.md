@@ -4,7 +4,6 @@ Reglas globales de plex-crew que aplican a todos los agentes. No tiene scripts.
 
 ## Qué hace
 
-- **Idioma** — Responde siempre en español
 - **Zona horaria** — Las horas del usuario se interpretan en la hora local de la máquina donde corre el plugin (zona horaria del sistema)
 - **Doble confirmación** — Dos mensajes distintos del usuario antes de cualquier operación destructiva
 - **Marcador** — `PLEX_CREW_CONFIRMED=1` solo después de esa confirmación

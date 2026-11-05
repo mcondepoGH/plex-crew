@@ -4,7 +4,6 @@ Reglas de un vistazo.
 
 | Regla | Qué exige | Cuándo aplica |
 |-------|-----------|---------------|
-| Idioma | Responder siempre en español | Siempre |
 | Hora | Las horas del usuario son las de la máquina donde corre el plugin (zona horaria del sistema); no preguntes la zona | Crons, programaciones, logs |
 | Doble confirmación | Dos mensajes distintos del usuario, incluso en modo automático | Operaciones destructivas |
 | Marcador | `PLEX_CREW_CONFIRMED=1 ` antes del comando, solo tras la confirmación; con `cd`, después del `&&` | Comandos `Bash` destructivos |

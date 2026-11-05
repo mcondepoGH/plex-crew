@@ -59,7 +59,7 @@ Formato final aplicado
 
 Reglas definitivas:
 1. Idioma: en SERIES el idioma (`[Idioma]`, p. ej. `[Japones]`, `[Sub Español]`...) va SOLO en la carpeta de serie; los ficheros de episodio NO llevan etiqueta de idioma. No se usa `[JA]`. Orden de etiquetas en el fichero de serie: verificables y luego `[GRUPO]`. Las PELÍCULAS no cambian: siguen con `[Idioma]` en el fichero cuando hay evidencia con ffprobe.
-2. Grupo de release: sin el guion de `-RlsGrp`; se conserva entre corchetes y al final, como `[ZEA]`. Si no se conoce el grupo, se omite.
+2. Grupo de release: sin el guion de `-RlsGrp`; se conserva entre corchetes y al final, como `[Grupo]`. Si no se conoce el grupo, se omite.
 3. Calidad: solo etiquetas que el release original ya traiga en el nombre (`WEBDL-1080p`, `Proper`, `v2`, etc.); nunca se añaden por cuenta propia ni se inventan.
 4. Título de episodio: opcional, solo si se conoce con seguridad (`SxxExx - Título`); si no, se omite.
 5. Diarios: el formato por fecha (`Serie (Año) - 2013-10-30 - Título`) solo para series diarias; el resto sigue con `SxxExx`.
@@ -73,7 +73,7 @@ Reglas de aplicación:
 Formato de nombre de FICHERO de película. Es ORIENTATIVO: se aplica solo con datos verificables y nunca se inventa una etiqueta.
 
 Ejemplo original (referencia de partida, no se copia tal cual)
-- `The Movie Title (2010) {tmdb-345691} - {edition-Ultimate Extended Edition} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC]-EVOLVE`
+- `The Movie Title (2010) {tmdb-345691} - {edition-Ultimate Extended Edition} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC]-Grupo`
 
 Formato final aplicado
 - Carpeta: `Título (Año) {tmdb-#######}`
@@ -84,7 +84,7 @@ Reglas definitivas:
 1. Id: va justo tras el año, `Título (Año) {tmdb-#######}`, siempre TMDB, con llaves. Sustituye a "id al final del nombre" para películas: en la carpeta no hay nada tras el id; en el fichero solo pueden ir detrás las etiquetas, el grupo y la edición.
 2. Edición: `{edition-Nombre}` (Plex Pass; hasta 32 caracteres) va al FINAL del nombre, justo antes de la extensión, que es la posición que muestra la documentación oficial de Plex (`Blade Runner (1982) {edition-Director's Cut}.mp4`). Solo si la película tiene una edición distinta de la estándar. Con una carpeta por película puede ir en la carpeta, en el fichero o en ambos; aquí se pone en el fichero.
 3. Separador: no se usa ` - ` antes de la edición; basta un espacio, como en el ejemplo de la documentación de Plex. Tampoco hay guion entre id y etiquetas.
-4. Grupo de release: el sufijo con guion (`-EVOLVE`) no se usa; el grupo o la etiqueta del release se conserva entre corchetes (`[Grupo]`) y se omite si no se conoce.
+4. Grupo de release: el sufijo con guion (`-Grupo`) no se usa; el grupo o la etiqueta del release se conserva entre corchetes (`[Grupo]`) y se omite si no se conoce.
 5. Etiquetas no verificables con ffprobe (`Proper`, `3D`, `Surround Sound`, `Bluray`): solo si el release original las trae en el nombre.
 6. Idioma: `[Idioma]` cuando haya evidencia con ffprobe.
 
@@ -123,7 +123,7 @@ Aplícalo a **todos** los episodios del release en una sola pasada, no solo al r
 ```text
 Carpeta:   Mi Serie (2015) [Idioma]
 Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1].mkv
-Con título: Mi Serie (2015) - S01E02 - Título [HDTV 720p][ZEA].mkv
+Con título: Mi Serie (2015) - S01E02 - Título [HDTV 720p][Grupo].mkv
 Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Idioma].mkv
 Edición:   Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Idioma] {edition-Director's Cut}.mkv
 Especial:  Mi Serie (2015)/Season 00/Mi Serie (2015) - S00E01.mkv

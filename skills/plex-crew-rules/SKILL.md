@@ -1,6 +1,6 @@
 ---
 name: plex-crew-rules
-description: Esta skill debe usarse en cualquier tarea de plex-crew. Contiene las reglas globales que aplican a todos los agentes. Úsala cuando se opere sobre el stack Plex, y cuando el usuario pida "reglas globales", "doble confirmación", "idioma", "zona horaria", o mencione el marcador PLEX_CREW_CONFIRMED, secretos, tareas programadas o carpetas .@*.
+description: Esta skill debe usarse en cualquier tarea de plex-crew. Contiene las reglas globales que aplican a todos los agentes. Úsala cuando se opere sobre el stack Plex, y cuando el usuario pida "reglas globales", "doble confirmación", "zona horaria", o mencione el marcador PLEX_CREW_CONFIRMED, secretos, tareas programadas o carpetas .@*.
 ---
 
 # Skill de reglas globales de plex-crew
@@ -16,7 +16,7 @@ Reúne las reglas que aplican al orquestador y a los dos especialistas, con inde
 ## Propósito
 
 Esta skill fija las reglas transversales del proyecto:
-- Idioma y zona horaria de las respuestas
+- Zona horaria de las horas que menciona el usuario
 - Doble confirmación de las operaciones destructivas y uso del marcador
 - Manejo de secretos
 - Tareas programadas
@@ -29,8 +29,7 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 
 ## Reglas
 
-### Idioma y hora
-- Responde siempre en español.
+### Hora
 - Las horas que menciona el usuario sin zona se interpretan en la hora local de la máquina donde corre el plugin (zona horaria del sistema). No preguntes la zona horaria.
 
 ### Doble confirmación y marcador
@@ -57,8 +56,8 @@ Para que se vea desde fuera por dónde va un agente, el plugin lleva un log auto
 - El orquestador da al usuario la ruta del log automático del día para que haga `tail -f`.
 
 ### Skills opcionales (caveman y superpowers)
-Mejoran el comportamiento, pero no son requisito. Si una skill no está disponible, sigue sin ella: no la menciones ni pidas instalarla. Si alguna regla de estas skills choca con las de plex-crew, mandan las de plex-crew (idioma, doble confirmación y marcador, secretos, carpetas `.@*`, hooks).
-- `caveman`: si está disponible, úsala en lo que se dice en el chat: informes de los subagentes al orquestador y síntesis del orquestador al usuario (respuesta primero, sin relleno, tablas solo si aportan). Se mantiene el español. Prosa normal y completa en: propuestas y confirmaciones destructivas (qué se borra o modifica, rutas exactas, las dos confirmaciones), avisos de seguridad, pasos donde el orden importa, preguntas al usuario, y todo lo que se persiste fuera del chat (ficheros, nombres, líneas de log, mensajes de commit, documentación, prompts de delegación). Comandos, rutas, ids y cifras, siempre literales.
+Mejoran el comportamiento, pero no son requisito. Si una skill no está disponible, sigue sin ella: no la menciones ni pidas instalarla. Si alguna regla de estas skills choca con las de plex-crew, mandan las de plex-crew (doble confirmación y marcador, secretos, carpetas `.@*`, hooks).
+- `caveman`: si está disponible, úsala en lo que se dice en el chat: informes de los subagentes al orquestador y síntesis del orquestador al usuario (respuesta primero, sin relleno, tablas solo si aportan). Prosa normal y completa en: propuestas y confirmaciones destructivas (qué se borra o modifica, rutas exactas, las dos confirmaciones), avisos de seguridad, pasos donde el orden importa, preguntas al usuario, y todo lo que se persiste fuera del chat (ficheros, nombres, líneas de log, mensajes de commit, documentación, prompts de delegación). Comandos, rutas, ids y cifras, siempre literales.
 - `superpowers:systematic-debugging`: si está disponible, úsala al depurar (un rechazo o descarga extraña, un indexador que falla, un emparejado erróneo): causa raíz con evidencia antes de proponer cambios. No se aplica a peticiones rutinarias.
 - `superpowers:verification-before-completion`: si está disponible, úsala antes de dar una operación por hecha: comprueba el estado real (por ejemplo `exists`, `libraries`, `search` o `metadata`, o listar la carpeta) y afirma el éxito con esa evidencia, no por suposición.
 - `superpowers:dispatching-parallel-agents`: si está disponible, la usa el orquestador con peticiones mixtas de partes independientes.

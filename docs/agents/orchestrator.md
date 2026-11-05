@@ -74,7 +74,7 @@ Los subagentes no tienen `ArtifactData`, y por eso es el orquestador quien escri
 
 ## Skills
 
-Declara `skills: plex-crew-rules` en su frontmatter (reglas globales: idioma, hora, doble confirmación, secretos). El resto de skills las cargan los subagentes; el índice está en el [README raíz](../../README.md#skills).
+Declara `skills: plex-crew-rules` en su frontmatter (reglas globales: hora, doble confirmación, secretos). El resto de skills las cargan los subagentes; el índice está en el [README raíz](../../README.md#skills).
 
 ## Hooks y salvaguardas
 

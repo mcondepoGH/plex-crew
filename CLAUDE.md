@@ -2,7 +2,7 @@
 
 Plugin de Claude Code con agentes y skills para operar el stack Plex. Un orquestador (agente de la sesión principal) enruta cada petición al especialista adecuado.
 
-Un plugin instalado no carga este `CLAUDE.md` como contexto: es solo la guía para trabajar en el repositorio. Las reglas globales que aplican en ejecución (idioma, hora, doble confirmación y marcador `PLEX_CREW_CONFIRMED=1`, secretos, tareas programadas, carpetas `.@*`) viven en la skill `skills/plex-crew-rules`, que cargan los cuatro agentes. Si cambias una regla global, cámbiala allí.
+Un plugin instalado no carga este `CLAUDE.md` como contexto: es solo la guía para trabajar en el repositorio. Las reglas globales que aplican en ejecución (hora, doble confirmación y marcador `PLEX_CREW_CONFIRMED=1`, secretos, tareas programadas, carpetas `.@*`) viven en la skill `skills/plex-crew-rules`, que cargan los cuatro agentes. Si cambias una regla global, cámbiala allí.
 
 ## Reglas de desarrollo
 - Servicios del stack: usa las skills de `skills/` (prowlarr, radarr, sonarr, plex, tautulli, seerr, cli_debrid, rutorrent, agregarr, dozzle), no curl con claves en línea.
