@@ -42,7 +42,7 @@ Sin configuración ni variables de entorno. Localiza las bibliotecas de Plex con
 - Especiales y películas que TVDB lista como Special dentro de la serie: `S00EXX` en `Season 00`, numerados según el orden de TVDB. Solo van a `movies` si TVDB no los coloca en la serie.
 
 ### Formato de episodio de series
-Formatos tipo Sonarr aprobados por el usuario el 2026-10-16. Son nombres de FICHERO de episodio de series. Los ejemplos originales son el punto de partida; los formatos de los usuarios son ORIENTATIVOS: se aplican solo con datos verificables y nunca se inventa una etiqueta.
+Formatos de episodio tipo Sonarr. Son nombres de FICHERO de episodio de series. Los ejemplos originales son el punto de partida; estos formatos son ORIENTATIVOS: se aplican solo con datos verificables y nunca se inventa una etiqueta.
 
 Ejemplos originales (referencia de partida, no se copian tal cual)
 - Episodio individual: `The Series Title's! (2010) - S01E01 - Episode Title 1 [Surround Sound x264][WEBDL-1080p Proper][DTS 5.1][AVC]-RlsGrp`
@@ -51,14 +51,14 @@ Ejemplos originales (referencia de partida, no se copian tal cual)
 - Anime individual: `The Series Title's! (2010) - S01E01 - 001 - Episode Title 1 [Surround Sound x264][WEBDL-1080p v2][DTS 5.1][JA][AVC 10bit]-RlsGrp`
 - Anime multi-episodio: `The Series Title's! (2010) - S01E01-E03 - 001-003 - Episode Title [Surround Sound x264][WEBDL-1080p v2][DTS 5.1][JA][AVC 10bit]-RlsGrp`
 
-Formato final aplicado (decisión del usuario, 2026-10-16)
+Formato final aplicado
 - Episodio: `Serie (Año) - SxxExx - Título del episodio [etiquetas verificables][GRUPO].ext`
 - Multi-episodio: `Serie (Año) - S01E01-E03 - Título [etiquetas][GRUPO].ext`
 - Diario (solo series diarias): `Serie (Año) - 2013-10-30 - Título [etiquetas][GRUPO].ext`
 - Cada pieza ausente se omite junto con su separador, sin huecos ni corchetes vacíos. Sin id (las series no llevan id).
 
 Reglas definitivas:
-1. Idioma (decisión del usuario, 2026-10-16): en SERIES el idioma (`[Castellano]`, `[Japones]`, `[Sub Español]`...) va SOLO en la carpeta de serie; los ficheros de episodio NO llevan etiqueta de idioma. No se usa `[JA]`. Orden de etiquetas en el fichero de serie: verificables y luego `[GRUPO]`. Las PELÍCULAS no cambian: siguen con `[Castellano]` en el fichero cuando hay evidencia con ffprobe.
+1. Idioma: en SERIES el idioma (`[Idioma]`, p. ej. `[Japones]`, `[Sub Español]`...) va SOLO en la carpeta de serie; los ficheros de episodio NO llevan etiqueta de idioma. No se usa `[JA]`. Orden de etiquetas en el fichero de serie: verificables y luego `[GRUPO]`. Las PELÍCULAS no cambian: siguen con `[Idioma]` en el fichero cuando hay evidencia con ffprobe.
 2. Grupo de release: sin el guion de `-RlsGrp`; se conserva entre corchetes y al final, como `[ZEA]`. Si no se conoce el grupo, se omite.
 3. Calidad: solo etiquetas que el release original ya traiga en el nombre (`WEBDL-1080p`, `Proper`, `v2`, etc.); nunca se añaden por cuenta propia ni se inventan.
 4. Título de episodio: opcional, solo si se conoce con seguridad (`SxxExx - Título`); si no, se omite.
@@ -70,33 +70,33 @@ Reglas de aplicación:
 - Las etiquetas se ponen solo con evidencia (ver "Calidad en el nombre").
 
 ### Formato de película
-Formato de nombre de FICHERO de película, aprobado por el usuario el 2026-10-16. El formato del usuario es ORIENTATIVO: se aplica solo con datos verificables y nunca se inventa una etiqueta.
+Formato de nombre de FICHERO de película. Es ORIENTATIVO: se aplica solo con datos verificables y nunca se inventa una etiqueta.
 
 Ejemplo original (referencia de partida, no se copia tal cual)
 - `The Movie Title (2010) {tmdb-345691} - {edition-Ultimate Extended Edition} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC]-EVOLVE`
 
-Formato final aplicado (decisión del usuario, 2026-10-16)
+Formato final aplicado
 - Carpeta: `Título (Año) {tmdb-#######}`
 - Fichero: `Título (Año) {tmdb-#######} [etiquetas verificables][grupo] {edition-Nombre}.ext`
-- Cada parte ausente se omite junto con su separador. Ejemplo completo: `The Movie Title (2010) {tmdb-345691} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC][Castellano][www.nucleohd.com] {edition-Ultimate Extended Edition}.mkv`; sin edición ni grupo: `The Movie Title (2010) {tmdb-345691} [1080p][Castellano].mkv`.
+- Cada parte ausente se omite junto con su separador. Ejemplo completo: `The Movie Title (2010) {tmdb-345691} [3D][Surround Sound x264][Bluray-1080p Proper][DTS 5.1][AVC][Idioma][Grupo] {edition-Ultimate Extended Edition}.mkv`; sin edición ni grupo: `The Movie Title (2010) {tmdb-345691} [1080p][Idioma].mkv`.
 
 Reglas definitivas:
 1. Id: va justo tras el año, `Título (Año) {tmdb-#######}`, siempre TMDB, con llaves. Sustituye a "id al final del nombre" para películas: en la carpeta no hay nada tras el id; en el fichero solo pueden ir detrás las etiquetas, el grupo y la edición.
 2. Edición: `{edition-Nombre}` (Plex Pass; hasta 32 caracteres) va al FINAL del nombre, justo antes de la extensión, que es la posición que muestra la documentación oficial de Plex (`Blade Runner (1982) {edition-Director's Cut}.mp4`). Solo si la película tiene una edición distinta de la estándar. Con una carpeta por película puede ir en la carpeta, en el fichero o en ambos; aquí se pone en el fichero.
 3. Separador: no se usa ` - ` antes de la edición; basta un espacio, como en el ejemplo de la documentación de Plex. Tampoco hay guion entre id y etiquetas.
-4. Grupo de release: el sufijo con guion (`-EVOLVE`) no se usa; el grupo o la etiqueta del release se conserva entre corchetes (`[www.nucleohd.com]`) y se omite si no se conoce.
+4. Grupo de release: el sufijo con guion (`-EVOLVE`) no se usa; el grupo o la etiqueta del release se conserva entre corchetes (`[Grupo]`) y se omite si no se conoce.
 5. Etiquetas no verificables con ffprobe (`Proper`, `3D`, `Surround Sound`, `Bluray`): solo si el release original las trae en el nombre.
-6. Idioma: `[Castellano]` cuando haya evidencia con ffprobe.
+6. Idioma: `[Idioma]` cuando haya evidencia con ffprobe.
 
 Nota: el artículo "Multiple Editions" de support.plex.tv devolvió 403 al leerlo directamente y se contrastó por búsqueda; la documentación no ilustra la edición con etiquetas delante, pero sí la edición como último elemento del nombre.
 
 ### Identificadores
-- El id que se escribe en los nombres es SIEMPRE el de TMDB, con la sintaxis `{tmdb-#######}`. Nunca `{imdb-...}` ni `{tvdb-...}` (decisión del usuario, 2026-10-16, sustituye a la regla "IMDb únicamente"). Siempre llaves; con corchetes Plex los ignora. imdb/tvdb solo sirven para buscar o emparejar (`set_external_id`, lookups), no para escribirlos en el nombre.
+- El id que se escribe en los nombres es SIEMPRE el de TMDB, con la sintaxis `{tmdb-#######}`. Nunca `{imdb-...}` ni `{tvdb-...}`. Siempre llaves; con corchetes Plex los ignora. imdb/tvdb solo sirven para buscar o emparejar (`set_external_id`, lookups), no para escribirlos en el nombre.
 - Un solo id por nombre.
-- **Regla (2026-10-16, decisión del usuario): SERIES, sin id, ni en la carpeta ni en los ficheros. PELÍCULAS, `{tmdb-#######}` en la carpeta Y en el fichero (y en sus ficheros hermanos, como subtítulos, si los hay).**
+- **Regla: SERIES, sin id, ni en la carpeta ni en los ficheros. PELÍCULAS, `{tmdb-#######}` en la carpeta Y en el fichero (y en sus ficheros hermanos, como subtítulos, si los hay).**
 - Si una película no tiene id de TMDB conocido, consúltalo (Guid `tmdb://` de Plex con `metadata`, lookup de Radarr o Seerr) o pregunta al usuario. Nunca pongas otro tipo de id como alternativa. En series no hay nada que consultar.
 - En películas el id va justo tras el año, `Título (Año) {tmdb-#######}`, nunca al principio del nombre. En la carpeta es lo último; en el fichero solo le siguen etiquetas verificables, grupo y `{edition-Nombre}`.
-- Carpeta de serie: `Serie (Año)`. Puede llevar idioma y calidad en corchetes tras el año: `Serie (Año) [Castellano][1080p]`. Cada etiqueta solo se añade si TODOS los archivos de la serie comparten ese mismo idioma / esa misma calidad; si difieren, se omite (puede ir una y no la otra, p. ej. calidad sí e idioma no).
+- Carpeta de serie: `Serie (Año)`. Puede llevar idioma y calidad en corchetes tras el año: `Serie (Año) [Idioma][1080p]`. Cada etiqueta solo se añade si TODOS los archivos de la serie comparten ese mismo idioma / esa misma calidad; si difieren, se omite (puede ir una y no la otra, p. ej. calidad sí e idioma no).
 - Riesgo (proyecto): sin id en series, Plex empareja por título y año. Ante un emparejado dudoso, comprueba el título y el año con la skill `plex` y avisa al usuario: el rematch manual se hace en Plex y no depende del nombre.
 - Alcance: las reglas se aplican a lo que se nombre desde ahora; el renombrado de la biblioteca existente se hace por decisión expresa del usuario, serie a serie.
 - La carpeta `Season` va siempre en inglés (`Season 01`).
@@ -104,7 +104,7 @@ Nota: el artículo "Multiple Editions" de support.plex.tv devolvió 403 al leerl
 ### Calidad en el nombre
 - Añade la calidad entre corchetes después de `SxxExx` (`[HDTV 720p][AC3 5.1]`; en series sin idioma en el fichero) solo si el nombre original ya la define; no se comprueba contra el fichero.
 - Si el original no define calidad, no la inventes.
-- Idioma: `spa` en los metadatos; "Castellano" procede del nombre del release original. En series se refleja solo en la carpeta (si todos los ficheros coinciden), no en el fichero.
+- Idioma: `spa` en los metadatos; la etiqueta de idioma procede del nombre del release original. En series se refleja solo en la carpeta (si todos los ficheros coinciden), no en el fichero.
 
 ### Patrón de corrección estándar (temporada o release mal nombrado)
 `Serie (Año) - SxxExx [calidad].ext`, sin id y sin idioma en el fichero (con ` - Título` tras `SxxExx` solo si el título se conoce con seguridad; el idioma va solo en la carpeta de serie)
@@ -121,11 +121,11 @@ Aplícalo a **todos** los episodios del release en una sola pasada, no solo al r
 ## Ejemplos
 
 ```text
-Carpeta:   Mi Serie (2015) [Castellano]
+Carpeta:   Mi Serie (2015) [Idioma]
 Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1].mkv
 Con título: Mi Serie (2015) - S01E02 - Título [HDTV 720p][ZEA].mkv
-Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Castellano].mkv
-Edición:   Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Castellano] {edition-Director's Cut}.mkv
+Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Idioma].mkv
+Edición:   Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Idioma] {edition-Director's Cut}.mkv
 Especial:  Mi Serie (2015)/Season 00/Mi Serie (2015) - S00E01.mkv
 ```
 

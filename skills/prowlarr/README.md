@@ -52,7 +52,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" tv-search -
 bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0111161
 ```
 
-Para Torrentio, el texto libre devuelve un título fijo: usa `movie-search` o `tv-search` con ids (ver la skill `arr-language-filters`).
+Con indexadores que solo aceptan ids (p. ej. Torrentio), el texto libre puede devolver un título que no es el buscado: usa `movie-search` o `tv-search` con ids (ver la skill `arr-language-filters`).
 
 ### Revisar indexadores
 

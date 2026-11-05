@@ -22,17 +22,16 @@ Filtros de cada sistema de un vistazo. Las reglas concretas son las que haya con
 | Formato de puntuación negativa (opcional) | Si tienes uno para evitar bloqueos de un servicio externo, revisa sus condiciones | Releases bloqueados por ese servicio |
 | Cambio de perfil de una serie existente | PUT sobre la serie (`qualityProfileId`), no `add` | Series existentes |
 
-## Torrentio en Prowlarr
+## Indexadores que solo aceptan ids (p. ej. Torrentio en Prowlarr)
 
-- Torrentio solo funciona por id de IMDb/Kitsu; una búsqueda de texto libre devuelve un id de validación fijo (Fight Club para películas, Reacher para series)
-- No quites `search: [q]` del yml: rompe todo el indexer
-- Haz que toda búsqueda en Torrentio lleve `imdbid`
+- Torrentio solo funciona por id de IMDb/Kitsu; una búsqueda de texto libre puede devolver un título que no es el buscado
+- Con indexadores que solo aceptan ids, usa `imdbid`; si devuelve el título equivocado, comprueba que la consulta lleva el id de IMDb
 
 ## Sincronización del mount con Radarr
 
-1. Lotes de 100, con un fichero de seguimiento
+1. Por lotes, con un fichero de seguimiento
 2. Duplicados: conserva el confirmado en el idioma deseado con la mayor resolución
-3. Ambiguos: ignóralos e infórmalos al final del lote (heurística: sin películas anteriores a 1980)
+3. Ambiguos: ignóralos e infórmalos al final del lote
 4. Año erróneo: corrígelo; no sobrescribas un destino existente
 5. Packs con varias películas: sepáralos solo con certeza
 6. Informa de cada lote al detalle

@@ -77,7 +77,7 @@ Opciones: `--torrents` (solo indexadores torrent), `--usenet` (solo usenet; gana
 
 **Salida:** un array JSON con objetos de claves `title`, `indexer`, `size` (cadena `"1536 MB"`), `seeders`, `leechers`, `age` (días, como lo da Prowlarr), `downloadUrl` e `infoUrl`. Sin texto de búsqueda: `ERROR: falta el texto de búsqueda` y el uso (código 1). La consulta es la primera palabra, salvo que empiece por `--`; entonces es la primera palabra suelta entre las opciones. Entrecomilla el texto.
 
-Para películas y series usa mejor los dos comandos siguientes: con Torrentio, el texto libre devuelve un título fijo (ver la skill `arr-language-filters`).
+Para películas y series usa mejor los dos comandos siguientes: con indexadores que solo aceptan ids (p. ej. Torrentio), el texto libre puede devolver un título que no es el buscado (ver la skill `arr-language-filters`).
 
 ### Buscar un episodio
 

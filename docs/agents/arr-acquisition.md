@@ -1,6 +1,6 @@
 # Adquisición de contenido (`arr-acquisition`)
 
-Especialista en buscar, añadir y auditar contenido con Radarr, Sonarr, Prowlarr, Seerr, cli_debrid y ruTorrent, con foco en audio en español.
+Especialista en buscar, añadir y auditar contenido con Radarr, Sonarr, Prowlarr, Seerr, cli_debrid y ruTorrent, con foco en el idioma de audio que defina el usuario.
 
 ## Cuándo se usa y qué no hace
 
@@ -18,7 +18,7 @@ Límites:
 - Quitar series o películas con borrado de ficheros requiere doble confirmación: devuelve la propuesta al orquestador.
 - Quitar torrents de ruTorrent o borrar sus datos requiere doble confirmación: devuelve la propuesta (hash, nombre, ficheros y ruta) al orquestador.
 - No imprime credenciales ni el contenido de `.env`.
-- No repite el arreglo de `search: [q]` de Torrentio (ver `arr-language-filters`).
+- Con indexadores que solo aceptan ids, busca con `imdbid`; si un indexador devuelve un título que no es el buscado, comprueba que la consulta lleva el id de IMDb (ver `arr-language-filters`).
 - No renombra nombres de Plex.
 
 ## Funciones
@@ -31,7 +31,7 @@ Límites:
 - Consultar el estado y los logs de los contenedores con Dozzle (solo lectura).
 - Monitorizar cli_debrid, Plex y Tautulli.
 - Gestionar torrents de ruTorrent: listar, añadir, controlar, crear y quitar (siempre por hash).
-- Auditar un grab: indexador de Prowlarr, Custom Format que coincidió e idioma real. Objetivo: audio en español; un subtitulado no cuenta.
+- Auditar un grab: indexador de Prowlarr, Custom Format que coincidió e idioma real. Objetivo: el idioma de audio que defina el usuario en su configuración (configurable); un subtitulado no cuenta como audio.
 - Presentar resultados en tablas markdown.
 
 ## Tools

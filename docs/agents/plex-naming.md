@@ -26,7 +26,7 @@ Límites:
   - calidad
   - especiales `S00Exx`
 - Detectar y corregir emparejados erróneos renombrando carpeta y fichero con el nombre completo y, en películas, el id de TMDB justo tras el año (carpeta y fichero; las series no llevan id y se corrigen en Plex con `match_release`, `set_external_id` y rematch), y comprobando el título y el año con la skill `plex` (`search` o `metadata`).
-- Usar los formatos de episodio de series de `plex-naming-rules` (individual, multi-episodio, diario y anime) para los ficheros de episodio, y el formato de película (con `{edition-Nombre}` opcional) para los ficheros de película; las reglas definitivas (en series el idioma va solo en la carpeta de serie y los ficheros de episodio no lo llevan; en películas `[Castellano]` en el fichero; grupo entre corchetes, etiquetas solo con evidencia, edición al final) están en la skill y son orientativas: solo con datos verificables.
+- Usar los formatos de episodio de series de `plex-naming-rules` (individual, multi-episodio, diario y anime) para los ficheros de episodio, y el formato de película (con `{edition-Nombre}` opcional) para los ficheros de película; las reglas definitivas (en series el idioma va solo en la carpeta de serie y los ficheros de episodio no lo llevan; en películas `[Idioma]` en el fichero; grupo entre corchetes, etiquetas solo con evidencia, edición al final) están en la skill y son orientativas: solo con datos verificables.
 - Localizar las bibliotecas locales con la skill `plex` (comando `libraries`).
 - Añadir la calidad al nombre solo si el nombre original ya la define; no se comprueba contra el fichero.
 - Probar con un solo elemento y pedir segunda confirmación antes del resto en renombrados masivos.

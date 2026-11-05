@@ -1,6 +1,6 @@
 ---
 name: arr-language-filters
-description: Esta skill debe usarse al diagnosticar el filtrado de idioma en el stack de adquisición. Úsala cuando el usuario pregunte "por qué se descargó en otro idioma", "por qué se rechaza este release", "por qué no aparece este título", "falso positivo o negativo del filtro de idioma", "minFormatScore", "perfil de calidad", "formato personalizado de idioma", "Torrentio devuelve Fight Club", o pida sincronizar las carpetas del mount con Radarr.
+description: Esta skill debe usarse al diagnosticar el filtrado de idioma en el stack de adquisición. Úsala cuando el usuario pregunte "por qué se descargó en otro idioma", "por qué se rechaza este release", "por qué no aparece este título", "falso positivo o negativo del filtro de idioma", "minFormatScore", "perfil de calidad", "formato personalizado de idioma", "un indexador devuelve un título que no es el buscado", o pida sincronizar las carpetas del mount con Radarr.
 ---
 
 # Skill de filtros de idioma de adquisición
@@ -9,9 +9,9 @@ description: Esta skill debe usarse al diagnosticar el filtrado de idioma en el 
 
 **DEBES invocar esta skill (no es opcional) cuando se dé CUALQUIERA de estas situaciones:**
 - "por qué se descargó en otro idioma", "por qué se rechaza este release", "por qué no aparece este título"
-- "el filtro deja pasar algo que no debería" o "bloquea algo que está en español" (falsos positivos y negativos)
+- "el filtro deja pasar algo que no debería" o "bloquea algo que está en el idioma deseado" (falsos positivos y negativos)
 - "idioma", "filtros", "perfil de calidad", "minFormatScore", "formato personalizado de idioma"
-- "Torrentio devuelve resultados que no son" (Fight Club, Reacher) o búsquedas sin `imdbid`
+- "un indexador devuelve un título que no es el buscado" o búsquedas sin `imdbid`
 - "sincronizar las carpetas del mount con Radarr"
 
 **Si no invocas esta skill cuando se dan estas situaciones, incumples tus requisitos operativos.**
@@ -23,7 +23,7 @@ Explica cómo diagnosticar el filtrado de idioma en los tres sistemas de adquisi
 Esta skill permite diagnosticar por qué un título se descarga, se rechaza o no aparece:
 - Reglas de idioma de cli_debrid
 - Perfiles y Custom Formats de Radarr y Sonarr
-- Fallo de la búsqueda por texto en Torrentio
+- Búsquedas de texto libre en indexadores que solo aceptan ids (p. ej. Torrentio)
 - Flujo para sincronizar las carpetas del mount con Radarr
 
 Tres sistemas independientes. Pregunta común: ¿qué idioma de audio exige TU configuración? Un release con subtítulos pero sin audio en el idioma deseado puede colarse o rechazarse según cómo lo hayas configurado.
@@ -47,18 +47,18 @@ Sin variables de entorno. Se combina con las skills de servicio (`radarr`, `prow
 - Si un servicio externo (p. ej. un debrid) bloquea ciertos nombres, un formato personalizado con puntuación muy negativa es una forma de evitar esos grabs; compruébalo en tus formatos, no se asume.
 - Cambiar el perfil de una serie existente se hace con un PUT sobre la serie (`qualityProfileId`), no con `add`.
 
-### Torrentio en Prowlarr
-- La definición personalizada declara `search: [q]`, pero Torrentio solo funciona por id de IMDb/Kitsu. Una búsqueda de texto libre sin `imdbid` devuelve resultados de un id de validación fijo (Fight Club para películas, Reacher para series).
-- **No repitas** el arreglo de quitar `search: [q]` del yml: rompe todo el indexer (la definición deja de existir y la búsqueda por id también falla). Se probó y se revirtió.
-- Mitigación que funciona: asegúrate de que toda búsqueda en Torrentio lleve `imdbid` desde el origen.
+### Indexadores que solo aceptan ids (p. ej. Torrentio en Prowlarr)
+- Algunos indexadores, como Torrentio, solo funcionan por id de IMDb/Kitsu. Una búsqueda de texto libre sin `imdbid` puede devolver un título que no es el buscado (un resultado de validación fijo).
+- Con indexadores que solo aceptan ids, usa `imdbid`; si un indexador devuelve el título equivocado, comprueba que la consulta lleva el id de IMDb desde el origen.
+- Antes de modificar la definición del indexador, confirma con el usuario: cambiar sus campos de búsqueda puede romperlo entero.
 
 ## Flujo de trabajo
 
 ### Sincronizar las carpetas del mount con Radarr
 Cuando hay que renombrar las carpetas del mount a `Title (Year)` para que Library Import las enlace:
-1. Lotes de 100 por defecto, con un fichero de seguimiento para no reprocesar.
-2. Duplicados: conserva el confirmado en español con la mayor resolución; deja intactas las demás copias.
-3. Título o año ambiguo sin certeza: ignóralo e infórmalo al final del lote con el motivo; no preguntes uno a uno. Heurística: la biblioteca no suele tener películas anteriores a 1980.
+1. Trabaja por lotes (tamaño razonable) con un fichero de seguimiento para no reprocesar.
+2. Duplicados: conserva el confirmado en el idioma deseado con la mayor resolución; deja intactas las demás copias.
+3. Título o año ambiguo sin certeza: ignóralo e infórmalo al final del lote con el motivo; no preguntes uno a uno.
 4. Año erróneo en la carpeta: corrígelo al año real de IMDb/TMDB. Si el destino ya existe, no sobrescribas.
 5. Packs con varias películas: sepáralos en `Title (Year)/Title (Year).ext` solo si tienes certeza de qué es cada fichero.
 6. Informa de cada lote al detalle (duplicados resueltos, ignorados, años corregidos).
@@ -69,7 +69,7 @@ Cuando hay que renombrar las carpetas del mount a `Title (Year)` para que Librar
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" exists 603
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config
 
-# Lectura: buscar candidatos por imdbid (evita el fallo de texto libre de Torrentio)
+# Lectura: buscar candidatos por imdbid (evita el fallo del texto libre en indexadores que solo aceptan ids)
 bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0133093
 ```
 
@@ -86,7 +86,7 @@ Para la referencia local detallada, consulta:
 
 ## Lo que NO hay que hacer
 
-- No repitas el arreglo de quitar `search: [q]` de la definición de Torrentio: rompe todo el indexer
+- No modifiques la definición de un indexador (p. ej. sus campos de búsqueda) sin confirmarlo con el usuario: puede romperlo entero
 - No bajes el `minFormatScore` ni cambies perfiles o formatos para "arreglar" un rechazo sin confirmarlo con el usuario: puede ser un bloqueo intencionado
 - No propongas un fallback a otro idioma en cli_debrid sin confirmarlo con el usuario: el filtro binario puede ser deliberado
 - Esta skill solo documenta: no modifica la configuración por sí misma

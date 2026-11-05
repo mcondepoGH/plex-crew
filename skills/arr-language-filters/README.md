@@ -1,12 +1,12 @@
 # Skill arr-language-filters
 
-Explica cómo diagnosticar el filtrado de idioma de cli_debrid, Radarr/Sonarr y Prowlarr/Torrentio, y sus límites conocidos. Perfiles, formatos personalizados y reglas de filtro son configuración propia de cada usuario; la skill no asume ninguna. No tiene scripts.
+Explica cómo diagnosticar el filtrado de idioma de cli_debrid, Radarr/Sonarr y Prowlarr (indexadores que solo aceptan ids, p. ej. Torrentio), y sus límites conocidos. Perfiles, formatos personalizados y reglas de filtro son configuración propia de cada usuario; la skill no asume ninguna. No tiene scripts.
 
 ## Qué hace
 
 - **cli_debrid** — Reglas binarias `filter_in` y `filter_out`, orden de las palabras de subs, scrapers
 - **Radarr y Sonarr** — Perfiles de calidad, formatos personalizados y `minFormatScore` (se consultan con `qualityprofiles` y `customformats`)
-- **Torrentio en Prowlarr** — Por qué las búsquedas de texto libre devuelven un título fijo y la mitigación válida
+- **Indexadores solo por id** — Por qué una búsqueda de texto libre puede devolver un título que no es el buscado y cómo evitarlo con `imdbid`
 - **Sincronización del mount** — Flujo para renombrar las carpetas del mount a `Title (Year)` para Library Import
 
 ## Configuración
@@ -32,7 +32,7 @@ Combinada con las skills de servicio (cada una documenta sus propias variables d
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" exists 603
 bash "${CLAUDE_PLUGIN_ROOT}/skills/radarr/scripts/radarr.sh" config
 
-# Lectura: buscar candidatos por imdbid (evita el fallo de texto libre de Torrentio)
+# Lectura: buscar candidatos por imdbid (evita el fallo del texto libre en indexadores que solo aceptan ids)
 bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-search --imdb tt0133093
 ```
 
@@ -51,7 +51,7 @@ Cuando un título se descarga en otro idioma, se rechaza o falta:
 
 1. **cli_debrid**: comprueba el nombre contra tus reglas `filter_in` y `filter_out`, incluido el orden de cualquier palabra de subs
 2. **Radarr o Sonarr**: consulta `qualityprofiles` y `customformats`; comprueba el perfil de la serie o película, la puntuación de tu formato de idioma y el `minFormatScore`
-3. **Torrentio**: comprueba que la búsqueda llevaba `imdbid`
+3. **Indexador solo por id (p. ej. Torrentio)**: comprueba que la búsqueda llevaba `imdbid`
 4. **Bloqueo de un servicio externo** (p. ej. un debrid): comprueba si el nombre coincide con algún formato personalizado de puntuación negativa que tengas para ello
 5. Informa de la causa; no cambies la configuración sin la confirmación del usuario
 
@@ -60,8 +60,8 @@ Cuando un título se descarga en otro idioma, se rechaza o falta:
 **Aparece un release con score 0 en el historial**
 → Puede venir de una configuración anterior; compara con el `minFormatScore` actual de tu perfil
 
-**Torrentio devuelve Fight Club o Reacher**
-→ Búsqueda de texto libre sin `imdbid`; no quites `search: [q]`, haz que la búsqueda lleve `imdbid`
+**Un indexador devuelve un título que no es el buscado**
+→ Búsqueda de texto libre sin `imdbid`; comprueba que la consulta lleva el id de IMDb
 
 **Un título nunca llega a cli_debrid**
 → Ningún indexer tiene una copia que cumpla tu `filter_in`; no hay fallback a otro idioma

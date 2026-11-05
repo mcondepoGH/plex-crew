@@ -17,7 +17,7 @@
 1. Compara con el `minFormatScore` actual del perfil (`qualityprofiles`): si es mayor que 0 lo rechazaría ahora
 2. No lo bajes sin confirmarlo con el usuario
 
-### Release con subtítulos en español rechazado
+### Release con subtítulos (sin audio en el idioma deseado) rechazado
 **Causa:** Tu configuración puede no considerar válidos los subtítulos sin audio en el idioma deseado
 
 **Solución:**
@@ -33,12 +33,12 @@
 1. Revisa la cola y los logs con la skill `cli_debrid`
 2. No hay fallback a otro idioma: el filtro es binario
 
-### Torrentio devuelve Fight Club o Reacher
+### Un indexador devuelve un título que no es el buscado
 **Causa:** Búsqueda de texto libre sin `imdbid`; Torrentio solo funciona por id de IMDb/Kitsu
 
 **Solución:**
-1. Haz que toda búsqueda en Torrentio lleve `imdbid`
-2. No quites `search: [q]` del yml: rompe todo el indexer
+1. Haz que toda búsqueda en indexadores que solo aceptan ids (p. ej. Torrentio) lleve `imdbid`
+2. Comprueba que la consulta lleva el id de IMDb; no modifiques la definición del indexador sin confirmarlo con el usuario
 
 ## Problemas de perfiles
 

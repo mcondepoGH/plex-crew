@@ -18,10 +18,10 @@ No necesita configuración. El agente `plex-naming` la carga con el campo `skill
 ## Ejemplos de uso
 
 ```text
-Carpeta:   Mi Serie (2015) [Castellano]
+Carpeta:   Mi Serie (2015) [Idioma]
 Fichero:   Mi Serie (2015) - S01E02 [HDTV 720p][AC3 5.1].mkv
-Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Castellano].mkv
-Edición:   Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Castellano] {edition-Director's Cut}.mkv
+Película:  Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Idioma].mkv
+Edición:   Mi Película (2010) {tmdb-123456}/Mi Película (2010) {tmdb-123456} [1080p][Idioma] {edition-Director's Cut}.mkv
 Especial:  Mi Serie (2015)/Season 00/Mi Serie (2015) - S00E01.mkv
 ```
 
@@ -33,8 +33,8 @@ Plex (en Docker) ve las carpetas con rutas de contenedor, que no existen en el h
 
 | Ruta de contenedor (Plex) | Ruta del host (ejemplo) |
 |---|---|
-| `/movies-local` | `/ruta/a/plex/movies` (ejemplo) |
-| `/shows-local` | `/ruta/a/plex/shows` (ejemplo) |
+| `/ruta/en/contenedor/movies` | `/ruta/en/host/movies` (ejemplo) |
+| `/ruta/en/contenedor/shows` | `/ruta/en/host/shows` (ejemplo) |
 
 Las rutas del host dependen de la instalación: la correspondencia real es la de tus raíces en `scope.conf`. Si una ruta traducida cae fuera de esas raíces, el hook `enforce-agent-scope` la denegará: no la rodees y devuélvelo al orquestador.
 

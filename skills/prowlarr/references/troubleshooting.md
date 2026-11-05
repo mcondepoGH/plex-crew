@@ -89,7 +89,7 @@
 **Solución:**
 1. Comprueba `indexers` (que haya activos), `health` y `stats`
 2. Quita `--category` o prueba otra categoría
-3. Para películas y series, usa `movie-search --imdb` o `tv-search --tvdb`; con Torrentio el texto libre devuelve un título fijo (ver la skill `arr-language-filters`)
+3. Para películas y series, usa `movie-search --imdb` o `tv-search --tvdb`; con indexadores que solo aceptan ids (p. ej. Torrentio) el texto libre puede devolver un título que no es el buscado (ver la skill `arr-language-filters`)
 
 ### Una búsqueda falla con un error de jq
 **Causa:** algún resultado tiene `size` nulo, o el servicio devolvió algo que no es un array
