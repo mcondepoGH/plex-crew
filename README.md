@@ -57,45 +57,46 @@ Todas las credenciales viven en un único `.env` en `~/.claude/plex-crew/.env`, 
 
 ### Referencia de variables
 
-Una fila por variable. Se rellenan solo los servicios que uses.
+Una fila por variable. Se rellenan solo los servicios que uses. «Obligatoria: sí» significa obligatoria si usas esa skill.
 
 #### Medios
 
-| Variable | Obligatoria | Descripción |
-|---|---|---|
-| `PLEX_URL` | Si usas la skill `plex` | URL base de Plex |
-| `PLEX_TOKEN` | Si usas la skill `plex` | Token de autenticación de Plex |
-| `TAUTULLI_URL` | Si usas la skill `tautulli` | URL base de Tautulli |
-| `TAUTULLI_API_KEY` | Si usas la skill `tautulli` | Clave de API de Tautulli |
+| Variable | Obligatoria | Descripción | Skill |
+|---|---|---|---|
+| `PLEX_URL` | sí | URL base de Plex | `plex` |
+| `PLEX_TOKEN` | sí | Token de autenticación de Plex | `plex` |
+| `TAUTULLI_URL` | sí | URL base de Tautulli | `tautulli` |
+| `TAUTULLI_API_KEY` | sí | Clave de API de Tautulli | `tautulli` |
 
 #### Adquisición
 
-| Variable | Obligatoria | Descripción |
-|---|---|---|
-| `PROWLARR_URL` | Si usas la skill `prowlarr` | URL base de Prowlarr |
-| `PROWLARR_API_KEY` | Si usas la skill `prowlarr` | Clave de API de Prowlarr |
-| `RADARR_URL` | Si usas la skill `radarr` | URL base de Radarr |
-| `RADARR_API_KEY` | Si usas la skill `radarr` | Clave de API de Radarr |
-| `SONARR_URL` | Si usas la skill `sonarr` | URL base de Sonarr |
-| `SONARR_API_KEY` | Si usas la skill `sonarr` | Clave de API de Sonarr |
-| `SEERR_URL` | Si usas la skill `seerr` | URL base de Seerr / Overseerr |
-| `SEERR_API_KEY` | Si usas la skill `seerr` | Clave de API de Seerr / Overseerr |
-| `CLI_DEBRID_URL` | Si usas la skill `cli_debrid` | URL base de cli_debrid |
-| `CLI_DEBRID_USER` | Si usas la skill `cli_debrid` | Usuario de cli_debrid |
-| `CLI_DEBRID_PASSWORD` | Si usas la skill `cli_debrid` | Contraseña de cli_debrid |
-| `RUTORRENT_URL` | Si usas la skill `rutorrent` | URL base de ruTorrent |
-| `RUTORRENT_USER` | No (opcional) | Usuario de la autenticación básica, solo si ruTorrent la tiene |
-| `RUTORRENT_PASSWORD` | No (opcional) | Contraseña de la autenticación básica |
-| `RUTORRENT_ALLOWED_DIR` | No (opcional) | Prefijo (ruta del contenedor) permitido para crear torrents y borrar datos |
-| `AGREGARR_URL` | Si usas la skill `agregarr` | URL base de Agregarr (nueva en 0.3.0) |
-| `AGREGARR_API_KEY` | Si usas la skill `agregarr` | Clave de API de Agregarr |
+| Variable | Obligatoria | Descripción | Skill |
+|---|---|---|---|
+| `PROWLARR_URL` | sí | URL base de Prowlarr | `prowlarr` |
+| `PROWLARR_API_KEY` | sí | Clave de API de Prowlarr | `prowlarr` |
+| `RADARR_URL` | sí | URL base de Radarr | `radarr` |
+| `RADARR_API_KEY` | sí | Clave de API de Radarr | `radarr` |
+| `SONARR_URL` | sí | URL base de Sonarr | `sonarr` |
+| `SONARR_API_KEY` | sí | Clave de API de Sonarr | `sonarr` |
+| `SEERR_URL` | sí | URL base de Seerr / Overseerr | `seerr` |
+| `SEERR_API_KEY` | sí | Clave de API de Seerr / Overseerr | `seerr` |
+| `CLI_DEBRID_URL` | sí | URL base de cli_debrid | `cli_debrid` |
+| `CLI_DEBRID_USER` | sí | Usuario de cli_debrid | `cli_debrid` |
+| `CLI_DEBRID_PASSWORD` | sí | Contraseña de cli_debrid | `cli_debrid` |
+| `RUTORRENT_URL` | sí | URL base de ruTorrent | `rutorrent` |
+| `RUTORRENT_USER` | no | Usuario de la autenticación básica, solo si ruTorrent la tiene | `rutorrent` |
+| `RUTORRENT_PASSWORD` | no | Contraseña de la autenticación básica | `rutorrent` |
+| `RUTORRENT_ALLOWED_DIR` | no | Prefijo (ruta del contenedor) permitido para crear torrents y borrar datos | `rutorrent` |
+| `AGREGARR_URL` | sí | URL base de Agregarr (nueva en 0.3.0) | `agregarr` |
+| `AGREGARR_API_KEY` | sí | Clave de API de Agregarr | `agregarr` |
 
 #### Ajustes opcionales
 
-| Variable | Obligatoria | Descripción |
-|---|---|---|
-| `PLEX_CREW_CONFIG` | No | Ruta alternativa a `~/.claude/plex-crew/scope.conf`; la leen ambos hooks (`confirm-destructive` y `enforce-agent-scope`); se define en el entorno, no en el `.env` |
-| `RADARR_DEFAULT_QUALITY_PROFILE` / `SONARR_DEFAULT_QUALITY_PROFILE` | No | ID del perfil de calidad al añadir películas / series (por defecto 1) |
+| Variable | Obligatoria | Descripción | Skill |
+|---|---|---|---|
+| `PLEX_CREW_CONFIG` | no | Ruta alternativa a `~/.claude/plex-crew/scope.conf`; la leen ambos hooks (`confirm-destructive` y `enforce-agent-scope`); se define en el entorno, no en el `.env` | ninguna (hooks) |
+| `RADARR_DEFAULT_QUALITY_PROFILE` | no | ID del perfil de calidad al añadir películas (por defecto 1) | `radarr` |
+| `SONARR_DEFAULT_QUALITY_PROFILE` | no | ID del perfil de calidad al añadir series (por defecto 1) | `sonarr` |
 
 Las URL del `.env` van sin barra final (`http://host:puerto`).
 
