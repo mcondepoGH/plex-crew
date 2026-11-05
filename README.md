@@ -89,6 +89,7 @@ Una fila por variable. Se rellenan solo los servicios que uses. «Obligatoria: s
 | `RUTORRENT_ALLOWED_DIR` | no | Prefijo (ruta del contenedor) permitido para crear torrents y borrar datos | `rutorrent` |
 | `AGREGARR_URL` | sí | URL base de Agregarr (nueva en 0.3.0) | `agregarr` |
 | `AGREGARR_API_KEY` | sí | Clave de API de Agregarr | `agregarr` |
+| `DOZZLE_URL` | sí | URL base de Dozzle (no usa clave de API) | `dozzle` |
 
 #### Ajustes opcionales
 
@@ -117,6 +118,7 @@ Cada skill tiene su `README.md` con el detalle. Todas son propias, siguen la mis
 | [`cli_debrid`](skills/cli_debrid/README.md) | Servicio | Estado, cola, descargas y logs de cli_debrid |
 | [`rutorrent`](skills/rutorrent/README.md) | Servicio | Listar, añadir, crear y quitar torrents de ruTorrent |
 | [`agregarr`](skills/agregarr/README.md) | Servicio | Listas y colecciones de Agregarr (nueva en 0.3.0) |
+| [`dozzle`](skills/dozzle/README.md) | Servicio | Estado y logs de los contenedores a través de Dozzle (solo lectura) |
 | [`plex-crew-rules`](skills/plex-crew-rules/README.md) | Reglas | Reglas globales: idioma, hora, doble confirmación, secretos, tareas programadas |
 | [`plex-naming-rules`](skills/plex-naming-rules/README.md) | Reglas | Nombrado de Plex para series, películas, especiales e identificadores |
 | [`arr-language-filters`](skills/arr-language-filters/README.md) | Reglas | Cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr, y sus límites |
@@ -204,7 +206,7 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 ├── scope.conf.example         Plantilla del alcance de escritura
 ├── agents/                    Definiciones de los agentes
 ├── docs/agents/               Un .md de documentación por agente
-├── skills/                    Una carpeta por skill (con su README.md, incluida agregarr) y _lib/
+├── skills/                    Una carpeta por skill (con su README.md, incluida dozzle) y _lib/
 ├── hooks/                     hooks.json, README.md y los dos .js
 ├── tests/                     smoke.sh (comprobaciones estáticas)
 └── .github/workflows/         ci.yml

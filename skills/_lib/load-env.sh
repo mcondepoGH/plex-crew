@@ -37,13 +37,14 @@ validate_env_vars() {
 load_service_credentials() {
     local service="$1"
     local url_var="$2"
-    local key_var="$3"
+    local key_var="${3:-}"
 
-    if [[ -z "${!url_var:-}" ]] || [[ -z "${!key_var:-}" ]]; then
+    # key_var es opcional: los servicios sin clave de API (p. ej. dozzle) pasan solo la URL.
+    if [[ -z "${!url_var:-}" ]] || { [[ -n "$key_var" ]] && [[ -z "${!key_var:-}" ]]; }; then
         load_env_file || return 1
     fi
 
-    validate_env_vars "$url_var" "$key_var" || {
+    validate_env_vars "$url_var" ${key_var:+"$key_var"} || {
         echo "ERROR: faltan variables de $service (credenciales de $service)" >&2
         return 1
     }

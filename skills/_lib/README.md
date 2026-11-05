@@ -10,7 +10,7 @@ Carga de credenciales desde el fichero de entorno. Lee `~/.claude/plex-crew/.env
 |----------|----------|
 | `load_env_file` | Exporta (`set -a`) el contenido de `~/.claude/plex-crew/.env`. Sin argumentos. Devuelve 1 y avisa si no existe. |
 | `validate_env_vars VAR...` | Comprueba que cada variable nombrada esté definida y no vacía; si falta alguna, lista los nombres y devuelve 1. |
-| `load_service_credentials <servicio> <VAR_URL> <VAR_CLAVE>` | Si falta alguna de las dos variables, carga el fichero de entorno; después las valida. El primer argumento (nombre del servicio) no se usa. |
+| `load_service_credentials <servicio> <VAR_URL> [VAR_CLAVE]` | Si falta alguna de las variables indicadas, carga el fichero de entorno; después las valida. `VAR_CLAVE` es opcional: los servicios sin clave de API (como `dozzle`) pasan solo `VAR_URL` y solo se exige la URL. El primer argumento (nombre del servicio) solo se usa en el mensaje de error. |
 
 Gracias a `load_service_credentials`, las variables ya exportadas en el entorno tienen prioridad: si ambas existen, no se lee el fichero.
 
@@ -38,7 +38,8 @@ echo "$ARR_BODY" | jq -r '.title'
 ## Qué skills los usan
 
 - `load-env.sh`
-  - `seerr`, `radarr`, `sonarr`, `prowlarr`, `plex` y `tautulli`: vía `load_service_credentials`
+  - `seerr`, `radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli` y `agregarr`: vía `load_service_credentials` con URL y clave
+  - `dozzle`: vía `load_service_credentials` solo con la URL (sin clave de API)
   - `cli_debrid`: vía `load_env_file` y `validate_env_vars`
 - `arr-api.sh`
   - `seerr`

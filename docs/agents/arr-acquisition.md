@@ -28,6 +28,7 @@ Límites:
 - Buscar en indexadores y gestionar Prowlarr.
 - Gestionar solicitudes de Seerr.
 - Consultar y sincronizar colecciones de Agregarr.
+- Consultar el estado y los logs de los contenedores con Dozzle (solo lectura).
 - Monitorizar cli_debrid, Plex y Tautulli.
 - Gestionar torrents de ruTorrent: listar, añadir, controlar, crear y quitar (siempre por hash).
 - Auditar un grab: indexador de Prowlarr, Custom Format que coincidió e idioma real. Objetivo: audio en español; un subtitulado no cuenta.
@@ -53,6 +54,7 @@ Límites:
 - [`cli_debrid`](../../skills/cli_debrid/README.md)
 - [`rutorrent`](../../skills/rutorrent/README.md)
 - [`agregarr`](../../skills/agregarr/README.md)
+- [`dozzle`](../../skills/dozzle/README.md)
 - [`plex`](../../skills/plex/README.md)
 - [`tautulli`](../../skills/tautulli/README.md)
 

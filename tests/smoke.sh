@@ -30,6 +30,7 @@ DUMMY_ENV=(
   SEERR_URL=http://dummy SEERR_API_KEY=k
   CLI_DEBRID_URL=http://dummy CLI_DEBRID_USER=u CLI_DEBRID_PASSWORD=p
   AGREGARR_URL=http://dummy AGREGARR_API_KEY=k
+  DOZZLE_URL=http://dummy
 )
 
 # 1. Sintaxis de shell
@@ -56,13 +57,14 @@ else
 fi
 
 # 3b. Skills nuevas (solo si existen)
-sk=agregarr
-if [ -d "skills/$sk" ]; then
-  check "skill $sk tiene SKILL.md" test -f "skills/$sk/SKILL.md"
-  check "skill $sk tiene README.md" test -f "skills/$sk/README.md"
-else
-  echo "skip - skills/$sk aun no existe"
-fi
+for sk in agregarr dozzle; do
+  if [ -d "skills/$sk" ]; then
+    check "skill $sk tiene SKILL.md" test -f "skills/$sk/SKILL.md"
+    check "skill $sk tiene README.md" test -f "skills/$sk/README.md"
+  else
+    echo "skip - skills/$sk aun no existe"
+  fi
+done
 
 # 4. Frontmatter name/description
 # shellcheck disable=SC2317  # falso positivo: se invoca de forma indirecta vía check "$@"
@@ -234,6 +236,54 @@ for sk in radarr sonarr; do
     fi
   done
 done
+
+# 5j. dozzle: help, validación de argumentos (rc 1, sin red) y curl simulado (lista, logs, redacción)
+DZL=skills/dozzle/scripts/dozzle.sh
+if [ -f "$DZL" ]; then
+  env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$DZL" help >"$TMP/out" 2>&1
+  for c in status containers logs --lines --grep --stderr --stdout; do
+    if grep -q -- "$c" "$TMP/out"; then ok "$DZL help lista $c"; else fail "$DZL help lista $c"; fi
+  done
+  for bad in "logs" "logs x --lines 0" "logs x --lines 5001" "logs x --lines abc" "logs x --lines" "logs x --grep" "logs x --since hoy" "logs x --bogus" "logs a b" "logs bad/name" "status x" "containers x" "comando-desconocido-zzz"; do
+    # shellcheck disable=SC2086
+    env -i PATH="$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$DZL" $bad >"$TMP/out" 2>&1
+    rc=$?
+    if [ "$rc" -eq 1 ] && grep -q '^ERROR' "$TMP/out"; then ok "$DZL $bad rc 1"; else fail "$DZL $bad rc 1" "rc=$rc"; fi
+  done
+  # Sin DOZZLE_URL ni .env: error claro, y no pide clave de API
+  env -i PATH="$PATH" HOME="$TMP" timeout 20 bash "$DZL" status >"$TMP/out" 2>&1
+  rc=$?
+  if [ "$rc" -eq 1 ] && ! grep -q 'API_KEY' "$TMP/out"; then ok "$DZL sin DOZZLE_URL rc 1 y sin pedir clave"; else fail "$DZL sin DOZZLE_URL rc 1 y sin pedir clave" "rc=$rc"; fi
+
+  DB="$TMP/dozzlebin"; mkdir -p "$DB"
+  cat >"$DB/curl" <<'FAKE'
+#!/usr/bin/env bash
+args="$*"
+cat >/dev/null 2>&1 </dev/null || true
+case "$args" in
+  *"/api/events/stream"*)
+    printf 'retry: 3000\n\nevent: server-version\ndata: {"version":"v9.9.9"}\n\nevent: containers-changed\ndata: [{"id":"aaa111","name":"radarr","state":"running","health":"healthy","host":"h1"},{"id":"bbb222","name":"sonarr","state":"exited","host":"h1"}]\n\n' ;;
+  *"/api/containers/logs"*)
+    printf '%s\n' "$args" >>"$FAKE_LOG"
+    printf 'linea uno\nERROR fallo apikey=SECRETO1 y token: SECRETO2\nAuthorization: Bearer SECRETO3\n{"password":"SECRETO4"}\nlinea final\n200' ;;
+esac
+FAKE
+  chmod +x "$DB/curl"
+  : >"$TMP/dz.log"
+  env -i PATH="$DB:$PATH" "${DUMMY_ENV[@]}" timeout 20 bash "$DZL" containers >"$TMP/out" 2>&1
+  if grep -q 'Dozzle v9.9.9 - 2 contenedores, 1 en ejecución' "$TMP/out" && grep -q '^radarr .*running .*healthy' "$TMP/out" && grep -q '^sonarr .*exited' "$TMP/out"; then ok "$DZL containers con curl simulado"; else fail "$DZL containers con curl simulado" "$(head -c 200 "$TMP/out" | tr '\n' ' ')"; fi
+  env -i PATH="$DB:$PATH" "${DUMMY_ENV[@]}" FAKE_LOG="$TMP/dz.log" timeout 20 bash "$DZL" logs RADARR --lines 4 >"$TMP/out" 2>&1
+  rc=$?
+  if [ "$rc" -eq 0 ] && [ "$(wc -l <"$TMP/out")" -eq 4 ] && grep -q "^Authorization: \*\*\*$" "$TMP/out" && grep -q 'linea final' "$TMP/out" && ! grep -q 'SECRETO' "$TMP/out" && grep -q 'apikey=\*\*\*' "$TMP/out"; then ok "$DZL logs recorta a N y oculta secretos"; else fail "$DZL logs recorta a N y oculta secretos" "rc=$rc $(head -c 300 "$TMP/out" | tr '\n' ' ')"; fi
+  if grep -q 'container=h1/aaa111' "$TMP/dz.log" && grep -q 'stdout=1' "$TMP/dz.log" && grep -q 'stderr=1' "$TMP/dz.log"; then ok "$DZL logs pide host/id y ambos flujos"; else fail "$DZL logs pide host/id y ambos flujos" "$(cat "$TMP/dz.log")"; fi
+  : >"$TMP/dz.log"
+  env -i PATH="$DB:$PATH" "${DUMMY_ENV[@]}" FAKE_LOG="$TMP/dz.log" timeout 20 bash "$DZL" logs bbb --grep error --stderr --since 2026-11-05T08:00:00Z >"$TMP/out" 2>&1
+  rc=$?
+  if [ "$rc" -eq 0 ] && [ "$(wc -l <"$TMP/out")" -eq 1 ] && grep -q '^ERROR fallo' "$TMP/out" && grep -q 'container=h1/bbb222' "$TMP/dz.log" && grep -q 'stderr=1' "$TMP/dz.log" && ! grep -q 'stdout=1' "$TMP/dz.log" && grep -q 'from=2026-11-05T08:00:00Z' "$TMP/dz.log"; then ok "$DZL logs --grep --stderr --since por id"; else fail "$DZL logs --grep --stderr --since por id" "rc=$rc $(head -c 300 "$TMP/out" | tr '\n' ' ') | $(cat "$TMP/dz.log")"; fi
+  env -i PATH="$DB:$PATH" "${DUMMY_ENV[@]}" FAKE_LOG="$TMP/dz.log" timeout 20 bash "$DZL" logs zzz >"$TMP/out" 2>&1
+  rc=$?
+  if [ "$rc" -eq 1 ] && grep -q '^ERROR: contenedor no encontrado' "$TMP/out"; then ok "$DZL logs contenedor inexistente rc 1"; else fail "$DZL logs contenedor inexistente rc 1" "rc=$rc"; fi
+fi
 
 # 6. shellcheck (si está instalado)
 if command -v shellcheck >/dev/null 2>&1; then
