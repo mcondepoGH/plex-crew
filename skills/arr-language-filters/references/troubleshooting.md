@@ -6,32 +6,32 @@
 **Causa:** Uno de los tres sistemas lo filtró
 
 **Solución:**
-1. cli_debrid: ¿el nombre contiene `spa`, `esp`, `spanish` o `castellano`? ¿Hay una palabra de subs a la izquierda de la palabra en español?
-2. Radarr o Sonarr: ¿cumple `Audio-ES` (+100) y `MinFormatScore: 100`?
-3. Real-Debrid: ¿el nombre coincide con un patrón de `RD-Bloqueado`?
+1. cli_debrid: ¿el nombre cumple tus `filter_in` y no tus `filter_out`? ¿Importa el orden de las palabras de subs en tus reglas?
+2. Radarr o Sonarr: con `qualityprofiles` y `customformats`, ¿la suma de puntuaciones del release alcanza el `minFormatScore` del perfil?
+3. Servicio externo (p. ej. un debrid): ¿el nombre coincide con algún formato personalizado de puntuación negativa tuyo?
 
-### Un grab con score 0 en el historial
+### Un grab con puntuación inferior al mínimo en el historial
 **Causa:** Viene de una configuración anterior
 
 **Solución:**
-1. `MinFormatScore: 100` es un bloqueo duro intencionado y lo rechaza ahora
+1. Compara con el `minFormatScore` actual del perfil (`qualityprofiles`): si es mayor que 0 lo rechazaría ahora
 2. No lo bajes sin confirmarlo con el usuario
 
 ### Release con subtítulos en español rechazado
-**Causa:** Los subtítulos en español sin audio en español no son lo que se quiere
+**Causa:** Tu configuración puede no considerar válidos los subtítulos sin audio en el idioma deseado
 
 **Solución:**
-1. `VOSE` (0) los detecta en Radarr y Sonarr
-2. En cli_debrid, `filter_out` rechaza los releases subs/VOSE que no sean también en español
+1. En Radarr y Sonarr, revisa con `customformats` si tienes un formato que detecte subtítulos y qué puntuación aporta
+2. En cli_debrid, revisa tus `filter_out`
 
 ## Problemas de títulos ausentes
 
 ### Un título no aparece en cli_debrid
-**Causa:** Solo llega por las fuentes propias de cli_debrid y no tiene copia en español en ningún indexer
+**Causa:** Solo llega por las fuentes propias de cli_debrid y ningún indexer tiene una copia que cumpla tu `filter_in`
 
 **Solución:**
 1. Revisa la cola y los logs con la skill `cli_debrid`
-2. No hay fallback a inglés: el filtro binario es deliberado
+2. No hay fallback a otro idioma: el filtro es binario
 
 ### Torrentio devuelve Fight Club o Reacher
 **Causa:** Búsqueda de texto libre sin `imdbid`; Torrentio solo funciona por id de IMDb/Kitsu
@@ -52,5 +52,5 @@
 **Causa:** Real-Debrid bloquea nombres con ciertos patrones (`infringing_file`)
 
 **Solución:**
-1. El Custom Format `RD-Bloqueado` (-10000) evita esos grabs en Radarr y Sonarr
+1. Un formato personalizado de puntuación muy negativa que cubra esos nombres evita esos grabs en Radarr y Sonarr (se configura a mano; consulta `customformats`)
 2. cli_debrid reintenta por su cuenta con otro candidato

@@ -69,7 +69,7 @@ curl -s -H "X-Api-Key: $SONARR_API_KEY" "$SONARR_URL/api/v3/system/status" | jq 
 | `queue` | `En cola: 2` y `[123] Título del release - downloading/downloading - 45% - restante: 00:10:00 - torrent (cliente)` |
 | `indexers` | `[1] Nombre (Torznab) - torrent - prioridad 25 - rss: true, auto: true, interactiva: true` |
 | `downloadclients` | `[1] Nombre (QBittorrent) - torrent - prioridad 1 - activo: true` |
-| `customformats` | `[1] Audio-ES - 1 condiciones` |
-| `qualityprofiles` | `[7] Español - minFormatScore: 100, cutoffFormatScore: 0` y debajo `    Audio-ES: 100` |
+| `customformats` | `[1] <formato> - 1 condiciones` |
+| `qualityprofiles` | `[<id>] <perfil> - minFormatScore: <n>, cutoffFormatScore: <n>` y debajo `    <formato>: <puntuación>` |
 
 Códigos de salida: 0 correcto; 1 error de uso, serie no encontrada o fallo de conexión.

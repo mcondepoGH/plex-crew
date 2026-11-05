@@ -1,11 +1,11 @@
 # Skill arr-language-filters
 
-Explica cómo filtran el idioma cli_debrid, Radarr/Sonarr y Prowlarr/Torrentio en este stack, y sus límites conocidos. Objetivo común: audio en español (un release con subtítulos en español pero audio en otro idioma no cuenta). No tiene scripts.
+Explica cómo diagnosticar el filtrado de idioma de cli_debrid, Radarr/Sonarr y Prowlarr/Torrentio, y sus límites conocidos. Perfiles, formatos personalizados y reglas de filtro son configuración propia de cada usuario; la skill no asume ninguna. No tiene scripts.
 
 ## Qué hace
 
-- **cli_debrid** — Reglas binarias `filter_in` y `filter_out`, posición de los subs, scrapers
-- **Radarr y Sonarr** — Perfiles, Custom Format `Audio-ES`, `MinFormatScore`, `RD-Bloqueado`
+- **cli_debrid** — Reglas binarias `filter_in` y `filter_out`, orden de las palabras de subs, scrapers
+- **Radarr y Sonarr** — Perfiles de calidad, formatos personalizados y `minFormatScore` (se consultan con `qualityprofiles` y `customformats`)
 - **Torrentio en Prowlarr** — Por qué las búsquedas de texto libre devuelven un título fijo y la mitigación válida
 - **Sincronización del mount** — Flujo para renombrar las carpetas del mount a `Title (Year)` para Library Import
 
@@ -49,26 +49,26 @@ La referencia detallada está en el directorio `references/`:
 
 Cuando un título se descarga en otro idioma, se rechaza o falta:
 
-1. **cli_debrid**: comprueba que el nombre contiene `spa`, `esp`, `spanish` o `castellano`, y la posición de cualquier palabra de subs
-2. **Radarr o Sonarr**: comprueba el perfil (id 7 u 8), el score de `Audio-ES` y `MinFormatScore: 100`
+1. **cli_debrid**: comprueba el nombre contra tus reglas `filter_in` y `filter_out`, incluido el orden de cualquier palabra de subs
+2. **Radarr o Sonarr**: consulta `qualityprofiles` y `customformats`; comprueba el perfil de la serie o película, la puntuación de tu formato de idioma y el `minFormatScore`
 3. **Torrentio**: comprueba que la búsqueda llevaba `imdbid`
-4. **Bloqueo de Real-Debrid**: comprueba si el nombre coincide con un patrón de `RD-Bloqueado`
+4. **Bloqueo de un servicio externo** (p. ej. un debrid): comprueba si el nombre coincide con algún formato personalizado de puntuación negativa que tengas para ello
 5. Informa de la causa; no cambies la configuración sin la confirmación del usuario
 
 ## Resolución de problemas
 
 **Aparece un release con score 0 en el historial**
-→ Viene de una configuración anterior; `MinFormatScore: 100` lo bloquea ahora
+→ Puede venir de una configuración anterior; compara con el `minFormatScore` actual de tu perfil
 
 **Torrentio devuelve Fight Club o Reacher**
 → Búsqueda de texto libre sin `imdbid`; no quites `search: [q]`, haz que la búsqueda lleve `imdbid`
 
 **Un título nunca llega a cli_debrid**
-→ No tiene copia en español en ningún indexer; no hay fallback a inglés
+→ Ningún indexer tiene una copia que cumpla tu `filter_in`; no hay fallback a otro idioma
 
 ## Notas
 
-- Los ids de perfil (7, 8) y los scores son los de este stack y pueden cambiar si se reconfigura Radarr/Sonarr
+- Perfiles, ids y puntuaciones son configuración de cada usuario; consúltalos con las skills `radarr` y `sonarr`
 - Ninguna parte de la skill modifica la configuración por sí misma
 
 ## Licencia

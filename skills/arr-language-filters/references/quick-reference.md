@@ -1,29 +1,26 @@
 # Referencia rápida de arr-language-filters
 
-Filtros de cada sistema de un vistazo. Objetivo común: audio en español; los subtítulos en español por sí solos no cuentan.
+Filtros de cada sistema de un vistazo. Las reglas concretas son las que haya configurado cada usuario; aquí se indica dónde mirar.
 
 ## cli_debrid
 
 | Regla | Qué exige | Cuándo aplica |
 |-------|-----------|---------------|
-| `filter_in` binario | El nombre debe contener `spa`, `esp`, `spanish` o `castellano`; si no, no pasa y no hay fallback a inglés | Todo release |
-| `filter_out` | Rechaza los releases etiquetados subs/VOSE que no sean también en español | Todo release |
-| Posición de los subs | "sub", "subs", "subtítulos" o "vose" deben ir a la derecha de la palabra en español: "español...subs" se acepta, "subs...español" se rechaza | Series y películas |
-| Series | Añaden `cap[. ]?\d+` en `filter_in` (acepta `Cap.101`) | Series |
-| Anime | Añade `wolfmax`; filtra solo por idioma, sin la regla de posición de los subs | Anime |
-| Scrapers | `Prowlarr_1` (a través de Prowlarr) y `Torrentio_2` (conexión directa propia) | Fuentes de candidatos |
+| `filter_in` binario | El nombre debe cumplir tus patrones; si no, no pasa y no hay fallback a otro idioma | Todo release |
+| `filter_out` | Rechaza los nombres que cumplan tus patrones de exclusión | Todo release |
+| Posición de los subs | Si tus reglas distinguen palabras de subs según su posición respecto a la palabra de idioma, el orden en el nombre decide | Según tu configuración |
+| Por tipo | `filter_in` y `filter_out` pueden variar entre series, películas y anime | Según tu configuración |
+| Scrapers | Cada scraper activo es una fuente de candidatos (vía Prowlarr o conexión directa) | Fuentes de candidatos |
 
 ## Radarr y Sonarr
 
 | Regla | Qué exige | Cuándo aplica |
 |-------|-----------|---------------|
-| Perfiles | "Español" (id 7) y VOSE (id 8) | Al añadir o cambiar de perfil |
-| `Audio-ES` (+100) | Palabra en español en el título, máximo 25 GB y que no sea solo subtitulado; `VOSE` (0) detecta subtítulos en español sin audio en español | Puntuación del grab |
-| `MinFormatScore: 100` | Bloqueo duro intencionado; obliga a `Audio-ES` | Rechazos aparentes |
-| `RD-Bloqueado` (-10000) | Apaño para un bloqueo real de Real-Debrid (error de API 35, `infringing_file`); REMUX y x265 no están en la lista | Releases bloqueados por RD |
+| Perfiles | `qualityprofiles` lista tus perfiles con su `minFormatScore` y las puntuaciones de sus formatos | Al añadir o cambiar de perfil |
+| Formatos personalizados | `customformats` lista tus formatos; el de idioma aporta la puntuación que exige el perfil | Puntuación del grab |
+| `minFormatScore` | Puntuación mínima del perfil; si es mayor que 0 actúa como bloqueo duro | Rechazos aparentes |
+| Formato de puntuación negativa (opcional) | Si tienes uno para evitar bloqueos de un servicio externo, revisa sus condiciones | Releases bloqueados por ese servicio |
 | Cambio de perfil de una serie existente | PUT sobre la serie (`qualityProfileId`), no `add` | Series existentes |
-
-Patrones de nombre cubiertos por `RD-Bloqueado`: `WEB-DL`, `WEBRip`, `BDRip`, `HDRip`, `DVDRip`, `BluRay.x264`, `HDTV.x264`, `HDTV.XviD`, `WEB.x264`, `WEB.h264`.
 
 ## Torrentio en Prowlarr
 
@@ -34,7 +31,7 @@ Patrones de nombre cubiertos por `RD-Bloqueado`: `WEB-DL`, `WEBRip`, `BDRip`, `H
 ## Sincronización del mount con Radarr
 
 1. Lotes de 100, con un fichero de seguimiento
-2. Duplicados: conserva el confirmado en español con la mayor resolución
+2. Duplicados: conserva el confirmado en el idioma deseado con la mayor resolución
 3. Ambiguos: ignóralos e infórmalos al final del lote (heurística: sin películas anteriores a 1980)
 4. Año erróneo: corrígelo; no sobrescribas un destino existente
 5. Packs con varias películas: sepáralos solo con certeza

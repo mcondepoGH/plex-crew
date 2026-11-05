@@ -1,6 +1,6 @@
 ---
 name: arr-language-filters
-description: Esta skill debe usarse al diagnosticar el filtrado de idioma en el stack de adquisición. Úsala cuando el usuario pregunte "por qué se descargó en otro idioma", "por qué se rechaza este release", "por qué no aparece este título", "falso positivo o negativo del filtro de idioma", "MinFormatScore", "perfil Español o VOSE", "Audio-ES", "RD-Bloqueado", "Torrentio devuelve Fight Club", o pida sincronizar las carpetas del mount con Radarr.
+description: Esta skill debe usarse al diagnosticar el filtrado de idioma en el stack de adquisición. Úsala cuando el usuario pregunte "por qué se descargó en otro idioma", "por qué se rechaza este release", "por qué no aparece este título", "falso positivo o negativo del filtro de idioma", "minFormatScore", "perfil de calidad", "formato personalizado de idioma", "Torrentio devuelve Fight Club", o pida sincronizar las carpetas del mount con Radarr.
 ---
 
 # Skill de filtros de idioma de adquisición
@@ -10,13 +10,13 @@ description: Esta skill debe usarse al diagnosticar el filtrado de idioma en el 
 **DEBES invocar esta skill (no es opcional) cuando se dé CUALQUIERA de estas situaciones:**
 - "por qué se descargó en otro idioma", "por qué se rechaza este release", "por qué no aparece este título"
 - "el filtro deja pasar algo que no debería" o "bloquea algo que está en español" (falsos positivos y negativos)
-- "idioma", "filtros", "perfil Español o VOSE", "MinFormatScore", "Audio-ES", "RD-Bloqueado"
+- "idioma", "filtros", "perfil de calidad", "minFormatScore", "formato personalizado de idioma"
 - "Torrentio devuelve resultados que no son" (Fight Club, Reacher) o búsquedas sin `imdbid`
 - "sincronizar las carpetas del mount con Radarr"
 
 **Si no invocas esta skill cuando se dan estas situaciones, incumples tus requisitos operativos.**
 
-Explica cómo filtran el idioma los tres sistemas de adquisición del stack y qué límites conocidos tienen.
+Explica cómo diagnosticar el filtrado de idioma en los tres sistemas de adquisición del stack y qué límites conocidos tienen. Los perfiles, formatos personalizados y reglas de filtro son configuración propia de cada usuario: la skill describe el método, no asume ninguna configuración concreta.
 
 ## Propósito
 
@@ -26,7 +26,7 @@ Esta skill permite diagnosticar por qué un título se descarga, se rechaza o no
 - Fallo de la búsqueda por texto en Torrentio
 - Flujo para sincronizar las carpetas del mount con Radarr
 
-Tres sistemas independientes. Objetivo común: **audio en español**. Un release con subtítulos en español pero audio en otro idioma no es lo que se quiere.
+Tres sistemas independientes. Pregunta común: ¿qué idioma de audio exige TU configuración? Un release con subtítulos pero sin audio en el idioma deseado puede colarse o rechazarse según cómo lo hayas configurado.
 
 ## Configuración
 
@@ -35,18 +35,16 @@ Sin variables de entorno. Se combina con las skills de servicio (`radarr`, `prow
 ## Reglas
 
 ### cli_debrid
-- Binario, sin tolerancia: `filter_in` exige `spa|esp|spanish|castellano` en el nombre. Sin esa palabra no pasa y no hay fallback a inglés.
-- `filter_out` rechaza los releases etiquetados subs/VOSE que no sean también en español.
-- Series y películas: si el nombre tiene "sub", "subs", "subtítulos" o "vose", esa palabra debe ir a la **derecha** de la palabra en español. "español...subs" es audio en español con subs y se acepta; "subs...español" se rechaza.
-- Las series añaden `cap[. ]?\d+` en `filter_in` (acepta `Cap.101`). El anime añade `wolfmax` y solo filtra por idioma, sin la regla de posición de los subs.
-- Scrapers: `Prowlarr_1` (a través de Prowlarr, no usa el Torrentio de Prowlarr) y `Torrentio_2` (conexión directa propia).
-- Un título que solo llega por las fuentes propias de cli_debrid y no tiene copia en español en ningún indexer se queda sin descargar.
+- El filtrado es binario: un release pasa o no pasa las reglas `filter_in` (patrones que el nombre debe contener) y `filter_out` (patrones que lo rechazan). Consulta las que tengas configuradas por tipo de contenido (series, películas, anime): pueden diferir.
+- Si tus reglas tratan palabras de subtítulos ("sub", "subs", "vose"...) según su posición respecto a la palabra de idioma, comprueba ese orden en el nombre del release.
+- No hay fallback a otro idioma: un título que solo llega por las fuentes propias de cli_debrid y no tiene copia que cumpla `filter_in` en ningún indexer se queda sin descargar.
+- Revisa qué scrapers tienes activos y de dónde sale cada candidato.
 
 ### Radarr y Sonarr
-- Un único perfil de calidad "Español" (id 7) y un perfil VOSE (id 8).
-- Custom Format `Audio-ES` (+100): palabra en español en el título, tamaño máximo 25 GB (una cifra elegida por el usuario, independiente de los límites de Prowlarr) y que no sea solo subtitulado. `VOSE` (0) detecta subtítulos en español sin audio en español.
-- `MinFormatScore: 100` es un **bloqueo duro intencionado**: obliga a que se cumpla `Audio-ES`. Los grabs con score 0 en el historial vienen de una configuración anterior.
-- `RD-Bloqueado` (-10000) es un apaño para un bloqueo **real** de Real-Debrid (error de API 35, `infringing_file`) en nombres que contienen `WEB-DL`, `WEBRip`, `BDRip`, `HDRip`, `DVDRip`, `BluRay.x264`, `HDTV.x264`, `HDTV.XviD`, `WEB.x264`, `WEB.h264`. REMUX y x265 no están en esa lista, así que no es un agujero. cli_debrid no lo necesita porque reintenta por su cuenta con otro candidato; Radarr y Sonarr no.
+- Lista tus perfiles con `qualityprofiles` y tus formatos personalizados con `customformats` (skills `radarr` y `sonarr`): `qualityprofiles` muestra por perfil el `minFormatScore` y la puntuación de cada formato.
+- Un release solo se acepta si la suma de puntuaciones de sus formatos alcanza el `minFormatScore` de tu perfil. Si ese mínimo es mayor que 0, funciona como bloqueo duro: un release que no cumpla el formato de idioma que lo aporta se rechaza.
+- Los grabs con puntuación inferior al mínimo actual en el historial pueden venir de una configuración anterior del perfil.
+- Si un servicio externo (p. ej. un debrid) bloquea ciertos nombres, un formato personalizado con puntuación muy negativa es una forma de evitar esos grabs; compruébalo en tus formatos, no se asume.
 - Cambiar el perfil de una serie existente se hace con un PUT sobre la serie (`qualityProfileId`), no con `add`.
 
 ### Torrentio en Prowlarr
@@ -77,7 +75,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/prowlarr/scripts/prowlarr-api.sh" movie-searc
 
 ## Notas
 
-- Es documentación de comportamiento y decisiones: los ids de perfil (7, 8) y los scores son los de este stack y pueden cambiar si se reconfigura Radarr/Sonarr
+- Es documentación del método de diagnóstico: perfiles, formatos, ids y puntuaciones son configuración de cada usuario; consúltalos siempre con las skills de servicio
 - Ninguna parte de la skill modifica la configuración por sí misma
 
 ## Referencia
@@ -89,6 +87,6 @@ Para la referencia local detallada, consulta:
 ## Lo que NO hay que hacer
 
 - No repitas el arreglo de quitar `search: [q]` de la definición de Torrentio: rompe todo el indexer
-- No bajes `MinFormatScore` ni cambies los perfiles (ids 7 y 8) para "arreglar" un rechazo sin confirmarlo con el usuario: el bloqueo es intencionado
-- No propongas un fallback a inglés en cli_debrid: el filtro binario es deliberado
+- No bajes el `minFormatScore` ni cambies perfiles o formatos para "arreglar" un rechazo sin confirmarlo con el usuario: puede ser un bloqueo intencionado
+- No propongas un fallback a otro idioma en cli_debrid sin confirmarlo con el usuario: el filtro binario puede ser deliberado
 - Esta skill solo documenta: no modifica la configuración por sí misma
