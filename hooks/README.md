@@ -85,7 +85,7 @@ Criterio de coincidencia: una ruta está protegida si alguno de sus componentes 
 - `Read` (`file_path`), `Glob` (`path` y `pattern`), `Grep` (`path` y `glob`), `Edit`/`Write` (`file_path`) y `NotebookEdit` (`notebook_path`): se mira solo la ruta.
 - No cuenta: texto suelto con espacios (`echo "ver @Recycle en el README"`), mensajes de `git commit -m`, cuerpos de heredoc, el contenido de `Write`/`Edit` y el `pattern` de `Grep`. Tampoco un fichero llamado `Recycle.txt`.
 
-Límites: un `find /volumen` o un `Glob`/`Grep` recursivo desde una carpeta padre puede recorrer esas carpetas sin nombrarlas y el hook no lo ve; las skills y los agentes deben excluirlas (`-not -path '*/@Recycle/*'`, `--exclude-dir`...). No ve scripts (`bash x.sh`), variables sin resolver ni lo que hagan los programas por dentro. Es una red de seguridad contra errores, no un sandbox.
+Límites: un `find /volumen` o un `Glob`/`Grep` recursivo desde una carpeta padre puede recorrer esas carpetas sin nombrarlas y el hook no lo ve; las skills y los agentes deben excluirlas (`-not -path '*/@Recycle/*'`, `--exclude-dir`...). No ve scripts (`bash x.sh`), variables sin resolver ni lo que hagan los programas por dentro. La palabra suelta de una carpeta protegida se deniega aunque solo sea texto a buscar o a imprimir (`grep -r @Recycle fichero`, `echo ver @Recycle`): el hook no distingue ruta de texto; para buscar el texto, ponlo entre comillas junto a otras palabras (`"ver @Recycle"`) o usa `Grep` con `pattern`. Es una red de seguridad contra errores, no un sandbox.
 
 ## enforce-agent-scope.js
 
