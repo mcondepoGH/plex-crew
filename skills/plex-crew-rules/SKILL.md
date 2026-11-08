@@ -38,6 +38,12 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 - El hook `confirm-destructive` bloquea el comando sin el marcador. No lo añadas nunca por iniciativa propia ni tras una sola respuesta.
 - Un subagente no pide la confirmación: devuelve la propuesta (qué se borra o modifica, con rutas exactas) al orquestador, que es quien pregunta al usuario.
 
+### Borrados masivos en modo automático
+En modo automático, el clasificador de Claude Code puede denegar el lanzamiento en segundo plano de agentes o scripts que borran en masa (motivos observados: «dangerous», «Auto-Mode Bypass»).
+- Ejecuta el borrado masivo por tramos (lotes), en primer plano y visibles, solo tras la doble confirmación ya dada. Cada tramo lleva el marcador `PLEX_CREW_CONFIRMED=1` como en cualquier operación destructiva.
+- No uses agentes ni scripts en segundo plano para borrar, y no intentes rodear el bloqueo.
+- Si aun así se deniega, para y díselo al usuario.
+
 ### Secretos
 - No los imprimas, no los registres en logs ni los escribas en ficheros versionados. No muestres el contenido del `.env`.
 - Opera los servicios con las skills (`radarr`, `sonarr`, `prowlarr`, `plex`, `tautulli`, `seerr`, `cli_debrid`, `rutorrent`), no con `curl` y claves en línea.

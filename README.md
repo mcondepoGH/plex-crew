@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 1.3.1.
+Versión 1.3.2.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Se asume que las horas que menciona el usuario son la hora local de la máquina donde corre el plugin (zona horaria del sistema).
 
