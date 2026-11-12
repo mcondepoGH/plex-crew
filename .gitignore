@@ -54,3 +54,6 @@ dist/
 
 # ── Config local de hooks ──
 scope.conf
+
+# ── Config local de caveman (preferencia personal) ──
+.caveman.json
