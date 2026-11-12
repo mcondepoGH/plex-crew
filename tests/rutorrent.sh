@@ -19,14 +19,23 @@ cfg="$(cat)"
 printf 'ARGV %s\nCFG %s\n' "$args" "$cfg" >>"$FAKE_LOG"
 body='{}'
 code=200
+outf=""
+prev=""
+for a in "$@"; do [ "$prev" = "-o" ] && outf="$a"; prev="$a"; done
 case "$args" in
   *mode=list*) body='{"t":{"0123456789ABCDEF0123456789ABCDEF01234567":["1","0","1","1","Pelicula X","1000","10","10","1000","0","0","0","0","0","seed","0","0","0","0","0","0"]}}' ;;
   *mode=getsavepath*) body="${FAKE_SAVEPATH-\"/data/downloads/seed/x\"}" ;;
   *mode=fls*) body='[["a.mkv",1000]]' ;;
   *diskspace*) body='{"free":1,"total":2}' ;;
+  *addtorrent.php*)
+    code="${FAKE_CODE:-302}"
+    printf '%s\n%s\n%s' "" "$code" "http://rt.test:8080/php/addtorrent.php?${FAKE_ADD_QUERY-result[]=Success&name[]=x&json=1}"
+    exit 0 ;;
+  *cmd=getfile*) body="${FAKE_TORRENT-d8:announce3:urle}" ;;
 esac
 [ -n "${FAKE_CODE:-}" ] && code="$FAKE_CODE"
 [ -n "${FAKE_RC:-}" ] && exit "$FAKE_RC"
+if [ -n "$outf" ]; then printf '%s' "$body" >"$outf"; printf '%s' "$code"; exit 0; fi
 printf '%s\n%s' "$body" "$code"
 FAKE
 chmod +x "$T/fakecurl"
@@ -105,9 +114,87 @@ run "add fichero" 0 "" -- add "$T/a.torrent"
 calls_have "add fichero" "torrent_file[]=@$T/a.torrent"
 run "add no torrent" 1 ".torrent" -- add "$HERE/rutorrent.sh"
 
+# --- add: el resultado viene en el 302 (Location: ...addtorrent.php?result[]=...)
+run "add 302 Success" 0 "OK" -- add "$T/a.torrent"
+run "add 302 Success con --dir" 0 "OK" -- add "$T/a.torrent" --dir /data/downloads/seed --no-add-name
+run "add 302 Duplicate" 0 "ya estaba" FAKE_ADD_QUERY='result[]=Duplicate&json=1' -- add "$T/a.torrent"
+run "add 302 FailedDirectory" 1 "FailedDirectory" FAKE_ADD_QUERY='result[]=FailedDirectory&json=1' -- add "$T/a.torrent" --dir /data/downloads/seed
+run "add 302 Failed" 1 "(Failed)" FAKE_ADD_QUERY='result[]=Failed&json=1' -- add "$T/a.torrent"
+run "add 302 FailedURL" 1 "FailedURL" FAKE_ADD_QUERY='result[]=FailedURL&json=1' -- add "magnet:?xt=urn:btih:abc"
+run "add 302 codificado %5B%5D" 0 "OK" FAKE_ADD_QUERY='result%5B%5D=Success&json=1' -- add "$T/a.torrent"
+run "add 302 sin resultado" 1 "no devolvió" FAKE_ADD_QUERY='json=1' -- add "$T/a.torrent"
+run "add HTTP 500" 1 "HTTP 500" FAKE_CODE=500 -- add "$T/a.torrent"
+run "add 302 mixto (uno falla)" 1 "FailedURL" FAKE_ADD_QUERY='result[]=Success&result[]=FailedURL&json=1' -- add "$T/a.torrent"
+
+# --- add --dir / --no-add-name
+run "add --dir" 0 "" -- add "$T/a.torrent" --dir /data/downloads/seed/ --label X
+calls_have "add dir_edit sin barra final" "dir_edit=/data/downloads/seed "
+calls_lack "add dir sin no-add-name" "not_add_path"
+run "add --dir --no-add-name" 0 "" -- add "$T/a.torrent" --dir /data/downloads/seed --no-add-name --stopped
+calls_have "add dir_edit" "dir_edit=/data/downloads/seed"
+calls_have "add not_add_path" "not_add_path=1"
+calls_have "add conserva stopped" "torrents_start_stopped=1"
+run "add sin dir no manda dir_edit" 0 "" -- add "$T/a.torrent" --label X
+calls_lack "add sin dir: sin dir_edit" "dir_edit"
+calls_lack "add sin dir: sin not_add_path" "not_add_path"
+calls_have "add sin dir: label" "label=X"
+run "add --no-add-name sin dir" 1 "requiere --dir" -- add "$T/a.torrent" --no-add-name
+run "add --dir relativa" 1 "absoluta" -- add "$T/a.torrent" --dir data/x
+run "add --dir .." 1 "'..'" -- add "$T/a.torrent" --dir /data/../etc
+run "add --dir .@" 1 ".@" -- add "$T/a.torrent" --dir /data/.@__thumb
+run "add --dir biblioteca" 1 "biblioteca" -- add "$T/a.torrent" --dir /data/media/movies
+run "add --dir biblioteca con flag" 0 "" -- add "$T/a.torrent" --dir /data/media/movies --allow-library
+run "add --dir fuera de ALLOWED" 1 "RUTORRENT_ALLOWED_DIR" RUTORRENT_ALLOWED_DIR=/data/downloads -- add "$T/a.torrent" --dir /otra
+run "add --dir sin valor" 1 "falta el valor de --dir" -- add "$T/a.torrent" --dir
+calls_lack "add rechazado sin red" "addtorrent.php"
+
+# --- getfile
+ID=4f2a9c.12
+run "getfile con --out" 0 "$T/out1.torrent" -- getfile "$ID" --out "$T/out1.torrent"
+calls_have "getfile endpoint" "/plugins/create/action.php"
+calls_have "getfile cmd" "cmd=getfile"
+calls_have "getfile no" "no=$ID"
+N=$((N + 1)); [ "$(head -c1 "$T/out1.torrent")" = d ] || { FAIL=$((FAIL + 1)); echo "FALLA getfile: contenido"; }
+N=$((N + 1)); [ "$(stat -c %a "$T/out1.torrent")" = 600 ] || { FAIL=$((FAIL + 1)); echo "FALLA getfile: permisos"; }
+N=$((N + 1)); [ -z "$(ls -A "$T" | grep '^\.getfile')" ] || { FAIL=$((FAIL + 1)); echo "FALLA getfile: temporal sobrante"; }
+N=$((N + 1)); grep '^ARGV' "$LOG" | grep -qF -e 'usr' -e 'p"w' && { FAIL=$((FAIL + 1)); echo "FALLA getfile: credenciales en argv"; }
+run "getfile no sobrescribe" 1 "--force" -- getfile "$ID" --out "$T/out1.torrent"
+calls_lack "no sobrescribe sin red" "getfile"
+printf 'viejo' >"$T/out2.torrent"
+run "getfile --force" 0 "" FAKE_TORRENT='d4:infod4:name1:xee' -- getfile "$ID" --out "$T/out2.torrent" --force
+N=$((N + 1)); [ "$(head -c1 "$T/out2.torrent")" = d ] || { FAIL=$((FAIL + 1)); echo "FALLA getfile --force: no sobrescribió"; }
+ln -s "$T/nada" "$T/roto.torrent"
+run "getfile enlace roto sin force" 1 "--force" -- getfile "$ID" --out "$T/roto.torrent"
+run "getfile sin id" 1 "falta el id" -- getfile
+run "getfile id inválido" 1 "id de tarea válido" -- getfile 'x;rm -rf'
+run "getfile id sin punto" 1 "id de tarea válido" -- getfile 4f2a9c
+run "getfile id ruta" 1 "id de tarea válido" -- getfile ../../x.1
+run "getfile --out .." 1 "'..'" -- getfile "$ID" --out "$T/../x.torrent"
+run "getfile --out sin .torrent" 1 ".torrent" -- getfile "$ID" --out "$T/x.bin"
+run "getfile --out carpeta inexistente" 1 "no existe la carpeta" -- getfile "$ID" --out "$T/nodir/x.torrent"
+run "getfile cuerpo vacío" 1 "vacío" FAKE_TORRENT= -- getfile "$ID" --out "$T/v.torrent"
+N=$((N + 1)); [ ! -e "$T/v.torrent" ] || { FAIL=$((FAIL + 1)); echo "FALLA getfile: dejó fichero vacío"; }
+run "getfile no bencode" 1 "no es un .torrent" FAKE_TORRENT='<html>' -- getfile "$ID" --out "$T/h.torrent"
+run "getfile HTTP 404" 1 "HTTP 404" FAKE_CODE=404 -- getfile "$ID" --out "$T/n.torrent"
+run "getfile HTTP 401" 1 "401" FAKE_CODE=401 -- getfile "$ID" --out "$T/n.torrent"
+run "getfile sin conexión" 1 "no se pudo conectar" FAKE_RC=7 -- getfile "$ID" --out "$T/n.torrent"
+N=$((N + 1)); [ ! -e "$T/n.torrent" ] || { FAIL=$((FAIL + 1)); echo "FALLA getfile: fichero tras error"; }
+mkdir -p "$T/tmpd"
+run "getfile sin --out usa TMPDIR" 0 "$T/tmpd/rutorrent-getfile." TMPDIR="$T/tmpd" -- getfile "$ID"
+N=$((N + 1)); f=$(ls "$T"/tmpd/rutorrent-getfile.*/"$ID.torrent" 2>/dev/null); { [ -n "$f" ] && [ "$(stat -c %a "$f")" = 600 ] && [ "$(stat -c %a "$(dirname "$f")")" = 700 ]; } || { FAIL=$((FAIL + 1)); echo "FALLA getfile temporal: ruta/permisos"; }
+run "getfile error sin --out no deja carpeta" 1 "HTTP 404" TMPDIR="$T/tmpd" FAKE_CODE=404 -- getfile 1a.2
+N=$((N + 1)); [ "$(ls "$T/tmpd" | wc -l)" = 1 ] || { FAIL=$((FAIL + 1)); echo "FALLA getfile: carpeta temporal sobrante"; }
+
 # --- create: validación de rutas
 run "create ok" 0 "" -- create /data/downloads/seed/x --tracker http://t/a --private
-calls_have "create start_seeding=0" "start_seeding=0"
+calls_have "create siembra por defecto" "start_seeding=1"
+calls_lack "create por defecto no envía start_seeding=0" "start_seeding=0"
+run "create --no-seed" 0 "" -- create /data/downloads/seed/x --no-seed
+calls_have "create --no-seed envía start_seeding=0" "start_seeding=0"
+calls_lack "create --no-seed no envía start_seeding=1" "start_seeding=1"
+run "create --no-seed antes de la ruta" 0 "" -- create --no-seed /data/downloads/seed/x --private
+calls_have "create --no-seed + --private" "start_seeding=0"
+run "create ok" 0 "" -- create /data/downloads/seed/x --tracker http://t/a --private
 calls_have "create private" "private=1"
 run "create relativa" 1 "absoluta" -- create seed/x
 run "create .." 1 "'..'" -- create /data/downloads/seed/../x

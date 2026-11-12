@@ -59,8 +59,11 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" diskspace
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" add "magnet:?xt=urn:btih:..." --label Peliculas --stopped
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" getfile 4f2a9c.12 --out ./MiCarpeta.torrent
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" add ./MiCarpeta.torrent --dir /data/ruta --no-add-name --stopped
 bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" stop HASH
-bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" create /data/downloads/seed/MiCarpeta --private
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" create /data/downloads/seed/MiCarpeta --private          # crea y siembra
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" create /data/downloads/seed/MiCarpeta --no-seed   # solo crea el .torrent
 ```
 
 ### Quitar (destructivo)

@@ -21,10 +21,11 @@ Base: `bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh"`
 | `files HASH` | Ficheros |
 | `diskspace` | Espacio en disco |
 | `tasks` | Tareas de creación |
-| `add URL\|FICHERO [--label X] [--stopped]` | Añadir |
+| `add URL\|FICHERO [--label X] [--stopped] [--dir RUTA [--no-add-name]]` | Añadir (`--dir`: carpeta de datos del contenedor; `--no-add-name`: no añade el nombre del torrent) |
+| `getfile ID [--out RUTA.torrent] [--force]` | Descargar el `.torrent` de una tarea de creación terminada |
 | `start HASH` / `stop HASH` / `recheck HASH` | Control |
 | `label HASH ETIQUETA` | Etiquetar |
-| `create RUTA [--tracker U] [--private] [--comment C] [--allow-library]` | Crear `.torrent` sin sembrar |
+| `create RUTA [--tracker U] [--private] [--comment C] [--no-seed] [--allow-library]` | Crear `.torrent` y sembrar (con `--no-seed`, solo crear) |
 | `remove HASH` | Quitar conservando datos (destructivo) |
 | `remove-with-data HASH [--allow-library]` | Quitar y borrar datos (destructivo) |
 

@@ -21,12 +21,12 @@ Lista, añade, controla, crea y quita torrents de ruTorrent con la API web de su
 
 Esta skill permite operar ruTorrent:
 - Listar torrents y ver su detalle, ficheros y el espacio en disco
-- Añadir torrents por URL, magnet o fichero `.torrent`
+- Añadir torrents por URL, magnet o fichero `.torrent`, con etiqueta y carpeta de datos propias (`--dir`)
 - Iniciar, parar, recomprobar y etiquetar torrents
-- Crear ficheros `.torrent` desde una ruta (sin empezar a sembrar)
+- Crear ficheros `.torrent` desde una ruta (sin empezar a sembrar) y descargar el `.torrent` de la tarea terminada (`getfile`)
 - Quitar torrents, con o sin borrado de los datos
 
-Las operaciones incluyen lectura, escritura y borrado. **Quitar un torrent (`remove`) y borrar sus datos (`remove-with-data`) son destructivos**: el hook `confirm-destructive` los deniega sin el marcador `PLEX_CREW_CONFIRMED=1`, que solo se pone tras la doble confirmación del usuario (ver `plex-crew-rules`). Confirma con el usuario antes de `add`, `create` y `label`, salvo que los haya pedido de forma explícita.
+Las operaciones incluyen lectura, escritura y borrado. **Quitar un torrent (`remove`) y borrar sus datos (`remove-with-data`) son destructivos**: el hook `confirm-destructive` los deniega sin el marcador `PLEX_CREW_CONFIRMED=1`, que solo se pone tras la doble confirmación del usuario (ver `plex-crew-rules`). Confirma con el usuario antes de `add`, `create` y `label` (`getfile` solo escribe un `.torrent` local y no necesita confirmación), salvo que los haya pedido de forma explícita.
 
 ## Configuración
 
@@ -76,9 +76,12 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" tasks
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" add "magnet:?xt=urn:btih:..." --label Peliculas --stopped
 bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" add /ruta/al/fichero.torrent
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" add fichero.torrent --dir /data/ruta --no-add-name --label x
 ```
 
-**Confirma con el usuario antes de añadir.** Acepta URL `http(s)`, magnet o un fichero `.torrent` local. `--stopped` lo añade parado; `--label` le pone etiqueta. **Salida:** la respuesta de ruTorrent.
+**Confirma con el usuario antes de añadir.** Acepta URL `http(s)`, magnet o un fichero `.torrent` local. `--stopped` lo añade parado; `--label` le pone etiqueta. `--dir <ruta del contenedor>` fija la carpeta de datos (campo `dir_edit` de ruTorrent) y se valida como las rutas de `create` (absoluta, sin `..` ni `.@*`, fuera de `movies`/`shows` salvo `--allow-library`, bajo `RUTORRENT_ALLOWED_DIR` si existe). Sin `--dir` el comportamiento no cambia (ruTorrent usa su carpeta por defecto). `--no-add-name` (solo con `--dir`, campo `not_add_path`) evita que ruTorrent añada el nombre del torrent a esa ruta. **Salida:** la respuesta de ruTorrent.
+
+**Sembrar datos que ya existen:** para un torrent de un solo fichero con los datos en `<dir>/<nombre>.ext`, pasa `--dir <dir> --no-add-name`. Si los datos no están o no coinciden, rTorrent los descargará o recomprobará: usa `--stopped` y revisa con `recheck` antes de `start`.
 
 ### Controlar y etiquetar
 
@@ -97,7 +100,16 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" label HASH Pe
 bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" create /data/downloads/seed/MiCarpeta --tracker http://tracker/announce --private --comment "texto"
 ```
 
-**Confirma con el usuario antes de crear.** Requiere el plugin `create` de ruTorrent y `mktorrent`. No empieza a sembrar (`start_seeding=0`). La ruta debe ser absoluta (del contenedor), sin `..`, sin carpetas `.@*`, fuera de `*/movies*` y `*/shows*` (salvo `--allow-library`, solo si el usuario lo pide de forma expresa) y, si existe `RUTORRENT_ALLOWED_DIR`, bajo ese prefijo. **Salida:** el id de tarea; sigue su estado con `tasks`.
+**Confirma con el usuario antes de crear.** Requiere el plugin `create` de ruTorrent y `mktorrent`. **Por defecto siembra** (`start_seeding=1`): al terminar la tarea ruTorrent carga el torrent en rTorrent con los datos en la carpeta padre de `RUTA` y lo arranca; con `--no-seed` solo se crea el `.torrent` (`start_seeding=0`). La ruta debe ser absoluta (del contenedor), sin `..`, sin carpetas `.@*`, fuera de `*/movies*` y `*/shows*` (salvo `--allow-library`, solo si el usuario lo pide de forma expresa) y, si existe `RUTORRENT_ALLOWED_DIR`, bajo ese prefijo. **Salida:** el id de tarea; sigue su estado con `tasks`.
+
+### Descargar el `.torrent` creado
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" getfile 4f2a9c.12 --out ./MiCarpeta.torrent
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rutorrent/scripts/rutorrent.sh" getfile 4f2a9c.12
+```
+
+Descarga el `.torrent` de una tarea de creación terminada (`Done.` en `tasks`). El id tiene formato `<hex>.<número>`. Sin `--out` lo guarda en una carpeta temporal nueva (modo 0700, bajo `${TMPDIR:-/tmp}`) con permisos 0600; con `--out` la ruta debe acabar en `.torrent`, sin `..`, y la carpeta debe existir. Nunca sobrescribe un fichero existente sin `--force`. Comprueba que el contenido no está vacío y empieza por `d` (bencode). **Salida:** la ruta del fichero. Flujo típico: `create` → `tasks` hasta `Done.` → `getfile` → `add ... --dir ... --no-add-name`.
 
 ### Quitar un torrent (destructivo)
 

@@ -52,6 +52,16 @@
 
 **Solución:** mira la ruta con `info` y `files`; no se borra nada hasta que se pueda validar.
 
+### `getfile` responde "HTTP 404" o "cuerpo vacío"
+**Causa:** la tarea no existe, no ha terminado o falló (no hay `result.torrent`), o el id es de otra tarea
+
+**Solución:** mira `tasks` y espera a `Done.`; usa el id exacto (formato `<hex>.<número>`).
+
+### `add --dir` devuelve `FailedDirectory`
+**Causa:** ruTorrent rechaza el `dir_edit`: queda fuera del directorio superior permitido (`topDirectory`) o no es corregible
+
+**Solución:** usa una ruta del contenedor dentro de `topDirectory`; con `--no-add-name` la carpeta ya debe contener los datos.
+
 ### La tabla de `list` sale con columnas incorrectas
 **Causa:** el formato de fila cambió; índices confirmados en vivo: 4 nombre, 5 tamaño, 8 bytes hechos, 14 etiqueta, 25 ruta de guardado
 
