@@ -8,6 +8,7 @@ Un plugin instalado no carga este `CLAUDE.md` como contexto: es solo la guía pa
 - Servicios del stack: usa las skills de `skills/` (prowlarr, radarr, sonarr, plex, tautulli, seerr, cli_debrid, rutorrent, agregarr, dozzle), no curl con claves en línea.
 - Las credenciales viven en `~/.claude/plex-crew/.env` (plantilla en `.env.example`), nunca en el repositorio.
 - En los `SKILL.md`, los scripts se invocan con `${CLAUDE_PLUGIN_ROOT}`: es la única ruta válida una vez instalado el plugin.
+- Sin CI de GitHub: la única comprobación es `bash tests/smoke.sh` (ejecútalo en local antes de cada commit de versión).
 
 ## Estructura
 - `agents/`: `orchestrator` (sesión principal), `plex-naming`, `arr-acquisition`.

@@ -185,7 +185,7 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 
 - El `CLAUDE.md` de la raíz es solo la guía de desarrollo del repositorio: un plugin instalado no lo carga.
 - `claude plugin validate .` emite un aviso por ese `CLAUDE.md`: es esperado y no indica un fallo.
-- `tests/smoke.sh` ejecuta las comprobaciones estáticas (sintaxis, JSON, frontmatter, scripts sin red); también corre en CI (`.github/workflows/ci.yml`).
+- `tests/smoke.sh` ejecuta las comprobaciones estáticas (sintaxis, JSON, frontmatter, scripts sin red). No hay CI de GitHub: ejecútalo en local antes de cada commit de versión.
 
 - Crear o revisar una skill: sigue [`skills/README.md`](skills/README.md), que fija estructura, plantilla y estándar.
 - Credenciales en scripts: cárgalas siempre con las librerías de [`_lib`](skills/_lib/README.md).
@@ -208,8 +208,7 @@ Detalle en [hooks/README.md](hooks/README.md#scopeconf).
 ├── docs/agents/               Un .md de documentación por agente
 ├── skills/                    Una carpeta por skill (con su README.md, incluida dozzle) y _lib/
 ├── hooks/                     hooks.json, README.md y los dos .js
-├── tests/                     smoke.sh (comprobaciones estáticas)
-└── .github/workflows/         ci.yml
+└── tests/                     smoke.sh (comprobaciones estáticas)
 ```
 
 ## Ficheros relacionados
