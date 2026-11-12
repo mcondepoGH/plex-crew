@@ -67,7 +67,7 @@ for sk in agregarr dozzle; do
 done
 
 # 4. Frontmatter name/description
-# shellcheck disable=SC2317  # falso positivo: se invoca de forma indirecta vía check "$@"
+# shellcheck disable=SC2317,SC2329  # falso positivo: se invoca de forma indirecta vía check "$@"
 frontmatter_ok() { # frontmatter_ok <fichero>
   awk '
     { sub(/\r$/, "") }
