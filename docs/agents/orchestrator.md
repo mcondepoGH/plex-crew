@@ -17,7 +17,8 @@ Límites:
 
 - No escribe ficheros ni ejecuta comandos: no tiene ninguna tool de escritura ni de shell (ni `Bash` ni las de edición).
 - No opera directamente sobre los servicios del stack: siempre pasa por un subagente.
-- Si la petición queda fuera de los dos dominios (nombrado, adquisición), lo dice y pregunta cómo seguir.
+- Si la petición queda fuera de los dominios Plex/arr (nombrado, adquisición), la delega directamente en un agente genérico (`general-purpose`), sin preguntar. Las consultas web se delegan igual.
+- No delega en servicios no configurados en el `.env` o que el usuario ya no usa (Prowlarr, cli_debrid): no los incluye en auditorías ni resúmenes de estado.
 
 ## Funciones
 

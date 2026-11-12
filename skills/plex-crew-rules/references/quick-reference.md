@@ -9,6 +9,8 @@ Reglas de un vistazo.
 | Marcador | `PLEX_CREW_CONFIRMED=1 ` antes del comando, solo tras la confirmación; con `cd`, después del `&&` | Comandos `Bash` destructivos |
 | Secretos | Viven en `~/.claude/plex-crew/.env`; nunca se imprimen, registran ni versionan | Siempre |
 | Tareas programadas | Sin `schedule` ni `RemoteTrigger` para tareas de red local | Programación |
+| Backups | Sin autolimpieza, salvo exención de retención explícita del usuario (borrar solo las más antiguas hasta dejar N, notificando cada borrado; marcador igualmente) | Retención de copias |
+| Servicios en desuso | No usar ni auditar Prowlarr/cli_debrid si no están en `.env` o el usuario ya no los usa | Auditorías, resúmenes de estado |
 | Carpetas `.@*` | Se ignoran: caché del NAS | Cualquier listado o renombrado |
 
 ## Colocación del marcador

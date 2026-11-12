@@ -16,6 +16,7 @@ Ejemplos:
 Límites:
 
 - Quitar series o películas con borrado de ficheros requiere doble confirmación: devuelve la propuesta al orquestador.
+- Prowlarr y cli_debrid: si no están configurados en el `.env` o el usuario ya no los usa, no los usa ni los incluye en auditorías ni resúmenes de estado.
 - Quitar torrents de ruTorrent o borrar sus datos requiere doble confirmación: devuelve la propuesta (hash, nombre, ficheros y ruta) al orquestador.
 - No imprime credenciales ni el contenido de `.env`.
 - Con indexadores que solo aceptan ids, busca con `imdbid`; si un indexador devuelve un título que no es el buscado, comprueba que la consulta lleva el id de IMDb (ver `arr-language-filters`).

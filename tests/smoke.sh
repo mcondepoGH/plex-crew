@@ -323,6 +323,14 @@ else
   echo "skip - claude plugin validate (binario claude no encontrado)"
 fi
 
+# 7b. Reglas de texto: orquestador, backups, servicios en desuso, carpetas .@*
+check "orquestador delega fuera de dominio en general-purpose sin preguntar" grep -q 'se delega directamente en un agente genérico (`general-purpose`), sin preguntar' agents/orchestrator.md
+check "orquestador ya no pregunta cómo seguir fuera de dominio" bash -c '! grep -q "pregunta cómo seguir" agents/orchestrator.md'
+check "rules: exención de retención de backups" grep -q 'Exención de retención de backups' skills/plex-crew-rules/SKILL.md
+check "rules: servicios no configurados o en desuso" grep -q 'Servicios no configurados o en desuso' skills/plex-crew-rules/SKILL.md
+check "arr-acquisition avisa de servicios no usados" grep -q 'Servicios no usados' agents/arr-acquisition.md
+check "rules: carpetas .@* se ignoran en silencio" grep -q 'Se ignoran en silencio' skills/plex-crew-rules/SKILL.md
+
 # 8. Tests de hooks, si existen
 if [ -f tests/hooks.sh ]; then
   check "tests/hooks.sh" bash tests/hooks.sh

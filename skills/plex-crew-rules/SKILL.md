@@ -38,6 +38,14 @@ Sin configuración ni variables de entorno. Los secretos viven en `~/.claude/ple
 - El hook `confirm-destructive` bloquea el comando sin el marcador. No lo añadas nunca por iniciativa propia ni tras una sola respuesta.
 - Un subagente no pide la confirmación: devuelve la propuesta (qué se borra o modifica, con rutas exactas) al orquestador, que es quien pregunta al usuario.
 
+### Exención de retención de backups (opcional)
+Por defecto no se autolimpian backups. Excepción: si el usuario ha concedido de forma explícita una exención de retención (por ejemplo «mantener como máximo 3 copias de cada original y borrar las más antiguas»), el agente puede aplicarla sin doble confirmación.
+- Borra solo las copias más antiguas por fecha, hasta dejar el máximo N que fijó el usuario (N=3 es solo un ejemplo).
+- Notifica cada borrado: ruta, fecha, tamaño y motivo.
+- Nunca borres el único respaldo de un cambio aún sin verificar.
+- El hook `confirm-destructive` no cambia: el comando lleva igualmente `PLEX_CREW_CONFIRMED=1`, y su uso está permitido solo bajo esta exención.
+- Sin exención explícita del usuario, rige la doble confirmación de siempre.
+
 ### Borrados masivos en modo automático
 En modo automático, el clasificador de Claude Code puede denegar el lanzamiento en segundo plano de agentes o scripts que borran en masa (motivos observados: «dangerous», «Auto-Mode Bypass»).
 - Ejecuta el borrado masivo por tramos (lotes), en primer plano y visibles, solo tras la doble confirmación ya dada. Cada tramo lleva el marcador `PLEX_CREW_CONFIRMED=1` como en cualquier operación destructiva.
@@ -51,8 +59,11 @@ En modo automático, el clasificador de Claude Code puede denegar el lanzamiento
 ### Tareas programadas
 No uses `schedule` ni `RemoteTrigger` para tareas que necesiten la red local: se ejecutan en la nube y no alcanzan el stack Plex. Las tareas programadas del orquestador usan `CronCreate`.
 
+### Servicios no configurados o en desuso
+Las skills `prowlarr` y `cli_debrid` se mantienen instaladas, pero si el servicio no está configurado en el `.env` del usuario, o el usuario ha indicado que ya no lo usa, el agente no intenta usarlo ni lo incluye en auditorías ni en resúmenes de estado.
+
 ### Carpetas ignoradas
-Ignora cualquier carpeta `.@*` (por ejemplo `.@__thumb`): son caché del NAS. No las listes, no las renombres ni las incluyas en los resultados. Un hook (`protected-paths.js`) lo hace cumplir, también con `@Recycle`, `@Recently-Snapshot` y otras carpetas de sistema del NAS, y no hay confirmación que lo salte.
+Ignora cualquier carpeta `.@*` (por ejemplo `.@__thumb`): son caché del NAS. Se ignoran en silencio: no las listes, no las renombres, no las incluyas en los resultados y no avisas al usuario de que existen ni de que las omites. Un hook (`protected-paths.js`) lo hace cumplir, también con `@Recycle`, `@Recently-Snapshot` y otras carpetas de sistema del NAS, y no hay confirmación que lo salte.
 
 ### Log de progreso en tareas largas
 Para que se vea desde fuera por dónde va un agente, el plugin lleva un log automático. No tienes que escribirlo ni purgarlo.
@@ -99,4 +110,5 @@ Para la referencia local detallada, consulta:
 - No toques las carpetas `.@*`
 - No dejes que una skill opcional salte una regla de esta lista
 - No escribas secretos en los logs ni los uses para esquivar un hook
-- No autolimpies backups: solo se borran cuando el usuario lo pida, con doble confirmación
+- No autolimpies backups: solo se borran cuando el usuario lo pida, con doble confirmación, salvo bajo una exención de retención explícita del usuario (ver «Exención de retención de backups»)
+- No uses Prowlarr ni cli_debrid si no están en el `.env` o el usuario ya no los usa
