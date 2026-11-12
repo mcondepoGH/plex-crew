@@ -54,7 +54,7 @@ Límites:
 |---|---|
 | [`confirm-destructive`](../../hooks/README.md#confirm-destructivejs) | Deniega comandos `Bash` destructivos salvo que lleven `PLEX_CREW_CONFIRMED=1`, que solo se pone tras la doble confirmación |
 | [`enforce-agent-scope`](../../hooks/README.md#enforce-agent-scopejs) | Registrado en `hooks/hooks.json` (plugin) para las cuatro tools que detalla el README de hooks; solo restringe a este agente, detectado por `agent_type`. Solo deja escribir bajo las rutas de `scope.conf` |
-| Doble confirmación | Dos mensajes distintos del usuario antes de cualquier operación destructiva, incluso en modo automático |
+| Doble confirmación | Dos mensajes distintos del usuario antes de cualquier operación destructiva, incluso en modo automático, salvo la exención de retención de backups, si el usuario la ha concedido de forma explícita (ver `plex-crew-rules`) |
 
 `scope.conf` se busca en `$PLEX_CREW_CONFIG` o, si no existe, en `~/.claude/plex-crew/scope.conf` (plantilla: `scope.conf.example`). Admite una ruta absoluta por línea, comentarios con `#` y `~`. Sin rutas, el hook deniega toda escritura. Ante la duda (sustituciones, `eval`, `xargs`, intérpretes...) también deniega. No es un sandbox.
 

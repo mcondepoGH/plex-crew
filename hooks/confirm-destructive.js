@@ -467,7 +467,7 @@ process.stdin.on('end', () => {
     'Comando destructivo bloqueado. Regla del stack: doble confirmación del usuario en dos mensajes distintos antes de ejecutarlo. ' +
       'Si el usuario ya ha confirmado dos veces, en dos mensajes distintos y de forma explícita, reintenta el mismo comando anteponiendo `PLEX_CREW_CONFIRMED=1 ` ' +
       'al comando destructivo (por ejemplo `PLEX_CREW_CONFIRMED=1 <comando>`; el marcador debe ir en el mismo segmento, no en otro tramo separado por ; & |). ' +
-      'No pongas ese marcador sin una doble confirmación real: ni por iniciativa propia ni tras una sola respuesta del usuario. ' +
+      'No pongas ese marcador sin una doble confirmación real: ni por iniciativa propia ni tras una sola respuesta del usuario, salvo que el usuario haya concedido una exención explícita (ver plex-crew-rules). ' +
       'Si todavía no hay confirmación, NO ejecutes el comando: devuelve al orquestador la propuesta (qué se borra o modifica, con las rutas exactas) para que pida las dos confirmaciones al usuario.'
   );
 });

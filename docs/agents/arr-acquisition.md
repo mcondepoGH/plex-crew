@@ -71,4 +71,4 @@ Límites:
 
 - Lo invoca el orquestador con `Agent`; no lanza subagentes.
 - Si tras añadir algo hace falta ajustar el nombre en Plex, lo indica y el orquestador delega en `plex-naming`.
-- Propone las operaciones destructivas; el orquestador pide la doble confirmación.
+- Propone las operaciones destructivas; el orquestador pide la doble confirmación, salvo la exención de retención de backups, si el usuario la ha concedido de forma explícita (ver `plex-crew-rules`).

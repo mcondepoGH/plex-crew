@@ -1,6 +1,6 @@
 # plex-crew
 
-Versión 1.4.0.
+Versión 1.4.1.
 
 Conjunto de agentes y skills de Claude Code para operar un servidor Plex y su ecosistema. Un orquestador recibe cada petición y la delega en el especialista adecuado. Se asume que las horas que menciona el usuario son la hora local de la máquina donde corre el plugin (zona horaria del sistema).
 
@@ -144,7 +144,7 @@ Solo el orquestador lanza subagentes; los especialistas devuelven sus propuestas
 
 Son una red de seguridad, no un sandbox.
 
-- Doble confirmación: toda operación destructiva exige dos mensajes distintos del usuario, incluso en modo automático. El subagente propone y el orquestador pide las confirmaciones.
+- Doble confirmación: toda operación destructiva exige dos mensajes distintos del usuario, incluso en modo automático, salvo la exención de retención de backups, si el usuario la ha concedido de forma explícita (ver `plex-crew-rules`). El subagente propone y el orquestador pide las confirmaciones.
 - Las reglas globales del proyecto están en la skill [`plex-crew-rules`](skills/plex-crew-rules/README.md).
 
 ## Configuración
